@@ -5,7 +5,7 @@ category: "Sinergi"
 tags: ["pisah sambut", "kakanwil", "masjuno", "aris munandar"]
 author: "Rezie Novian Putra"
 publishDate: 2026-11-03
-image: "/images/cover-lanjutkan-estafet-pengabdian-pisah-sambut-kakanwil-ditjenpas-bengkulu-perkiat-sinergi-pemasyarakatan-202611041645.jpg"
+image: "/images/cover-lanjutkan-estafet-pengabdian-pisah-sambut-kakanwil-ditjenpas-bengkulu-perkiat-sinergi-pemasyarakatan-202611041650.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"
 featured: true
 breaking: false
