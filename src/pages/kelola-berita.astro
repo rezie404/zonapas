@@ -1,0 +1,653 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../data/site';
+import { UPTS } from '../data/upt';
+
+const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+---
+
+<BaseLayout
+  title="Kelola Berita"
+  description="Kelola berita ZonaPas: tulis, ubah, dan hapus artikel. Login dengan GitHub, artikel tersimpan langsung ke repositori ZonaPas."
+>
+  <script type="application/json" id="kelola-data">{JSON.stringify({ categoryColors })}</script>
+
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Kelola Berita</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Tulis, ubah, dan hapus berita ZonaPas. Artikel tersimpan langsung ke repositori GitHub
+        rezie404/zonapas dan tayang di situs setelah rebuild sekitar 1–2 menit.
+      </p>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan akun GitHub yang memiliki akses ke repositori ZonaPas. Login memakai
+        jalur OAuth yang sama seperti CMS Decap.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
+      </p>
+    </section>
+
+    <!-- Aplikasi (setelah login) -->
+    <div id="app" class="hidden">
+      <!-- Bar pengguna + aksi -->
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" src="" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <button id="btn-logout" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+        <span class="flex-1"></span>
+        <button id="btn-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Daftar</button>
+        <button id="btn-new" type="button" class="rounded-lg bg-[#FACC15] px-4 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">+ Tulis Berita Baru</button>
+      </div>
+
+      <!-- Pencarian & filter -->
+      <div class="mt-4 flex flex-wrap gap-3">
+        <input id="q" type="search" placeholder="Cari judul, ringkasan, atau kategori…" class="min-w-[220px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+        <select id="filter-category" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+          <option value="">Semua kategori</option>
+          {CATEGORIES.map((c) => <option value={c.name}>{c.name}</option>)}
+        </select>
+        <span id="count" class="self-center text-sm text-slate-500 dark:text-slate-400"></span>
+      </div>
+
+      <!-- Pilihan Redaksi -->
+      <section class="pt-8" aria-label="Pilihan Redaksi">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Pilihan Redaksi</h2>
+        </div>
+        <div id="featured-list"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Berita Terkini -->
+      <section class="pt-8" aria-label="Berita Terkini">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Berita Terkini</h2>
+        </div>
+        <div id="latest-list" class="divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Formulir tulis/ubah berita -->
+      <section id="form-section" class="hidden pt-8" aria-label="Formulir berita">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 id="form-title" class="text-xl font-black uppercase tracking-tight">Tulis Berita Baru</h2>
+        </div>
+        <form id="form-berita" class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="md:col-span-2">
+              <label for="f-judul" class="mb-1 block text-sm font-bold">Judul *</label>
+              <input id="f-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div class="md:col-span-2">
+              <label for="f-ringkasan" class="mb-1 block text-sm font-bold">Ringkasan *</label>
+              <textarea id="f-ringkasan" required rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+            </div>
+            <div>
+              <label for="f-kategori" class="mb-1 block text-sm font-bold">Kategori *</label>
+              <select id="f-kategori" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                {CATEGORIES.map((c) => <option value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label for="f-tag" class="mb-1 block text-sm font-bold">Tag (pisahkan dengan koma)</label>
+              <input id="f-tag" placeholder="contoh: pembinaan, kanwil" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="f-penulis" class="mb-1 block text-sm font-bold">Penulis</label>
+              <input id="f-penulis" value="Rezie Novian Putra" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="f-tanggal" class="mb-1 block text-sm font-bold">Tanggal Terbit *</label>
+              <input id="f-tanggal" type="date" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="f-upt" class="mb-1 block text-sm font-bold">UPT Terkait</label>
+              <select id="f-upt" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                <option value="">— Tanpa UPT —</option>
+                {UPTS.map((u) => <option value={u.name}>{u.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-bold">Foto Sampul *</label>
+              <input id="f-foto" type="file" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p id="f-foto-saat-ini" class="mt-1 hidden text-xs text-slate-500"></p>
+              <p class="mt-1 text-xs text-slate-500">Foto diubah ukurannya di browser (maks. sisi terpanjang 1600px, hasil akhir maks. 2 MB). Foto otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+              <img id="f-foto-preview" src="" alt="Pratinjau foto sampul" class="mt-2 hidden max-h-48 rounded-lg border border-slate-200 object-cover dark:border-slate-800" />
+            </div>
+            <div class="md:col-span-2">
+              <label for="f-keterangan" class="mb-1 block text-sm font-bold">Keterangan Foto</label>
+              <input id="f-keterangan" value="Dokumentasi kegiatan. (ZonaPas)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div class="flex items-center gap-6 md:col-span-2">
+              <label class="flex items-center gap-2 text-sm font-bold"><input id="f-featured" type="checkbox" class="h-4 w-4" /> Tampilkan sebagai Headline (Pilihan Redaksi)</label>
+              <label class="flex items-center gap-2 text-sm font-bold"><input id="f-breaking" type="checkbox" class="h-4 w-4" /> Breaking News</label>
+            </div>
+            <div class="md:col-span-2">
+              <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
+              <textarea id="f-isi" required rows="12" placeholder="Tulis isi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+            </div>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <button type="submit" id="btn-save" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Simpan Berita</button>
+            <button type="button" id="btn-cancel" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
+          </div>
+          <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Setelah disimpan, artikel tayang di situs setelah rebuild sekitar 1–2 menit.
+          </p>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const GH_API = 'https://api.github.com/repos/rezie404/zonapas';
+    const OAUTH_AUTH_URL = 'https://oauth.zonapas.web.id/auth';
+    const OAUTH_ORIGIN = 'https://oauth.zonapas.web.id';
+    const SITE_URL = 'https://zonapas.web.id';
+    const MAX_COVER_BYTES = 2 * 1024 * 1024;
+
+    const kelolaData = JSON.parse(document.getElementById('kelola-data').textContent);
+    const CATEGORY_COLORS = kelolaData.categoryColors || {};
+
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $('status');
+    const loginBox = $('login-box');
+    const appEl = $('app');
+
+    let token = null;
+    try { token = sessionStorage.getItem('zonapas-kelola-token') || null; } catch (e) {}
+    let articles = [];
+    let editing = null; // { path, sha, slug, image }
+    let pendingCover = null; // { dataUrl, name }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function showStatus(msg, ok) {
+      statusEl.textContent = msg;
+      statusEl.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-900', 'bg-red-100', 'text-red-900', 'dark:bg-emerald-900/40', 'dark:text-emerald-100', 'dark:bg-red-900/40', 'dark:text-red-100');
+      statusEl.classList.add(ok ? 'bg-emerald-100' : 'bg-red-100', ok ? 'text-emerald-900' : 'text-red-900', ok ? 'dark:bg-emerald-900/40' : 'dark:bg-red-900/40', ok ? 'dark:text-emerald-100' : 'dark:text-red-100');
+      statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function slugify(text) {
+      return String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'berita';
+    }
+
+    function formatDateShort(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      if (isNaN(d)) return iso;
+      return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+    }
+
+    function todayISO() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function b64encodeUnicode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    function b64decodeUnicode(b64) {
+      return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
+    }
+
+    function parseFrontmatter(text) {
+      const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+      if (!m) return { data: {}, body: text };
+      const data = {};
+      for (const line of m[1].split(/\r?\n/)) {
+        const idx = line.indexOf(':');
+        if (idx === -1) continue;
+        const key = line.slice(0, idx).trim();
+        let val = line.slice(idx + 1).trim();
+        if (!key) continue;
+        if (val.startsWith('[') && val.endsWith(']')) {
+          try { data[key] = JSON.parse(val); continue; } catch (e) {}
+        }
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          try { data[key] = JSON.parse(val); continue; } catch (e) { val = val.slice(1, -1); }
+        }
+        if (val === 'true') { data[key] = true; continue; }
+        if (val === 'false') { data[key] = false; continue; }
+        data[key] = val;
+      }
+      return { data, body: m[2] || '' };
+    }
+
+    function sourceBadge(source) {
+      if (source === 'jurnalpas') return '<span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">JurnalPAS</span>';
+      if (source === 'zonapas') return '<span class="ml-2 rounded-full bg-[#0A2540] px-2 py-0.5 text-[11px] font-bold text-white">Artikel ZonaPas</span>';
+      return '<span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>';
+    }
+
+    function catLabel(cat) {
+      const color = CATEGORY_COLORS[cat] || '#0A2540';
+      return '<span class="text-xs font-bold uppercase tracking-wide" style="color:' + esc(color) + '">' + esc(cat) + '</span>';
+    }
+
+    function imageUrl(img) {
+      if (!img) return '/images/cover-default.svg';
+      if (img.startsWith('http')) return img;
+      if (img.startsWith('/')) return SITE_URL + img;
+      return SITE_URL + '/' + img;
+    }
+
+    // ---------- GitHub API ----------
+    async function gh(path, options) {
+      const res = await fetch(GH_API + path, {
+        ...(options || {}),
+        headers: {
+          Authorization: 'Bearer ' + token,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          ...((options && options.headers) || {}),
+        },
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) {}
+      if (!res.ok) {
+        const msg = (data && data.message) || ('GitHub mengembalikan status ' + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    async function ghApi(url, options) {
+      const res = await fetch(url, {
+        ...(options || {}),
+        headers: {
+          Authorization: 'Bearer ' + token,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          ...((options && options.headers) || {}),
+        },
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) {}
+      if (!res.ok) {
+        const msg = (data && data.message) || ('GitHub mengembalikan status ' + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    async function loadArticles() {
+      const list = await gh('/contents/src/content/berita?ref=main');
+      const files = (Array.isArray(list) ? list : []).filter((f) => f.type === 'file' && f.name.endsWith('.md'));
+      const loaded = [];
+      for (const f of files) {
+        try {
+          const file = await gh('/contents/src/content/berita/' + encodeURIComponent(f.name) + '?ref=main');
+          const text = b64decodeUnicode(file.content || '');
+          const parsed = parseFrontmatter(text);
+          const slug = f.name.replace(/\.md$/, '');
+          loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data, body: parsed.body });
+        } catch (e) {
+          console.warn('Gagal memuat ' + f.name, e);
+        }
+      }
+      loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
+      articles = loaded;
+      renderLists();
+    }
+
+    // ---------- Render daftar ----------
+    function filteredArticles() {
+      const q = ($('q').value || '').toLowerCase().trim();
+      const cat = $('filter-category').value || '';
+      return articles.filter((a) => {
+        if (cat && a.data.category !== cat) return false;
+        if (!q) return true;
+        return ((a.data.title || '') + ' ' + (a.data.summary || '') + ' ' + (a.data.category || '')).toLowerCase().includes(q);
+      });
+    }
+
+    function rowHtml(a) {
+      const d = a.data;
+      return '<article class="flex gap-3 py-4">' +
+        '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="shrink-0">' +
+        '<img src="' + esc(imageUrl(d.image)) + '" alt="' + esc(d.imageCaption || d.title) + '" loading="lazy" width="120" height="80" class="h-20 w-28 rounded-lg object-cover" /></a>' +
+        '<div class="min-w-0 flex-1"><div>' + catLabel(d.category || '-') + sourceBadge(d.source) + '</div>' +
+        '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="mt-0.5 block text-sm font-bold leading-snug hover:text-[#92400E] hover:underline">' + esc(d.title || '(tanpa judul)') + '</a>' +
+        '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + (d.upt ? ' · ' + esc(d.upt) : '') + '</span>' +
+        '<div class="mt-2 flex gap-2">' +
+        '<button type="button" data-edit="' + esc(a.slug) + '" class="rounded-md border border-[#0A2540] px-2.5 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Ubah</button>' +
+        '<button type="button" data-delete="' + esc(a.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button>' +
+        '</div></div></article>';
+    }
+
+    function renderLists() {
+      const list = filteredArticles();
+      $('count').textContent = list.length + ' dari ' + articles.length + ' berita';
+      const featured = list.filter((a) => a.data.featured === true);
+      const featEl = $('featured-list');
+      if (!featured.length) {
+        featEl.innerHTML = '<p class="text-sm text-slate-500">Belum ada artikel yang ditandai sebagai Pilihan Redaksi.</p>';
+      } else {
+        const hero = featured[0];
+        const rest = featured.slice(1);
+        let html = '<a href="/berita/' + esc(hero.slug) + '/" target="_blank" rel="noopener" class="group relative block overflow-hidden rounded-2xl">' +
+          '<img src="' + esc(imageUrl(hero.data.image)) + '" alt="' + esc(hero.data.imageCaption || hero.data.title) + '" loading="eager" class="aspect-[16/9] w-full object-cover" />' +
+          '<span class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></span>' +
+          '<span class="absolute inset-x-0 bottom-0 p-5"><span class="inline-block rounded bg-[#FACC15] px-2 py-1 text-xs font-bold uppercase tracking-wide text-[#0A2540]">' + esc(hero.data.category || '') + '</span>' + sourceBadge(hero.data.source) +
+          '<span class="mt-2 block text-xl font-extrabold leading-tight text-white sm:text-2xl">' + esc(hero.data.title || '') + '</span>' +
+          '<span class="mt-2 block text-xs text-slate-300">' + esc(formatDateShort(hero.data.publishDate || '')) + '</span></span></a>';
+        if (rest.length) html += '<div class="mt-2 divide-y divide-slate-200 dark:divide-slate-800">' + rest.map(rowHtml).join('') + '</div>';
+        featEl.innerHTML = html;
+      }
+      const latestEl = $('latest-list');
+      latestEl.innerHTML = list.length ? list.map(rowHtml).join('') : '<p class="py-3 text-sm text-slate-500">Tidak ada berita yang cocok dengan pencarian.</p>';
+    }
+
+    // ---------- Login GitHub (popup + Worker OAuth) ----------
+    let popup = null;
+    let popupTimer = null;
+
+    function setLoggedIn(user) {
+      loginBox.classList.add('hidden');
+      appEl.classList.remove('hidden');
+      $('user-name').textContent = user.login || 'GitHub';
+      const avatar = $('user-avatar');
+      avatar.src = user.avatar_url || '';
+      avatar.alt = user.login || '';
+      showStatus('Masuk sebagai ' + (user.login || '') + '. Memuat daftar berita…', true);
+      loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
+    }
+
+    function setLoggedOut(msg) {
+      token = null;
+      try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
+      appEl.classList.add('hidden');
+      loginBox.classList.remove('hidden');
+      $('form-section').classList.add('hidden');
+      if (msg) showStatus(msg, false);
+    }
+
+    window.addEventListener('message', async (event) => {
+      if (event.origin !== OAUTH_ORIGIN) return;
+      if (event.data === 'authorizing:github') {
+        if (popup && !popup.closed) popup.postMessage('authorizing:github', OAUTH_ORIGIN);
+        return;
+      }
+      if (typeof event.data === 'string' && event.data.indexOf('authorization:github:success:') === 0) {
+        try {
+          const payload = JSON.parse(event.data.slice('authorization:github:success:'.length));
+          token = payload.token;
+          try { sessionStorage.setItem('zonapas-kelola-token', token); } catch (e) {}
+          if (popupTimer) { clearInterval(popupTimer); popupTimer = null; }
+          if (popup && !popup.closed) popup.close();
+          const user = await ghApi('https://api.github.com/user');
+          setLoggedIn(user);
+        } catch (err) {
+          showStatus('Login gagal: ' + err.message, false);
+        }
+      }
+    });
+
+    $('btn-login').addEventListener('click', () => {
+      popup = window.open(OAUTH_AUTH_URL, 'zonapas-github-login', 'width=640,height=720,popup=1');
+      if (!popup) {
+        showStatus('Popup diblokir browser. Izinkan popup untuk situs ini, lalu coba lagi.', false);
+        return;
+      }
+      showStatus('Jendela login GitHub dibuka. Selesaikan otorisasi di jendela tersebut…', true);
+      if (popupTimer) clearInterval(popupTimer);
+      popupTimer = setInterval(() => {
+        if (popup && popup.closed) {
+          clearInterval(popupTimer);
+          popupTimer = null;
+          if (!token) showStatus('Jendela login ditutup sebelum selesai. Klik "Masuk dengan GitHub" untuk mencoba lagi.', false);
+        }
+      }, 500);
+    });
+
+    $('btn-logout').addEventListener('click', () => setLoggedOut('Anda sudah keluar.'));
+
+    // ---------- Form ----------
+    function resetForm() {
+      editing = null;
+      pendingCover = null;
+      $('form-berita').reset();
+      $('f-penulis').value = 'Rezie Novian Putra';
+      $('f-keterangan').value = 'Dokumentasi kegiatan. (ZonaPas)';
+      $('f-tanggal').value = todayISO();
+      $('f-foto-preview').classList.add('hidden');
+      $('f-foto-preview').src = '';
+      $('f-foto-saat-ini').classList.add('hidden');
+      $('f-foto-saat-ini').textContent = '';
+      $('form-title').textContent = 'Tulis Berita Baru';
+      $('btn-save').textContent = 'Simpan Berita';
+    }
+
+    $('btn-new').addEventListener('click', () => {
+      resetForm();
+      $('form-section').classList.remove('hidden');
+      $('form-section').scrollIntoView({ behavior: 'smooth' });
+      $('f-judul').focus();
+    });
+
+    $('btn-cancel').addEventListener('click', () => {
+      resetForm();
+      $('form-section').classList.add('hidden');
+    });
+
+    $('f-foto').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const preview = $('f-foto-preview');
+      if (!file) { pendingCover = null; preview.classList.add('hidden'); return; }
+      try {
+        const dataUrl = await resizeCover(file);
+        pendingCover = { dataUrl };
+        preview.src = dataUrl;
+        preview.classList.remove('hidden');
+      } catch (err) {
+        pendingCover = null;
+        e.target.value = '';
+        showStatus(err.message, false);
+      }
+    });
+
+    function resizeCover(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * scale));
+          c.height = Math.max(1, Math.round(img.height * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          const dataUrl = c.toDataURL('image/jpeg', 0.85);
+          const bytes = Math.round(dataUrl.length * 0.75);
+          if (bytes > MAX_COVER_BYTES) return reject(new Error('Foto hasil akhir lebih dari 2 MB (' + Math.round(bytes / 1024 / 1024 * 10) / 10 + ' MB). Pilih foto lain yang lebih kecil.'));
+          resolve(dataUrl);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('File foto tidak bisa dibaca.')); };
+        img.src = url;
+      });
+    }
+
+    function buildMarkdown(d) {
+      const q = (v) => JSON.stringify(String(v ?? ''));
+      const tags = (d.tags || []).map((t) => JSON.stringify(t)).join(', ');
+      const lines = [
+        '---',
+        'title: ' + q(d.title),
+        'summary: ' + q(d.summary),
+        'category: ' + q(d.category),
+        'tags: [' + tags + ']',
+        'author: ' + q(d.author),
+        'publishDate: ' + d.publishDate,
+        'image: ' + q(d.image),
+        'imageCaption: ' + q(d.imageCaption),
+        'featured: ' + (d.featured ? 'true' : 'false'),
+        'breaking: ' + (d.breaking ? 'true' : 'false'),
+      ];
+      if (d.upt) lines.push('upt: ' + q(d.upt));
+      lines.push('source: "zonapas"', '---', '', d.body.trim() + '', '');
+      return lines.join('\n');
+    }
+
+    async function uploadCover(slug) {
+      if (!pendingCover) return null;
+      const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+      const filename = 'cover-' + slug + '-' + stamp + '.jpg';
+      const base64 = pendingCover.dataUrl.split(',')[1];
+      await gh('/contents/public/images/' + encodeURIComponent(filename), {
+        method: 'PUT',
+        body: JSON.stringify({ message: 'Unggah foto sampul: ' + filename, content: base64, branch: 'main' }),
+      });
+      return '/images/' + filename;
+    }
+
+    $('form-berita').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = $('btn-save');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan…';
+      try {
+        const title = $('f-judul').value.trim();
+        const summary = $('f-ringkasan').value.trim();
+        const category = $('f-kategori').value;
+        const body = $('f-isi').value.trim();
+        const publishDate = $('f-tanggal').value;
+        if (!title || !summary || !category || !body || !publishDate) throw new Error('Judul, ringkasan, kategori, tanggal terbit, dan isi berita wajib diisi.');
+        const slug = editing ? editing.slug : slugify(title);
+        let image = editing ? editing.image : '';
+        if (pendingCover) {
+          const uploaded = await uploadCover(slug);
+          if (uploaded) image = uploaded;
+        }
+        if (!image) throw new Error('Foto sampul wajib diunggah.');
+        const data = {
+          title, summary, category,
+          tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
+          author: $('f-penulis').value.trim() || 'Rezie Novian Putra',
+          publishDate,
+          image,
+          imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
+          featured: $('f-featured').checked,
+          breaking: $('f-breaking').checked,
+          upt: $('f-upt').value || '',
+          body,
+        };
+        let finalSlug = slug;
+        let sha = editing ? editing.sha : undefined;
+        if (!editing) {
+          let n = 2;
+          while (true) {
+            try {
+              const existing = await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md?ref=main');
+              if (existing && existing.sha) { finalSlug = slug + '-' + n; n++; continue; }
+              break;
+            } catch (err) { break; }
+          }
+        }
+        const md = buildMarkdown(data);
+        const payload = { message: (editing ? 'Ubah berita: ' : 'Tambah berita: ') + title, content: b64encodeUnicode(md), branch: 'main' };
+        if (sha) payload.sha = sha;
+        await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md', { method: 'PUT', body: JSON.stringify(payload) });
+        showStatus('Berita "' + title + '" tersimpan. Artikel tayang di situs setelah rebuild sekitar 1–2 menit: ' + SITE_URL + '/berita/' + finalSlug + '/', true);
+        resetForm();
+        $('form-section').classList.add('hidden');
+        await loadArticles();
+      } catch (err) {
+        showStatus('Gagal menyimpan: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Simpan Berita';
+      }
+    });
+
+    // ---------- Ubah & Hapus (event delegation) ----------
+    document.addEventListener('click', async (e) => {
+      const editBtn = e.target.closest('[data-edit]');
+      const delBtn = e.target.closest('[data-delete]');
+      if (editBtn) {
+        const a = articles.find((x) => x.slug === editBtn.getAttribute('data-edit'));
+        if (!a) return;
+        editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '' };
+        $('f-judul').value = a.data.title || '';
+        $('f-ringkasan').value = a.data.summary || '';
+        $('f-kategori').value = a.data.category || '';
+        $('f-tag').value = (a.data.tags || []).join(', ');
+        $('f-penulis').value = a.data.author || 'Rezie Novian Putra';
+        $('f-tanggal').value = String(a.data.publishDate || '').slice(0, 10);
+        $('f-upt').value = a.data.upt || '';
+        $('f-keterangan').value = a.data.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
+        $('f-featured').checked = a.data.featured === true;
+        $('f-breaking').checked = a.data.breaking === true;
+        $('f-isi').value = a.body || '';
+        $('f-foto').value = '';
+        pendingCover = null;
+        const prev = $('f-foto-preview');
+        if (a.data.image) { prev.src = imageUrl(a.data.image); prev.classList.remove('hidden'); } else { prev.classList.add('hidden'); prev.src = ''; }
+        const cur = $('f-foto-saat-ini');
+        cur.textContent = a.data.image ? ('Foto saat ini: ' + a.data.image + ' (biarkan kosong bila tidak diganti)') : '';
+        cur.classList.toggle('hidden', !a.data.image);
+        $('form-title').textContent = 'Ubah Berita';
+        $('btn-save').textContent = 'Simpan Perubahan';
+        $('form-section').classList.remove('hidden');
+        $('form-section').scrollIntoView({ behavior: 'smooth' });
+      }
+      if (delBtn) {
+        const a = articles.find((x) => x.slug === delBtn.getAttribute('data-delete'));
+        if (!a) return;
+        if (!confirm('Hapus berita "' + (a.data.title || a.slug) + '"? Tindakan ini tidak bisa dibatalkan.')) return;
+        try {
+          await gh('/contents/' + a.path, {
+            method: 'DELETE',
+            body: JSON.stringify({ message: 'Hapus berita: ' + (a.data.title || a.slug), sha: a.sha, branch: 'main' }),
+          });
+          showStatus('Berita "' + (a.data.title || a.slug) + '" dihapus. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
+          await loadArticles();
+        } catch (err) {
+          showStatus('Gagal menghapus: ' + err.message, false);
+        }
+      }
+    });
+
+    $('q').addEventListener('input', renderLists);
+    $('filter-category').addEventListener('change', renderLists);
+    $('btn-refresh').addEventListener('click', () => {
+      showStatus('Memuat ulang daftar berita…', true);
+      loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
+    });
+
+    // ---------- Pulihkan sesi bila ada token tersimpan ----------
+    (async () => {
+      $('f-tanggal').value = todayISO();
+      if (!token) return;
+      try {
+        const user = await ghApi('https://api.github.com/user');
+        setLoggedIn(user);
+      } catch (err) {
+        setLoggedOut('Sesi GitHub sudah berakhir. Silakan masuk lagi.');
+      }
+    })();
+  </script>
+</BaseLayout>
