@@ -10,7 +10,10 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
   title="Kelola Berita"
   description="Kelola berita ZonaPas: tulis, ubah, dan hapus artikel. Login dengan GitHub, artikel tersimpan langsung ke repositori ZonaPas."
 >
-  <script type="application/json" id="kelola-data">{JSON.stringify({ categoryColors })}</script>
+  <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
+       ekspresi {…} di dalam tag <script>, jadi penulisan {JSON.stringify(…)}
+       akan tercetak mentah dan JSON.parse di script utama akan gagal. -->
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors })} />
 
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
@@ -41,6 +44,14 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
         <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
         Masuk dengan GitHub
       </button>
+      <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
+           baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
+           dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
       <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
         Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
       </p>
@@ -51,7 +62,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       <!-- Bar pengguna + aksi -->
       <div class="mt-6 flex flex-wrap items-center gap-3">
         <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
-          <img id="user-avatar" src="" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
           <span id="user-name"></span>
         </span>
         <button id="btn-logout" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
@@ -165,10 +176,25 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
     const SITE_URL = 'https://zonapas.web.id';
     const MAX_COVER_BYTES = 2 * 1024 * 1024;
 
-    const kelolaData = JSON.parse(document.getElementById('kelola-data').textContent);
+    // Data pulau JSON dibaca secara defensif: bila isinya tidak terbaca,
+    // pakai default kosong supaya satu kegagalan data tidak pernah
+    // mematikan seluruh script halaman (dan tombol login).
+    let kelolaData = {};
+    try {
+      const raw = document.getElementById('kelola-data');
+      kelolaData = raw && raw.textContent ? JSON.parse(raw.textContent) : {};
+    } catch (e) {
+      console.warn('Data kelola tidak terbaca, memakai default.', e);
+    }
     const CATEGORY_COLORS = kelolaData.categoryColors || {};
 
     const $ = (id) => document.getElementById(id);
+    // Pasang listener hanya bila elemennya ada: satu elemen yang hilang
+    // tidak boleh mematikan seluruh script halaman.
+    function on(id, event, fn) {
+      const el = $(id);
+      if (el) el.addEventListener(event, fn);
+    }
     const statusEl = $('status');
     const loginBox = $('login-box');
     const appEl = $('app');
@@ -389,7 +415,11 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
     window.addEventListener('message', async (event) => {
       if (event.origin !== OAUTH_ORIGIN) return;
       if (event.data === 'authorizing:github') {
-        if (popup && !popup.closed) popup.postMessage('authorizing:github', OAUTH_ORIGIN);
+        // Echo ke pengirim (popup, atau tab baru bila login dibuka lewat
+        // tautan fallback). Worker menunggu echo ini; tanpa echo, Worker
+        // tetap lanjut setelah 3 detik, tapi echo membuat alur langsung.
+        const target = (popup && !popup.closed) ? popup : (event.source || null);
+        if (target) target.postMessage('authorizing:github', OAUTH_ORIGIN);
         return;
       }
       if (typeof event.data === 'string' && event.data.indexOf('authorization:github:success:') === 0) {
@@ -407,10 +437,20 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       }
     });
 
-    $('btn-login').addEventListener('click', () => {
+    const btnLogin = $('btn-login');
+    if (btnLogin) btnLogin.addEventListener('click', () => {
+      // Status tombol yang terlihat: klik harus selalu memberi respon.
+      const labelHtml = btnLogin.innerHTML;
+      btnLogin.disabled = true;
+      btnLogin.textContent = 'Menghubungkan…';
+      const restoreBtn = () => { btnLogin.disabled = false; btnLogin.innerHTML = labelHtml; };
+      if (popupTimer) { clearInterval(popupTimer); popupTimer = null; }
       popup = window.open(OAUTH_AUTH_URL, 'zonapas-github-login', 'width=640,height=720,popup=1');
       if (!popup) {
-        showStatus('Popup diblokir browser. Izinkan popup untuk situs ini, lalu coba lagi.', false);
+        restoreBtn();
+        const fb = $('login-fallback');
+        if (fb) fb.classList.remove('hidden');
+        showStatus('Popup diblokir browser. Izinkan popup untuk situs ini lalu coba lagi, atau buka login GitHub di tab baru lewat tautan di bawah tombol.', false);
         return;
       }
       showStatus('Jendela login GitHub dibuka. Selesaikan otorisasi di jendela tersebut…', true);
@@ -419,12 +459,15 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
         if (popup && popup.closed) {
           clearInterval(popupTimer);
           popupTimer = null;
-          if (!token) showStatus('Jendela login ditutup sebelum selesai. Klik "Masuk dengan GitHub" untuk mencoba lagi.', false);
+          if (!token) {
+            restoreBtn();
+            showStatus('Jendela login ditutup sebelum selesai. Klik "Masuk dengan GitHub" untuk mencoba lagi.', false);
+          }
         }
       }, 500);
     });
 
-    $('btn-logout').addEventListener('click', () => setLoggedOut('Anda sudah keluar.'));
+    on('btn-logout', 'click', () => setLoggedOut('Anda sudah keluar.'));
 
     // ---------- Form ----------
     function resetForm() {
@@ -442,19 +485,19 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       $('btn-save').textContent = 'Simpan Berita';
     }
 
-    $('btn-new').addEventListener('click', () => {
+    on('btn-new', 'click', () => {
       resetForm();
       $('form-section').classList.remove('hidden');
       $('form-section').scrollIntoView({ behavior: 'smooth' });
       $('f-judul').focus();
     });
 
-    $('btn-cancel').addEventListener('click', () => {
+    on('btn-cancel', 'click', () => {
       resetForm();
       $('form-section').classList.add('hidden');
     });
 
-    $('f-foto').addEventListener('change', async (e) => {
+    on('f-foto', 'change', async (e) => {
       const file = e.target.files && e.target.files[0];
       const preview = $('f-foto-preview');
       if (!file) { pendingCover = null; preview.classList.add('hidden'); return; }
@@ -524,7 +567,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       return '/images/' + filename;
     }
 
-    $('form-berita').addEventListener('submit', async (e) => {
+    on('form-berita', 'submit', async (e) => {
       e.preventDefault();
       const btn = $('btn-save');
       btn.disabled = true;
@@ -631,16 +674,17 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       }
     });
 
-    $('q').addEventListener('input', renderLists);
-    $('filter-category').addEventListener('change', renderLists);
-    $('btn-refresh').addEventListener('click', () => {
+    on('q', 'input', renderLists);
+    on('filter-category', 'change', renderLists);
+    on('btn-refresh', 'click', () => {
       showStatus('Memuat ulang daftar berita…', true);
       loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
     });
 
     // ---------- Pulihkan sesi bila ada token tersimpan ----------
     (async () => {
-      $('f-tanggal').value = todayISO();
+      const tgl = $('f-tanggal');
+      if (tgl) tgl.value = todayISO();
       if (!token) return;
       try {
         const user = await ghApi('https://api.github.com/user');
