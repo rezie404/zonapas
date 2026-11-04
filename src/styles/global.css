@@ -60,3 +60,12 @@ body {
   text-decoration: underline;
 }
 .article-body strong { font-weight: 700; }
+/* Foto di badan narasi: tampil utuh tanpa terpotong — tinggi mengikuti rasio asli foto */
+.article-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 0.75rem;
+  margin: 0 0 1.25rem;
+}

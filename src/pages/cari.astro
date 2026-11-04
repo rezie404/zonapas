@@ -55,7 +55,7 @@ import { SITE } from '../data/site';
         status.textContent = hits.length + ' hasil untuk "' + q + '".';
         results.innerHTML = hits.map((item) =>
           '<a href="' + item.url + '" class="block overflow-hidden rounded-xl border border-slate-200 bg-white hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">' +
-          '<img src="' + esc(item.image) + '" alt="" loading="lazy" class="aspect-[16/9] w-full object-cover" />' +
+          '<img src="' + esc(item.image) + '" alt="" loading="lazy" class="aspect-[16/9] w-full bg-slate-100 object-contain dark:bg-slate-800" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" />' +
           '<span class="block p-4"><span class="text-xs font-bold uppercase tracking-wide text-slate-500">' + esc(item.category) + ' • ' + esc(item.date) + '</span>' +
           '<span class="mt-1 block text-base font-bold leading-snug">' + esc(item.title) + '</span>' +
           '<span class="mt-2 block text-sm text-slate-600 dark:text-slate-400">' + esc(item.summary) + '</span></span></a>'
