@@ -2,59 +2,140 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Masuk" description="Masuk ke ZonaPas — pilih Kelola Berita atau Redaksi.">
+<BaseLayout title="Masuk" description="Masuk ke ZonaPas — dengan GitHub atau Google. Keduanya membawa Anda ke Kelola Berita.">
   <div class="mx-auto max-w-[900px] px-4 pt-10 pb-6">
     <div class="text-center">
       <a href="/" class="text-sm font-bold text-slate-500 hover:text-[#0A2540] dark:text-slate-400 dark:hover:text-white">&larr; Kembali ke Beranda</a>
       <h1 class="mt-4 text-3xl font-black text-[#0A2540] sm:text-4xl dark:text-white">Masuk</h1>
       <div class="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#FACC15]"></div>
       <p class="mx-auto mt-4 max-w-[560px] text-[17px] leading-relaxed text-slate-600 dark:text-slate-300">
-        Pilih salah satu untuk melanjutkan. Kedua pilihan memakai akun yang berbeda.
+        Pilih cara masuk. Keduanya membawa Anda ke Kelola Berita — aksesnya mengikuti peran akun Anda.
       </p>
     </div>
 
     <div class="mt-10 grid gap-5 md:grid-cols-2">
-      <a
-        href="/kelola-berita/"
-        class="group flex flex-col rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#FACC15] hover:shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:hover:border-[#FACC15]"
+      <div
+        class="flex flex-col rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
       >
         <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A2540] text-[#FACC15]">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          <svg viewBox="0 0 16 16" class="h-6 w-6 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
         </span>
-        <h2 class="mt-4 text-xl font-black text-[#0A2540] dark:text-white">Kelola Berita</h2>
+        <h2 class="mt-4 text-xl font-black text-[#0A2540] dark:text-white">Masuk dengan GitHub</h2>
         <p class="mt-2 flex-1 text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
-          Tulis, ubah, dan hapus berita langsung di situs.
+          Untuk akun GitHub yang sudah diberi akses ke ZonaPas. Administrator dan Penyunting bisa menerbitkan berita langsung dari Kelola Berita.
         </p>
-        <p class="mt-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-          Masuk dengan akun GitHub
+        <button
+          id="btn-login-github"
+          type="button"
+          class="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+        >
+          Masuk dengan GitHub
+        </button>
+        <p id="login-status" class="mt-3 hidden text-xs font-medium" role="status"></p>
+        <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
+             baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
+             dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
+        <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+          Popup diblokir?
+          <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+          — setelah otorisasi, kembali ke tab ini.
         </p>
-        <span class="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#0A2540] group-hover:underline dark:text-[#FACC15]">
-          Buka Kelola Berita <span aria-hidden="true">&rarr;</span>
-        </span>
-      </a>
+      </div>
 
-      <a
-        href="/redaksi/login"
-        class="group flex flex-col rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#FACC15] hover:shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:hover:border-[#FACC15]"
+      <div
+        class="flex flex-col rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
       >
         <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0A2540] text-[#FACC15]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
         </span>
-        <h2 class="mt-4 text-xl font-black text-[#0A2540] dark:text-white">Redaksi</h2>
+        <h2 class="mt-4 text-xl font-black text-[#0A2540] dark:text-white">Masuk dengan Google</h2>
         <p class="mt-2 flex-1 text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
-          Dashboard redaksi dengan peran Administrator, Penyunting, dan Penulis.
+          Untuk akun Redaksi (Administrator, Penyunting, Penulis). Penyunting dan Penulis masuk lewat undangan dari Administrator.
         </p>
-        <p class="mt-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-          Masuk dengan akun Google/Gmail. Penyunting dan Penulis masuk lewat undangan.
+        <a
+          href="/redaksi/auth/google"
+          class="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+        >
+          Masuk dengan Google
+        </a>
+        <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          Anda akan diarahkan ke Google, lalu kembali ke Kelola Berita.
         </p>
-        <span class="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#0A2540] group-hover:underline dark:text-[#FACC15]">
-          Buka Redaksi <span aria-hidden="true">&rarr;</span>
-        </span>
-      </a>
+      </div>
     </div>
 
     <p class="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
       Belum punya akses? Silakan hubungi kami melalui halaman <a href="/kontak/" class="font-bold text-[#0A2540] hover:underline dark:text-white">Kontak</a>.
     </p>
   </div>
+
+  <script>
+    // Login GitHub dari /masuk/: popup OAuth yang sama seperti di
+    // /kelola-berita/. Dibuka dari klik (gesture) supaya tidak diblokir
+    // browser. Setelah sukses, token disimpan lalu pindah ke /kelola-berita/.
+    const OAUTH_AUTH_URL = 'https://oauth.zonapas.web.id/auth';
+    const OAUTH_ORIGIN = 'https://oauth.zonapas.web.id';
+    let popup = null;
+    let popupTimer = null;
+    const statusEl = document.getElementById('login-status');
+
+    function setStatusMasuk(msg, ok) {
+      if (!statusEl) return;
+      statusEl.textContent = msg;
+      statusEl.classList.remove('hidden');
+      statusEl.style.color = ok ? '#047857' : '#B91C1C';
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== OAUTH_ORIGIN) return;
+      if (event.data === 'authorizing:github') {
+        // Echo ke pengirim (popup, atau tab baru bila login dibuka lewat
+        // tautan fallback). Worker menunggu echo ini.
+        const target = (popup && !popup.closed) ? popup : (event.source || null);
+        if (target) target.postMessage('authorizing:github', OAUTH_ORIGIN);
+        return;
+      }
+      if (typeof event.data === 'string' && event.data.indexOf('authorization:github:success:') === 0) {
+        try {
+          const payload = JSON.parse(event.data.slice('authorization:github:success:'.length));
+          try { sessionStorage.setItem('zonapas-kelola-token', payload.token); } catch (e) {}
+          if (popupTimer) { clearInterval(popupTimer); popupTimer = null; }
+          if (popup && !popup.closed) popup.close();
+          window.location.href = '/kelola-berita/';
+        } catch (err) {
+          setStatusMasuk('Login gagal: ' + err.message, false);
+        }
+      }
+    });
+
+    const btnGithub = document.getElementById('btn-login-github');
+    if (btnGithub) btnGithub.addEventListener('click', () => {
+      const labelHtml = btnGithub.innerHTML;
+      btnGithub.disabled = true;
+      btnGithub.textContent = 'Menghubungkan…';
+      const restoreBtn = () => { btnGithub.disabled = false; btnGithub.innerHTML = labelHtml; };
+      if (popupTimer) { clearInterval(popupTimer); popupTimer = null; }
+      popup = window.open(OAUTH_AUTH_URL, 'zonapas-github-login', 'width=640,height=720,popup=1');
+      if (!popup) {
+        restoreBtn();
+        const fb = document.getElementById('login-fallback');
+        if (fb) fb.classList.remove('hidden');
+        setStatusMasuk('Popup diblokir browser. Izinkan popup untuk situs ini lalu coba lagi, atau buka login GitHub di tab baru lewat tautan di bawah tombol.', false);
+        return;
+      }
+      setStatusMasuk('Jendela login GitHub dibuka. Selesaikan otorisasi di jendela tersebut…', true);
+      popupTimer = setInterval(() => {
+        if (popup && popup.closed) {
+          clearInterval(popupTimer);
+          popupTimer = null;
+          let adaToken = false;
+          try { adaToken = !!sessionStorage.getItem('zonapas-kelola-token'); } catch (e) {}
+          if (!adaToken) {
+            restoreBtn();
+            setStatusMasuk('Jendela login ditutup sebelum selesai. Klik "Masuk dengan GitHub" untuk mencoba lagi.', false);
+          }
+        }
+      }, 500);
+    });
+  </script>
 </BaseLayout>

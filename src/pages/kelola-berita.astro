@@ -23,8 +23,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Kelola Berita</h1>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Tulis, ubah, dan hapus berita ZonaPas. Artikel tersimpan langsung ke repositori GitHub
-        rezie404/zonapas dan tayang di situs setelah rebuild sekitar 1–2 menit.
+        Tulis berita ZonaPas sesuai peran akun Anda. Administrator menerbitkan langsung;
+        Penyunting dan Penulis mengirim berita lewat Antrean Persetujuan. Artikel terbit
+        tersimpan ke repositori GitHub rezie404/zonapas dan tayang di situs setelah rebuild
+        sekitar 1–2 menit.
       </p>
     </div>
 
@@ -36,8 +38,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
       <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
       <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
-        Masuk dengan akun GitHub yang memiliki akses ke repositori ZonaPas. Login memakai
-        jalur OAuth yang sama seperti CMS Decap.
+        Masuk dengan akun GitHub yang memiliki akses, atau dengan akun Google Redaksi Anda.
+        Akses dan tombol yang tampil mengikuti peran akun Anda.
       </p>
       <button
         id="btn-login"
@@ -47,6 +49,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
         Masuk dengan GitHub
       </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
       <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
            baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
            dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
@@ -58,6 +66,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
         Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
       </p>
+    </section>
+
+    <!-- Akses ditolak (akun tanpa binding peran) -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
     </section>
 
     <!-- Aplikasi (setelah login) -->
@@ -98,6 +113,49 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Berita Terkini</h2>
         </div>
         <div id="latest-list" class="divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Antrean Persetujuan (semua peran yang login) -->
+      <section id="antrean-section" class="hidden pt-8" aria-label="Antrean Persetujuan">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Antrean Persetujuan</h2>
+          <button id="btn-antrean-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
+        </div>
+        <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Berita yang menunggu persetujuan Penyunting/Administrator sebelum terbit.</p>
+        <div id="antrean-list" class="grid gap-3"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Pengguna (hanya Administrator) -->
+      <section id="pengguna-section" class="hidden pt-8" aria-label="Pengguna">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Pengguna</h2>
+        </div>
+        <h3 class="mt-2 text-base font-black">Pengguna Redaksi</h3>
+        <div id="pengguna-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+        <h3 class="mt-6 text-base font-black">Buat Undangan</h3>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <input id="u-invite-email" type="email" placeholder="alamat@gmail.com" class="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <select id="u-invite-peran" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+            <option value="penyunting">Penyunting</option>
+            <option value="penulis">Penulis</option>
+          </select>
+          <button id="btn-invite-buat" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Buat Undangan</button>
+        </div>
+        <p id="invite-hasil" class="mt-2 hidden break-all rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></p>
+        <h3 class="mt-6 text-base font-black">Undangan yang Masih Berlaku</h3>
+        <div id="undangan-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+        <h3 class="mt-6 text-base font-black">Akses GitHub</h3>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Akun GitHub yang boleh masuk lewat GitHub beserta perannya.</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <input id="u-gh-login" type="text" placeholder="login GitHub" class="min-w-[180px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <select id="u-gh-peran" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+            <option value="penyunting">Penyunting</option>
+            <option value="penulis">Penulis</option>
+            <option value="admin">Administrator</option>
+          </select>
+          <button id="btn-gh-tambah" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah Akses</button>
+        </div>
+        <div id="gh-binding-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
       </section>
 
       <!-- Formulir tulis/ubah berita -->
@@ -170,6 +228,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           </div>
           <div class="mt-5 flex flex-wrap gap-3">
             <button type="submit" id="btn-save" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Simpan Berita</button>
+            <button type="button" id="btn-antrean" class="hidden rounded-lg bg-[#FACC15] px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">Kirim ke Antrean</button>
             <button type="button" id="btn-cancel" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
           </div>
           <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
@@ -187,6 +246,24 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <button id="btn-tutup-pratinjau" type="button" class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✕ Tutup</button>
             </div>
             <div id="pratinjau-terbit-isi"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal detail antrean -->
+      <div id="modal-antrean" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Detail antrean">
+        <div class="flex min-h-full items-start justify-center px-3 py-6">
+          <div id="modal-antrean-panel" class="w-full max-w-[760px] rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-3">
+              <h3 id="antrean-detail-judul" class="text-lg font-black leading-snug"></h3>
+              <button id="btn-tutup-antrean" type="button" class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✕ Tutup</button>
+            </div>
+            <p id="antrean-detail-meta" class="mt-1 text-sm text-slate-500 dark:text-slate-400"></p>
+            <p id="antrean-detail-catatan" class="mt-3 hidden rounded-lg bg-red-100 px-3 py-2 text-sm text-red-900 dark:bg-red-900/40 dark:text-red-100"></p>
+            <p id="antrean-detail-error" class="mt-3 hidden rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"></p>
+            <img id="antrean-detail-cover" alt="Foto sampul" class="mt-3 hidden max-h-72 w-full rounded-lg object-cover" />
+            <p id="antrean-detail-ringkasan" class="mt-3 text-[15px] leading-relaxed text-slate-600 dark:text-slate-300"></p>
+            <div id="antrean-detail-isi" class="article-body mt-4 text-[16px] leading-relaxed text-slate-800 dark:text-slate-200"></div>
           </div>
         </div>
       </div>
@@ -269,6 +346,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let articles = [];
     let editing = null; // { path, sha, slug, image }
     let pendingCover = null; // { dataUrl, name }
+    // --- Peran (login terpadu) ---
+    let peran = null; // 'admin' | 'penyunting' | 'penulis' | null
+    let sumberLogin = null; // 'github' | 'google' | null
+    let identitas = null; // { nama, peran, email, login }
+    let antrean = [];
+    let editingAntrean = null; // { id, coverAda, breakingSince }
+    let pendingGambarIsi = []; // antrean: { filename, dataUrl } — ditahan, diunggah saat simpan
 
     function esc(s) {
       return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -388,7 +472,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const res = await fetch(GH_API + path, {
         ...(options || {}),
         headers: {
-          Authorization: 'Bearer ' + token,
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
           Accept: 'application/vnd.github+json',
           'Content-Type': 'application/json',
           ...((options && options.headers) || {}),
@@ -398,7 +482,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       try { data = await res.json(); } catch (e) {}
       if (!res.ok) {
         const msg = (data && data.message) || ('GitHub mengembalikan status ' + res.status);
-        throw new Error(msg);
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
       }
       return data;
     }
@@ -407,7 +493,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const res = await fetch(url, {
         ...(options || {}),
         headers: {
-          Authorization: 'Bearer ' + token,
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
           Accept: 'application/vnd.github+json',
           'Content-Type': 'application/json',
           ...((options && options.headers) || {}),
@@ -417,9 +503,329 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       try { data = await res.json(); } catch (e) {}
       if (!res.ok) {
         const msg = (data && data.message) || ('GitHub mengembalikan status ' + res.status);
-        throw new Error(msg);
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
       }
       return data;
+    }
+
+    // ---------- Peran & Worker Redaksi ----------
+    // Semua fetch Worker memakai credentials default (cookie same-origin)
+    // + header X-GitHub-Token bila login GitHub; POST juga membawa
+    // github_token di body sebagai auth alternatif. Token TIDAK PERNAH
+    // ditulis ke log/DOM.
+    const ROLE_LABEL = { admin: 'Administrator', penyunting: 'Penyunting', penulis: 'Penulis' };
+
+    async function workerApi(path, options) {
+      const opts = options || {};
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['X-GitHub-Token'] = token;
+      const res = await fetch(path, {
+        ...opts,
+        credentials: 'same-origin',
+        headers: { ...headers, ...(opts.headers || {}) },
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) {}
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || ('Worker mengembalikan status ' + res.status);
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
+      return data || {};
+    }
+
+    async function workerPost(path, body) {
+      const payload = { ...(body || {}) };
+      if (token) payload.github_token = token;
+      return workerApi(path, { method: 'POST', body: JSON.stringify(payload) });
+    }
+
+    async function workerGet(path) {
+      return workerApi(path, { method: 'GET' });
+    }
+
+    function labelPeran(r) { return ROLE_LABEL[r] || r || '-'; }
+
+    function terapkanIdentitas(user, sumber) {
+      sumberLogin = sumber;
+      peran = user.role || null;
+      identitas = {
+        nama: user.name || user.login || user.email || (sumber === 'github' ? 'GitHub' : 'Google'),
+        peran: user.role || null,
+        email: user.email || '',
+        login: user.login || '',
+      };
+    }
+
+    function bisaTerbitLangsung() {
+      return peran === 'admin' || (peran === 'penyunting' && sumberLogin === 'github');
+    }
+
+    // Jalur antrean aktif: edit antrean, penulis, atau penyunting Google.
+    function jalurAntreanAktif() {
+      if (editingAntrean) return true;
+      if (peran === 'penulis') return true;
+      if (peran === 'penyunting' && sumberLogin === 'google') return true;
+      return false;
+    }
+
+    function terapkanPeran() {
+      const btnSave = $('btn-save');
+      const btnAntrean = $('btn-antrean');
+      if (btnSave) btnSave.classList.toggle('hidden', !bisaTerbitLangsung());
+      if (btnAntrean) {
+        // admin: hanya "Simpan Berita"; penyunting GitHub: keduanya;
+        // penyunting Google + penulis: hanya antrean.
+        const tampilAntrean = peran === 'penulis' || peran === 'penyunting';
+        btnAntrean.classList.toggle('hidden', !tampilAntrean);
+        btnAntrean.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
+      }
+      const antreanSection = $('antrean-section');
+      if (antreanSection) antreanSection.classList.toggle('hidden', !(peran === 'admin' || peran === 'penyunting' || peran === 'penulis'));
+      const penggunaSection = $('pengguna-section');
+      if (penggunaSection) penggunaSection.classList.toggle('hidden', peran !== 'admin');
+      renderLists();
+    }
+
+    function tampilkanAksesDitolak() {
+      peran = null; sumberLogin = null; identitas = null;
+      loginBox.classList.add('hidden');
+      appEl.classList.add('hidden');
+      const panel = $('akses-ditolak');
+      if (panel) panel.classList.remove('hidden');
+    }
+
+    // ---------- Antrean ----------
+    function statusAntreanLabel(s) {
+      return { menunggu: 'Menunggu', draf: 'Draf', disetujui: 'Disetujui', ditolak: 'Ditolak', terbit: 'Terbit' }[s] || s || '-';
+    }
+
+    async function muatAntrean() {
+      if (!peran) return;
+      try {
+        const res = await workerGet('/redaksi/api/antrean');
+        antrean = (res && res.articles) || [];
+        renderAntrean();
+      } catch (err) {
+        const el = $('antrean-list');
+        if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat antrean: ' + esc(err.message) + '</p>';
+      }
+    }
+
+    function renderAntrean() {
+      const el = $('antrean-list');
+      if (!el) return;
+      if (!antrean.length) { el.innerHTML = '<p class="text-sm text-slate-500">Antrean kosong.</p>'; return; }
+      const approver = peran === 'admin' || peran === 'penyunting';
+      el.innerHTML = antrean.map((a) => {
+        const milikSaya = !!(identitas && ((a.author_email && (a.author_email === identitas.email || a.author_email === identitas.login)) || (a.author && identitas.nama && a.author === identitas.nama)));
+        const bisaEdit = approver || (peran === 'penulis' && milikSaya && (a.status === 'draf' || a.status === 'ditolak'));
+        const bisaSetujui = approver && a.status === 'menunggu';
+        const bisaUlang = approver && a.status === 'disetujui' && !!a.publish_error;
+        let h = '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-800">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="text-base font-bold leading-snug">' + esc(a.title || '(tanpa judul)') + '</h3>' +
+          '<span class="shrink-0 rounded-full bg-[#FACC15] px-2.5 py-1 text-[11px] font-bold text-[#0A2540]">' + esc(statusAntreanLabel(a.status)) + '</span></div>' +
+          '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc([a.author, a.category, a.publish_date].filter(Boolean).join(' · ')) + '</p>';
+        if (a.summary) h += '<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">' + esc(a.summary) + '</p>';
+        if (a.rejection_note) h += '<p class="mt-2 rounded-lg bg-red-100 px-3 py-2 text-sm text-red-900 dark:bg-red-900/40 dark:text-red-100">Catatan penolakan: ' + esc(a.rejection_note) + '</p>';
+        if (a.publish_error) h += '<p class="mt-2 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">Gagal terbit: ' + esc(a.publish_error) + '</p>';
+        h += '<div class="mt-3 flex flex-wrap gap-2">';
+        h += '<button type="button" data-antrean-lihat="' + esc(a.id) + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Lihat</button>';
+        if (bisaEdit) h += '<button type="button" data-antrean-edit="' + esc(a.id) + '" class="rounded-lg border border-[#0A2540] px-3 py-1.5 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Edit</button>';
+        if (bisaSetujui) h += '<button type="button" data-antrean-setujui="' + esc(a.id) + '" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Setujui &amp; Terbitkan</button>';
+        if (bisaSetujui) h += '<button type="button" data-antrean-tolak="' + esc(a.id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Tolak</button>';
+        if (bisaUlang) h += '<button type="button" data-antrean-ulang="' + esc(a.id) + '" class="rounded-lg bg-[#FACC15] px-3 py-1.5 text-xs font-bold text-[#0A2540] hover:bg-[#EAB308]">Terbitkan Ulang</button>';
+        h += '</div></article>';
+        return h;
+      }).join('');
+    }
+
+    function tutupAntrean() {
+      const modal = $('modal-antrean');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    async function bukaDetailAntrean(id) {
+      const item = antrean.find((a) => String(a.id) === String(id));
+      try {
+        const res = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/detail', {});
+        const art = (res && res.article) || {};
+        $('antrean-detail-judul').textContent = art.title || (item && item.title) || '(tanpa judul)';
+        $('antrean-detail-meta').textContent = [art.author || (item && item.author), art.category || (item && item.category), art.publish_date || art.publishDate || (item && item.publish_date)].filter(Boolean).join(' · ');
+        $('antrean-detail-ringkasan').textContent = art.summary || (item && item.summary) || '';
+        $('antrean-detail-isi').innerHTML = isiMarkdownToHtml(art.body || '');
+        const cov = $('antrean-detail-cover');
+        if (res.cover && res.cover.base64) { cov.src = 'data:' + (res.cover.mime || 'image/jpeg') + ';base64,' + res.cover.base64; cov.classList.remove('hidden'); }
+        else if (art.image) { cov.src = imageUrl(art.image); cov.classList.remove('hidden'); }
+        else cov.classList.add('hidden');
+        const cat = $('antrean-detail-catatan');
+        const note = art.rejection_note || (item && item.rejection_note);
+        if (note) { cat.textContent = 'Catatan penolakan: ' + note; cat.classList.remove('hidden'); } else cat.classList.add('hidden');
+        const er = $('antrean-detail-error');
+        const perr = art.publish_error || (item && item.publish_error);
+        if (perr) { er.textContent = 'Gagal terbit: ' + perr; er.classList.remove('hidden'); } else er.classList.add('hidden');
+        $('modal-antrean').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      } catch (err) {
+        showStatus('Gagal memuat detail antrean: ' + err.message, false);
+      }
+    }
+
+    async function editAntrean(id) {
+      try {
+        const res = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/detail', {});
+        const art = (res && res.article) || {};
+        resetForm();
+        editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '' };
+        $('f-judul').value = art.title || '';
+        $('f-ringkasan').value = art.summary || '';
+        $('f-kategori').value = art.category || '';
+        $('f-tag').value = (art.tags || []).join(', ');
+        $('f-penulis').value = art.author || 'Rezie';
+        $('f-tanggal').value = String(art.publish_date || art.publishDate || '').slice(0, 10);
+        $('f-upt').value = art.upt || '';
+        $('f-keterangan').value = art.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
+        $('f-featured').checked = art.featured === true;
+        $('f-breaking').checked = art.breaking === true;
+        $('f-isi').value = art.body || '';
+        $('f-foto').value = '';
+        const prev = $('f-foto-preview');
+        if (res.cover && res.cover.base64) { prev.src = 'data:' + (res.cover.mime || 'image/jpeg') + ';base64,' + res.cover.base64; prev.classList.remove('hidden'); }
+        else if (art.image) { prev.src = imageUrl(art.image); prev.classList.remove('hidden'); }
+        else { prev.classList.add('hidden'); prev.src = ''; }
+        const cur = $('f-foto-saat-ini');
+        cur.textContent = art.image ? ('Foto saat ini: ' + art.image + ' (biarkan kosong bila tidak diganti)') : (res.cover ? 'Foto sampul sudah ada (biarkan kosong bila tidak diganti)' : '');
+        cur.classList.toggle('hidden', !(art.image || res.cover));
+        $('form-title').textContent = 'Edit Berita (Antrean)';
+        $('btn-save').textContent = 'Simpan Perubahan';
+        $('form-section').classList.remove('hidden');
+        $('form-section').scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        showStatus('Gagal memuat berita antrean: ' + err.message, false);
+      }
+    }
+
+    // Kumpulkan + validasi field formulir (dipakai jalur langsung & antrean).
+    function kumpulkanDataForm() {
+      const title = $('f-judul').value.trim();
+      const summary = $('f-ringkasan').value.trim();
+      const category = $('f-kategori').value;
+      const body = $('f-isi').value.trim();
+      const publishDate = $('f-tanggal').value;
+      if (!title || !summary || !category || !body || !publishDate) throw new Error('Judul, ringkasan, kategori, tanggal terbit, dan isi berita wajib diisi.');
+      const breakingChecked = $('f-breaking').checked;
+      let breakingSince = '';
+      if (breakingChecked) {
+        breakingSince = (editing && editing.breakingSince) || (editingAntrean && editingAntrean.breakingSince) || new Date().toISOString();
+      }
+      return {
+        title, summary, category,
+        tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
+        author: $('f-penulis').value.trim() || 'Rezie',
+        publish_date: publishDate,
+        publishDate,
+        imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
+        featured: $('f-featured').checked,
+        breaking: breakingChecked,
+        breakingSince,
+        upt: $('f-upt').value || '',
+        body,
+      };
+    }
+
+    // Jalur antrean: buat dulu via Worker, lalu sampul, lalu gambar isi yang
+    // ditahan, lalu kirim bila diminta. TIDAK PERNAH memanggil GitHub langsung.
+    async function simpanAntrean(id, kirim) {
+      const d = kumpulkanDataForm();
+      const adaCoverLama = !!(editingAntrean && editingAntrean.coverAda) || !!(editing && editing.image);
+      if (!pendingCover && !adaCoverLama) throw new Error('Foto sampul wajib diunggah.');
+      let articleId = id || null;
+      if (!articleId) {
+        const res = await workerPost('/redaksi/api/berita', d);
+        articleId = (res && res.article && res.article.id) || (res && res.id) || (res && res.article_id);
+        if (!articleId) throw new Error('Worker tidak mengembalikan id artikel antrean.');
+      } else {
+        await workerPost('/redaksi/api/berita/' + encodeURIComponent(articleId), d);
+      }
+      if (pendingCover) {
+        await workerPost('/redaksi/api/berita/' + encodeURIComponent(articleId) + '/foto', { dataUrl: pendingCover.dataUrl });
+      }
+      for (const g of pendingGambarIsi) {
+        await workerPost('/redaksi/api/berita/' + encodeURIComponent(articleId) + '/gambar-isi', { dataUrl: g.dataUrl, filename: g.filename });
+      }
+      if (kirim) {
+        await workerPost('/redaksi/api/berita/' + encodeURIComponent(articleId) + '/kirim', {});
+      }
+      showStatus(kirim ? 'Terkirim ke antrean — menunggu persetujuan.' : 'Berita tersimpan di antrean sebagai draf.', true);
+      resetForm();
+      $('form-section').classList.add('hidden');
+      await muatAntrean();
+    }
+
+    // ---------- Pengguna (admin) ----------
+    async function muatPengguna() {
+      if (peran !== 'admin') return;
+      try {
+        const res = await workerGet('/redaksi/api/pengguna');
+        renderPengguna(res || {});
+      } catch (err) {
+        const el = $('pengguna-list');
+        if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat pengguna: ' + esc(err.message) + '</p>';
+      }
+    }
+
+    function renderPengguna(data) {
+      const users = data.users || [];
+      const invs = data.invitations || [];
+      const binds = data.github_bindings || [];
+      const ul = $('pengguna-list');
+      if (ul) {
+        if (!users.length) { ul.innerHTML = '<p class="text-sm text-slate-500">Belum ada pengguna.</p>'; }
+        else {
+          ul.innerHTML = users.map((u) => {
+            const id = u.id || u.email || '';
+            const nama = u.name || u.email || id;
+            const email = u.email || '';
+            const role = u.role || 'penulis';
+            const aktif = u.status ? (u.status !== 'nonaktif' && u.active !== false) : (u.active !== false);
+            const utama = !!(u.is_main_admin || u.main_admin || u.is_main);
+            const opsi = ['admin', 'penyunting', 'penulis'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
+            return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+              '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(nama) + '</span>' +
+              '<span class="block text-xs text-slate-500">' + esc(email) + (aktif ? '' : ' · Nonaktif') + '</span></span>' +
+              '<select data-peran-user="' + esc(id) + '" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900">' + opsi + '</select>' +
+              (utama ? '<span class="text-xs font-bold text-slate-500">Admin utama</span>' : '<button type="button" data-status-user="' + esc(id) + '" data-status-baru="' + (aktif ? 'nonaktif' : 'aktif') + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">' + (aktif ? 'Nonaktifkan' : 'Aktifkan') + '</button>') +
+              '</div>';
+          }).join('');
+        }
+      }
+      const il = $('undangan-list');
+      if (il) {
+        il.innerHTML = !invs.length ? '<p class="text-sm text-slate-500">Tidak ada undangan yang masih berlaku.</p>' : invs.map((v) => {
+          const id = v.id || '';
+          const link = v.link || v.url || '';
+          return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(v.email || '') + '</span>' +
+            '<span class="block text-xs text-slate-500">' + esc(labelPeran(v.role)) + (v.expires_at ? ' · berlaku sampai ' + esc(String(v.expires_at).slice(0, 10)) : '') + '</span></span>' +
+            (link ? '<button type="button" data-undangan-salin="' + esc(link) + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Salin tautan</button>' : '') +
+            '<button type="button" data-undangan-cabut="' + esc(id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Cabut</button></div>';
+        }).join('');
+      }
+      const gl = $('gh-binding-list');
+      if (gl) {
+        gl.innerHTML = !binds.length ? '<p class="text-sm text-slate-500">Belum ada binding GitHub.</p>' : binds.map((b) => {
+          const login = b.github_login || b.login || '';
+          return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(login) + '</span>' +
+            '<span class="block text-xs text-slate-500">' + esc(labelPeran(b.role)) + '</span></span>' +
+            '<button type="button" data-gh-hapus="' + esc(login) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>';
+        }).join('');
+      }
     }
 
     async function loadArticles() {
@@ -461,10 +867,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         '<div class="min-w-0 flex-1"><div>' + catLabel(d.category || '-') + sourceBadge(d.source) + '</div>' +
         '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="mt-0.5 block text-sm font-bold leading-snug hover:text-[#92400E] hover:underline">' + esc(d.title || '(tanpa judul)') + '</a>' +
         '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + (d.upt ? ' · ' + esc(d.upt) : '') + '</span>' +
-        '<div class="mt-2 flex gap-2">' +
-        '<button type="button" data-edit="' + esc(a.slug) + '" class="rounded-md border border-[#0A2540] px-2.5 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Ubah</button>' +
-        '<button type="button" data-delete="' + esc(a.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button>' +
-        '</div></div></article>';
+        (peran === 'admin'
+          ? '<div class="mt-2 flex gap-2">' +
+            '<button type="button" data-edit="' + esc(a.slug) + '" class="rounded-md border border-[#0A2540] px-2.5 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Ubah</button>' +
+            '<button type="button" data-delete="' + esc(a.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button>' +
+            '</div>'
+          : '') +
+        '</div></article>';
     }
 
     function renderLists() {
@@ -496,19 +905,29 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     function setLoggedIn(user) {
       loginBox.classList.add('hidden');
+      const ditolak = $('akses-ditolak');
+      if (ditolak) ditolak.classList.add('hidden');
       appEl.classList.remove('hidden');
-      $('user-name').textContent = user.login || 'GitHub';
+      const nama = (identitas && identitas.nama) || user.login || 'GitHub';
+      $('user-name').textContent = 'Masuk sebagai ' + nama + (peran ? ' (' + labelPeran(peran) + ')' : '') + ' · ' + (sumberLogin === 'google' ? 'Google' : 'GitHub');
       const avatar = $('user-avatar');
-      avatar.src = user.avatar_url || '';
-      avatar.alt = user.login || '';
-      showStatus('Masuk sebagai ' + (user.login || '') + '. Memuat daftar berita…', true);
+      if (user.avatar_url) { avatar.src = user.avatar_url; avatar.alt = user.login || ''; avatar.classList.remove('hidden'); }
+      else { avatar.classList.add('hidden'); }
+      terapkanPeran();
+      showStatus('Masuk sebagai ' + nama + '. Memuat daftar berita…', true);
       loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
+      if (window.location.hash === '#antrean') {
+        setTimeout(() => { const s = $('antrean-section'); if (s) s.scrollIntoView({ behavior: 'smooth' }); }, 600);
+      }
     }
 
     function setLoggedOut(msg) {
       token = null;
+      peran = null; sumberLogin = null; identitas = null; antrean = []; editingAntrean = null; pendingGambarIsi = [];
       try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
       appEl.classList.add('hidden');
+      const ditolak = $('akses-ditolak');
+      if (ditolak) ditolak.classList.add('hidden');
       loginBox.classList.remove('hidden');
       $('form-section').classList.add('hidden');
       if (msg) showStatus(msg, false);
@@ -569,12 +988,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }, 500);
     });
 
-    on('btn-logout', 'click', () => setLoggedOut('Anda sudah keluar.'));
+    on('btn-logout', 'click', async () => {
+      if (sumberLogin === 'google') {
+        try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
+        try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
+        window.location.href = '/masuk/';
+        return;
+      }
+      setLoggedOut('Anda sudah keluar.');
+    });
 
     // ---------- Form ----------
     function resetForm() {
       editing = null;
+      editingAntrean = null;
       pendingCover = null;
+      pendingGambarIsi = [];
       $('form-berita').reset();
       $('f-penulis').value = 'Rezie';
       $('f-keterangan').value = 'Dokumentasi kegiatan. (ZonaPas)';
@@ -585,6 +1014,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('f-foto-saat-ini').textContent = '';
       $('form-title').textContent = 'Tulis Berita Baru';
       $('btn-save').textContent = 'Simpan Berita';
+      const ba = $('btn-antrean');
+      if (ba) ba.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
     }
 
     on('btn-new', 'click', () => {
@@ -908,12 +1339,27 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       btn.textContent = 'Mengunggah…';
       isiStatus('Mengunggah gambar…', false);
       try {
-        const path = await uploadBodyImage(terpotong);
-        const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
-        const safeAlt = alt.replace(/[\[\])]/g, '');
-        insertAtCursor($('f-isi'), '![' + safeAlt + '](' + path + ')');
-        isiStatus('Gambar disisipkan di narasi: ' + path, false);
-        $('f-isi-alt').value = '';
+        if (jalurAntreanAktif()) {
+          // Mode antrean: JANGAN unggah ke GitHub — tahan dataUrl, unggah
+          // via Worker saat simpan (pola pendingGambar Redaksi).
+          const dataUrl = await resizeImage(terpotong);
+          const slug = editingAntrean ? slugify($('f-judul').value.trim() || 'berita') : (editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita'));
+          const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
+          pendingGambarIsi.push({ filename, dataUrl });
+          previewImgMap['/images/' + filename] = dataUrl;
+          const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
+          const safeAlt = alt.replace(/[\[\])]/g, '');
+          insertAtCursor($('f-isi'), '![' + safeAlt + '](' + '/images/' + filename + ')');
+          isiStatus('Gambar ditahan untuk antrean — akan diunggah saat disimpan: /images/' + filename, false);
+          $('f-isi-alt').value = '';
+        } else {
+          const path = await uploadBodyImage(terpotong);
+          const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
+          const safeAlt = alt.replace(/[\[\])]/g, '');
+          insertAtCursor($('f-isi'), '![' + safeAlt + '](' + path + ')');
+          isiStatus('Gambar disisipkan di narasi: ' + path, false);
+          $('f-isi-alt').value = '';
+        }
       } catch (err) {
         isiStatus('Gagal mengunggah gambar: ' + err.message, true);
       } finally {
@@ -1238,12 +1684,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       btn.disabled = true;
       btn.textContent = 'Menyimpan…';
       try {
-        const title = $('f-judul').value.trim();
-        const summary = $('f-ringkasan').value.trim();
-        const category = $('f-kategori').value;
-        const body = $('f-isi').value.trim();
-        const publishDate = $('f-tanggal').value;
-        if (!title || !summary || !category || !body || !publishDate) throw new Error('Judul, ringkasan, kategori, tanggal terbit, dan isi berita wajib diisi.');
+        // Mode edit antrean: simpan selalu lewat Worker, bukan GitHub langsung.
+        if (editingAntrean) {
+          await simpanAntrean(editingAntrean.id, false);
+          return;
+        }
+        // Peran tanpa hak terbit langsung (mis. Enter di formulir):
+        // alihkan ke antrean, jangan pernah PUT GitHub.
+        if (!bisaTerbitLangsung()) {
+          await simpanAntrean(null, true);
+          return;
+        }
+        const d = kumpulkanDataForm();
+        const title = d.title;
         const slug = editing ? editing.slug : slugify(title);
         let image = editing ? editing.image : '';
         if (pendingCover) {
@@ -1251,28 +1704,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (uploaded) image = uploaded;
         }
         if (!image) throw new Error('Foto sampul wajib diunggah.');
-        // Waktu masuk pita Breaking News: bila breaking dicentang dan
-        // artikel belum punya catatan waktu masuk, catat sekarang; bila
-        // sedang diubah dan sudah punya catatan, pertahankan (jam tidak
-        // diulang); bila breaking dimatikan, hapus catatannya.
-        const breakingChecked = $('f-breaking').checked;
-        let breakingSince = '';
-        if (breakingChecked) {
-          breakingSince = (editing && editing.breakingSince) || new Date().toISOString();
-        }
-        const data = {
-          title, summary, category,
-          tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
-          author: $('f-penulis').value.trim() || 'Rezie',
-          publishDate,
-          image,
-          imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
-          featured: $('f-featured').checked,
-          breaking: breakingChecked,
-          breakingSince,
-          upt: $('f-upt').value || '',
-          body,
-        };
+        const data = { ...d, image };
         let finalSlug = slug;
         let sha = editing ? editing.sha : undefined;
         if (!editing) {
@@ -1294,11 +1726,168 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('form-section').classList.add('hidden');
         await loadArticles();
       } catch (err) {
-        showStatus('Gagal menyimpan: ' + err.message, false);
+        // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
+        if (err && (err.status === 403 || err.status === 404)) {
+          showStatus('Akun GitHub Anda tidak punya akses tulis ke repo — kirim berita lewat Antrean untuk persetujuan.', false);
+          const ba = $('btn-antrean');
+          if (ba) ba.classList.remove('hidden');
+        } else {
+          showStatus('Gagal menyimpan: ' + err.message, false);
+        }
       } finally {
         btn.disabled = false;
         btn.textContent = 'Simpan Berita';
       }
+    });
+
+
+    // ---------- Tombol "Kirim ke Antrean" ----------
+    on('btn-antrean', 'click', async () => {
+      const btn = $('btn-antrean');
+      if (!btn) return;
+      btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = 'Mengirim…';
+      try {
+        await simpanAntrean(editingAntrean ? editingAntrean.id : null, true);
+      } catch (err) {
+        showStatus('Gagal mengirim ke antrean: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
+    on('btn-antrean-refresh', 'click', () => muatAntrean());
+    on('btn-tutup-antrean', 'click', tutupAntrean);
+    on('modal-antrean', 'click', (e) => {
+      if (e.target && !e.target.closest('#modal-antrean-panel')) tutupAntrean();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = $('modal-antrean');
+        if (modal && !modal.classList.contains('hidden')) tutupAntrean();
+      }
+    });
+    on('btn-akses-keluar', 'click', () => {
+      try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
+      token = null;
+      const p = $('akses-ditolak');
+      if (p) p.classList.add('hidden');
+      loginBox.classList.remove('hidden');
+    });
+
+    // ---------- Aksi antrean (delegation) ----------
+    document.addEventListener('click', async (e) => {
+      const lihat = e.target.closest('[data-antrean-lihat]');
+      const setujui = e.target.closest('[data-antrean-setujui]');
+      const tolak = e.target.closest('[data-antrean-tolak]');
+      const ulang = e.target.closest('[data-antrean-ulang]');
+      const editA = e.target.closest('[data-antrean-edit]');
+      if (lihat) { bukaDetailAntrean(lihat.getAttribute('data-antrean-lihat')); return; }
+      if (editA) { editAntrean(editA.getAttribute('data-antrean-edit')); return; }
+      if (setujui) {
+        const id = setujui.getAttribute('data-antrean-setujui');
+        try {
+          await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/setujui', {});
+          showStatus('Berita disetujui dan diterbitkan.', true);
+          await muatAntrean();
+          await loadArticles();
+        } catch (err) { showStatus('Gagal menyetujui: ' + err.message, false); }
+        return;
+      }
+      if (tolak) {
+        const id = tolak.getAttribute('data-antrean-tolak');
+        const catatan = prompt('Alasan penolakan (akan ditampilkan ke penulis):');
+        if (catatan === null) return;
+        if (!catatan.trim()) { showStatus('Penolakan membutuhkan catatan.', false); return; }
+        try {
+          await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/tolak', { catatan: catatan.trim() });
+          showStatus('Berita ditolak dengan catatan.', true);
+          await muatAntrean();
+        } catch (err) { showStatus('Gagal menolak: ' + err.message, false); }
+        return;
+      }
+      if (ulang) {
+        const id = ulang.getAttribute('data-antrean-ulang');
+        try {
+          await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/terbitkan-ulang', {});
+          showStatus('Penerbitan ulang diminta.', true);
+          await muatAntrean();
+          await loadArticles();
+        } catch (err) { showStatus('Gagal menerbitkan ulang: ' + err.message, false); }
+        return;
+      }
+    });
+
+    // ---------- Aksi pengguna (admin, delegation) ----------
+    document.addEventListener('click', async (e) => {
+      const cabut = e.target.closest('[data-undangan-cabut]');
+      const salin = e.target.closest('[data-undangan-salin]');
+      const ghHapus = e.target.closest('[data-gh-hapus]');
+      const statusBtn = e.target.closest('[data-status-user]');
+      if (salin) {
+        const link = salin.getAttribute('data-undangan-salin');
+        try { await navigator.clipboard.writeText(link); showStatus('Tautan undangan disalin.', true); }
+        catch (err) { showStatus('Tautan undangan: ' + link, true); }
+        return;
+      }
+      if (cabut) {
+        const id = cabut.getAttribute('data-undangan-cabut');
+        if (!confirm('Cabut undangan ini?')) return;
+        try { await workerPost('/redaksi/api/undangan/' + encodeURIComponent(id) + '/cabut', {}); showStatus('Undangan dicabut.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal mencabut undangan: ' + err.message, false); }
+        return;
+      }
+      if (ghHapus) {
+        const login = ghHapus.getAttribute('data-gh-hapus');
+        if (!confirm('Hapus akses GitHub untuk "' + login + '"?')) return;
+        try { await workerPost('/redaksi/api/github/' + encodeURIComponent(login) + '/hapus', {}); showStatus('Binding GitHub dihapus.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal menghapus binding: ' + err.message, false); }
+        return;
+      }
+      if (statusBtn) {
+        const id = statusBtn.getAttribute('data-status-user');
+        const baru = statusBtn.getAttribute('data-status-baru');
+        try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/status', { status: baru, active: baru === 'aktif' }); showStatus('Status pengguna diubah.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal mengubah status: ' + err.message, false); }
+        return;
+      }
+    });
+    document.addEventListener('change', async (e) => {
+      const sel = e.target && e.target.closest ? e.target.closest('[data-peran-user]') : null;
+      if (!sel) return;
+      const id = sel.getAttribute('data-peran-user');
+      try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/peran', { role: sel.value }); showStatus('Peran pengguna diubah.', true); }
+      catch (err) { showStatus('Gagal mengubah peran: ' + err.message, false); await muatPengguna(); }
+    });
+
+    on('btn-invite-buat', 'click', async () => {
+      const email = ($('u-invite-email').value || '').trim();
+      const role = $('u-invite-peran').value;
+      if (!email) { showStatus('Isi Gmail yang diundang.', false); return; }
+      try {
+        const res = await workerPost('/redaksi/api/undangan', { email, role });
+        const link = (res && (res.link || res.url || (res.invitation && res.invitation.link))) || '';
+        const hasil = $('invite-hasil');
+        if (hasil) {
+          hasil.textContent = link ? ('Tautan undangan: ' + link) : 'Undangan dibuat.';
+          hasil.classList.remove('hidden');
+        }
+        showStatus('Undangan dibuat.', true);
+        await muatPengguna();
+      } catch (err) { showStatus('Gagal membuat undangan: ' + err.message, false); }
+    });
+
+    on('btn-gh-tambah', 'click', async () => {
+      const login = ($('u-gh-login').value || '').trim();
+      const role = $('u-gh-peran').value;
+      if (!login) { showStatus('Isi login GitHub yang diberi akses.', false); return; }
+      try {
+        await workerPost('/redaksi/api/github', { github_login: login, role });
+        showStatus('Akses GitHub ditambahkan.', true);
+        await muatPengguna();
+      } catch (err) { showStatus('Gagal menambah akses GitHub: ' + err.message, false); }
     });
 
     // ---------- Ubah & Hapus (event delegation) ----------
@@ -1306,6 +1895,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const editBtn = e.target.closest('[data-edit]');
       const delBtn = e.target.closest('[data-delete]');
       if (editBtn) {
+        if (peran !== 'admin') return;
         const a = articles.find((x) => x.slug === editBtn.getAttribute('data-edit'));
         if (!a) return;
         editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '' };
@@ -1333,6 +1923,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('form-section').scrollIntoView({ behavior: 'smooth' });
       }
       if (delBtn) {
+        if (peran !== 'admin') return;
         const a = articles.find((x) => x.slug === delBtn.getAttribute('data-delete'));
         if (!a) return;
         if (!confirm('Hapus berita "' + (a.data.title || a.slug) + '"? Tindakan ini tidak bisa dibatalkan.')) return;
@@ -1356,16 +1947,46 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
     });
 
-    // ---------- Pulihkan sesi bila ada token tersimpan ----------
+    // ---------- Pulihkan sesi: peran via Worker, lalu GitHub/Google ----------
     (async () => {
       const tgl = $('f-tanggal');
       if (tgl) tgl.value = todayISO();
-      if (!token) return;
+      if (token) {
+        try {
+          const me = await workerPost('/redaksi/api/me', {});
+          if (!me || !me.ok || !me.user || !me.user.role) throw Object.assign(new Error('Peran tidak ditemukan.'), { status: 401 });
+          terapkanIdentitas(me.user, 'github');
+          let ghUser = null;
+          try { ghUser = await ghApi('https://api.github.com/user'); } catch (e) {}
+          setLoggedIn(ghUser || { login: me.user.login || me.user.name || 'GitHub' });
+          await muatAntrean();
+          await muatPengguna();
+        } catch (err) {
+          if (err && err.status === 403) { tampilkanAksesDitolak(); return; }
+          if (err && err.status === 401) { setLoggedOut('Sesi GitHub sudah berakhir. Silakan masuk lagi.'); return; }
+          // Worker tidak bisa dihubungi / peran tidak bisa dipastikan:
+          // JANGAN beri akses dari klien tanpa sandaran server. Tampilkan
+          // panel login dengan pesan galat (token tetap tersimpan — muat
+          // ulang halaman akan mencoba lagi).
+          appEl.classList.add('hidden');
+          $('form-section').classList.add('hidden');
+          loginBox.classList.remove('hidden');
+          showStatus('Server peran (Worker Redaksi) tidak bisa dihubungi. Periksa koneksi lalu muat ulang halaman untuk mencoba lagi.', false);
+        }
+        return;
+      }
+      // Tanpa token GitHub: coba sesi Google (cookie Worker).
       try {
-        const user = await ghApi('https://api.github.com/user');
-        setLoggedIn(user);
+        const me = await workerPost('/redaksi/api/me', {});
+        if (me && me.ok && me.user && me.user.role) {
+          terapkanIdentitas(me.user, 'google');
+          setLoggedIn({ login: me.user.name || me.user.email || 'Google' });
+          await muatAntrean();
+          await muatPengguna();
+        }
       } catch (err) {
-        setLoggedOut('Sesi GitHub sudah berakhir. Silakan masuk lagi.');
+        if (err && err.status === 403) tampilkanAksesDitolak();
+        // 401 / lainnya: belum login — biarkan panel login tampil.
       }
     })();
   </script>
