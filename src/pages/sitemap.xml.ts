@@ -12,6 +12,7 @@ export const GET: APIRoute = async () => {
     ...UPTS.map((u) => ({ loc: `${SITE.url}/upt/${u.slug}/` })),
     { loc: `${SITE.url}/cari/` },
     { loc: `${SITE.url}/tentang/` },
+    { loc: `${SITE.url}/masuk/` },
     { loc: `${SITE.url}/redaksi/` },
     { loc: `${SITE.url}/pedoman-media-siber/` },
     { loc: `${SITE.url}/info-iklan/` },
