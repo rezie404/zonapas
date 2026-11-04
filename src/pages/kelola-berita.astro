@@ -256,12 +256,49 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
       if (!m) return { data: {}, body: text };
       const data = {};
-      for (const line of m[1].split(/\r?\n/)) {
+      const lines = m[1].split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         const idx = line.indexOf(':');
         if (idx === -1) continue;
         const key = line.slice(0, idx).trim();
         let val = line.slice(idx + 1).trim();
         if (!key) continue;
+        // Skalar blok YAML (mis. ringkasan Decap "summary: >-"): baris-baris
+        // terindentasi berikutnya adalah isi nilai, bukan kunci baru. Tanpa
+        // ini, "summary: >-" tersimpan harfiah dan isi ringkasan hilang.
+        if (val === '>-' || val === '>' || val === '|-' || val === '|') {
+          const folded = val.charAt(0) === '>';
+          const strip = val.charAt(1) === '-';
+          const parts = [];
+          let j = i + 1;
+          while (j < lines.length && (lines[j].trim() === '' || /^[ \t]/.test(lines[j]))) {
+            parts.push(lines[j]);
+            j++;
+          }
+          while (parts.length && parts[parts.length - 1].trim() === '') parts.pop();
+          if (folded) {
+            // Terlipat: baris isi digabung dengan spasi; baris kosong
+            // menjadi pemisah paragraf (newline).
+            let out = '';
+            let afterBlank = false;
+            for (const p of parts) {
+              const t = p.trim();
+              if (t === '') { out += '\n'; afterBlank = true; continue; }
+              if (out !== '' && !afterBlank && !out.endsWith('\n')) out += ' ';
+              out += t;
+              afterBlank = false;
+            }
+            val = strip ? out.replace(/\n+$/, '') : (out === '' ? '' : out.replace(/\n*$/, '\n'));
+          } else {
+            // Literal: baris isi digabung dengan newline.
+            val = parts.map((p) => p.trim()).join('\n');
+            if (!strip && val !== '') val += '\n';
+          }
+          data[key] = val;
+          i = j - 1;
+          continue;
+        }
         if (val.startsWith('[') && val.endsWith(']')) {
           try { data[key] = JSON.parse(val); continue; } catch (e) {}
         }
@@ -367,7 +404,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       const d = a.data;
       return '<article class="flex gap-3 py-4">' +
         '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="shrink-0">' +
-        '<img src="' + esc(imageUrl(d.image)) + '" alt="' + esc(d.imageCaption || d.title) + '" loading="lazy" width="120" height="80" class="h-20 w-28 rounded-lg object-cover" /></a>' +
+        '<img src="' + esc(imageUrl(d.image)) + '" alt="' + esc(d.imageCaption || d.title) + '" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" /></a>' +
         '<div class="min-w-0 flex-1"><div>' + catLabel(d.category || '-') + sourceBadge(d.source) + '</div>' +
         '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="mt-0.5 block text-sm font-bold leading-snug hover:text-[#92400E] hover:underline">' + esc(d.title || '(tanpa judul)') + '</a>' +
         '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + (d.upt ? ' · ' + esc(d.upt) : '') + '</span>' +
@@ -388,7 +425,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
         const hero = featured[0];
         const rest = featured.slice(1);
         let html = '<a href="/berita/' + esc(hero.slug) + '/" target="_blank" rel="noopener" class="group relative block overflow-hidden rounded-2xl">' +
-          '<img src="' + esc(imageUrl(hero.data.image)) + '" alt="' + esc(hero.data.imageCaption || hero.data.title) + '" loading="eager" class="aspect-[16/9] w-full object-cover" />' +
+          '<img src="' + esc(imageUrl(hero.data.image)) + '" alt="' + esc(hero.data.imageCaption || hero.data.title) + '" loading="eager" class="h-auto w-full" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" />' +
           '<span class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></span>' +
           '<span class="absolute inset-x-0 bottom-0 p-5"><span class="inline-block rounded bg-[#FACC15] px-2 py-1 text-xs font-bold uppercase tracking-wide text-[#0A2540]">' + esc(hero.data.category || '') + '</span>' + sourceBadge(hero.data.source) +
           '<span class="mt-2 block text-xl font-extrabold leading-tight text-white sm:text-2xl">' + esc(hero.data.title || '') + '</span>' +
