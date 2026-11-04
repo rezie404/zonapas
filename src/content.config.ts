@@ -18,6 +18,9 @@ const berita = defineCollection({
     upt: z.string().optional(),
     source: z.enum(['jurnalpas', 'contoh', 'zonapas']).default('contoh'),
     sourceUrl: z.string().optional(),
+    // ID post padanan di JurnalPas (ditulis backfill + Action sync; dipakai
+    // untuk memperbarui post yang sama, bukan membuat duplikat).
+    jurnalpas_id: z.number().optional(),
   }),
 });
 
