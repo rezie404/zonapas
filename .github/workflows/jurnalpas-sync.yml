@@ -1,0 +1,49 @@
+# Sync ke JurnalPas — setiap artikel yang terbit di ZonaPas otomatis terbit juga
+# di jurnalpas.wordpress.com (dan editan artikel yang sudah punya jurnalpas_id
+# memperbarui post yang sama, bukan membuat duplikat).
+#
+# Cara kerja: scripts/jurnalpas-sync.mjs (Node, tanpa dependensi).
+# Token OAuth2 WordPress.com diambil dari secret WP_COM_ACCESS_TOKEN.
+# Bila secret belum dipasang, skrip berjalan dry-run (hanya mencatat apa yang
+# AKAN dikirim) dan workflow tetap hijau — bukan gagal.
+#
+# Dijalankan manual (workflow_dispatch) juga bisa: tanpa SHA before/after,
+# skrip menganggap semua artikel diubah — yang ber-ID diperbarui, yang tanpa
+# ID dilewati (aman dari duplikat).
+name: Sync ke JurnalPas
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/content/berita/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write # untuk commit kembali jurnalpas_id (dengan [skip ci])
+
+concurrency:
+  group: jurnalpas-sync
+  cancel-in-progress: false # antrekan berurutan supaya tidak ada dobel-terbit
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # perlu riwayat untuk git diff before/after
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Sinkronkan artikel ke JurnalPas
+        env:
+          WP_COM_ACCESS_TOKEN: ${{ secrets.WP_COM_ACCESS_TOKEN }}
+          WP_SITE: jurnalpas.wordpress.com
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_EVENT_AFTER: ${{ github.event.after }}
+        run: node scripts/jurnalpas-sync.mjs
