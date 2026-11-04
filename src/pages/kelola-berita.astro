@@ -2,8 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { CATEGORIES } from '../data/site';
 import { UPTS } from '../data/upt';
+import { AUTHORS } from '../data/authors';
 
 const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+// Peran/bio penulis untuk pratinjau tampilan terbit (modal mata).
+const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.name, { role: a.role, bio: a.bio }]));
 ---
 
 <BaseLayout
@@ -13,7 +16,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
   <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
        ekspresi {…} di dalam tag <script>, jadi penulisan {JSON.stringify(…)}
        akan tercetak mentah dan JSON.parse di script utama akan gagal. -->
-  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors })} />
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
 
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
@@ -156,6 +159,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
               <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <button id="btn-tambah-gambar" type="button" class="rounded-lg bg-[#FACC15] px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">📷 Tambah Gambar</button>
+                <button id="btn-pratinjau-terbit" type="button" class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#123a66]">👁 Lihat Tampilan Terbit</button>
                 <input id="f-isi-alt" type="text" placeholder="Keterangan gambar (opsional)" class="min-w-[200px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
                 <input id="f-isi-file" type="file" accept="image/jpeg,image/png" class="hidden" />
               </div>
@@ -178,6 +182,19 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
           </p>
         </form>
       </section>
+
+      <!-- Modal pratinjau tampilan terbit: artikel persis seperti saat sudah dipublish -->
+      <div id="modal-pratinjau" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Pratinjau tampilan terbit">
+        <div class="flex min-h-full items-start justify-center px-0 py-0 sm:px-4 sm:py-6">
+          <div id="modal-pratinjau-panel" class="relative w-full max-w-[1200px] bg-white shadow-2xl dark:bg-[#0F172A] sm:rounded-2xl">
+            <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-[#0F172A]/95">
+              <p class="text-sm font-bold">👁 Pratinjau Tampilan Terbit <span class="block text-xs font-medium text-slate-500 dark:text-slate-400 sm:inline">— seperti saat sudah dipublish (belum tersimpan)</span></p>
+              <button id="btn-tutup-pratinjau" type="button" class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✕ Tutup</button>
+            </div>
+            <div id="pratinjau-terbit-isi"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -199,6 +216,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       console.warn('Data kelola tidak terbaca, memakai default.', e);
     }
     const CATEGORY_COLORS = kelolaData.categoryColors || {};
+    const AUTHORS_MAP = kelolaData.authors || {};
 
     const $ = (id) => document.getElementById(id);
     // Pasang listener hanya bila elemennya ada: satu elemen yang hilang
@@ -627,11 +645,11 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       e = e.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
       return e;
     }
-    function renderIsiPreview() {
-      const el = $('f-isi-preview');
-      if (!el) return;
-      const md = $('f-isi').value || '';
-      const lines = md.split('\n');
+    // Me-render Markdown narasi menjadi HTML (paragraf, gambar, bold,
+    // tautan). Dipakai kotak pratinjau live di bawah textarea DAN modal
+    // pratinjau tampilan terbit, supaya keduanya selalu sama.
+    function isiMarkdownToHtml(md) {
+      const lines = String(md || '').split('\n');
       const out = [];
       let buf = [];
       const flush = () => {
@@ -644,9 +662,168 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
         else buf.push(ln.trim());
       }
       flush();
-      el.innerHTML = out.join('') || '<p class="text-slate-400">Pratinjau kosong — tulis isi berita di atas.</p>';
+      return out.join('');
+    }
+    function renderIsiPreview() {
+      const el = $('f-isi-preview');
+      if (!el) return;
+      el.innerHTML = isiMarkdownToHtml($('f-isi').value || '') || '<p class="text-slate-400">Pratinjau kosong — tulis isi berita di atas.</p>';
     }
     on('f-isi', 'input', renderIsiPreview);
+
+    // ---------- Pratinjau tampilan terbit (modal mata) ----------
+    // Merender artikel persis seperti halaman terbit (src/pages/berita/[...slug].astro):
+    // breadcrumb, judul, ringkasan (hanya bila tidak menduplikasi awal isi),
+    // lencana kategori/UPT/sumber, meta penulis-tanggal-waktu baca, tombol
+    // berbagi (visual saja), foto sampul, badan narasi, Baca Juga + Berita
+    // Terkait, tag, dan kotak penulis. Hanya membaca nilai formulir saat ini
+    // — tidak menyimpan apa pun. Lencana dan tautan dibuat sebagai span
+    // (bukan <a>) supaya klik di dalam modal tidak memindahkan halaman dan
+    // formulir yang belum disimpan tidak hilang.
+    function formatDateLong(iso) {
+      const d = new Date((iso || '') + 'T00:00:00');
+      if (isNaN(d)) return iso || '';
+      return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+    }
+
+    function readingMinutesOf(body) {
+      const words = String(body || '').split(/\s+/).filter(Boolean).length;
+      return Math.max(1, Math.round(words / 200));
+    }
+
+    function shareButtonsVisual() {
+      return '<div class="flex flex-wrap items-center gap-2" aria-label="Bagikan artikel">' +
+        '<span class="mr-1 text-sm font-bold text-slate-600 dark:text-slate-300">Bagikan:</span>' +
+        '<span class="rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white">WhatsApp</span>' +
+        '<span class="rounded-full bg-[#1877F2] px-3 py-1.5 text-xs font-bold text-white">Facebook</span>' +
+        '<span class="rounded-full bg-black px-3 py-1.5 text-xs font-bold text-white dark:bg-white dark:text-black">X</span>' +
+        '<span class="rounded-full bg-[#229ED9] px-3 py-1.5 text-xs font-bold text-white">Telegram</span>' +
+        '<span class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 dark:border-slate-600 dark:text-slate-200">Salin Link</span></div>';
+    }
+
+    // Artikel terkait: kategori sama dulu (+2), lalu tag yang sama (+1 tiap tag).
+    function artikelTerkait(kategori, tag, kecualiSlug) {
+      return articles.filter((a) => a.slug !== kecualiSlug).map((a) => {
+        let score = 0;
+        if (a.data.category === kategori) score += 2;
+        score += (a.data.tags || []).filter((t) => tag.includes(t)).length;
+        return { a, score };
+      }).filter((x) => x.score > 0)
+        .sort((x, y) => y.score - x.score || String(y.a.data.publishDate || '').localeCompare(String(x.a.data.publishDate || '')))
+        .slice(0, 3).map((x) => x.a);
+    }
+
+    function artikelLainTerbaru(kecualiSlug) {
+      const lain = articles.filter((a) => a.slug !== kecualiSlug)
+        .sort((x, y) => String(y.data.publishDate || '').localeCompare(String(x.data.publishDate || '')));
+      return lain[0] || null;
+    }
+
+    function kartuTerkaitHtml(a) {
+      const d = a.data;
+      const color = CATEGORY_COLORS[d.category] || '#0A2540';
+      return '<div class="block overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">' +
+        '<img src="' + esc(imageUrl(d.image)) + '" alt="' + esc(d.imageCaption || d.title || '') + '" loading="lazy" class="h-auto w-full" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" />' +
+        '<span class="block p-4">' +
+        '<span class="text-xs font-bold uppercase tracking-wide" style="color:' + esc(color) + '">' + esc(d.category || '') + '</span>' +
+        '<span class="mt-1 block text-base font-bold leading-snug">' + esc(d.title || '') + '</span>' +
+        '<span class="mt-2 line-clamp-2 block text-sm text-slate-600 dark:text-slate-400">' + esc(d.summary || '') + '</span>' +
+        '<span class="mt-3 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + '</span></span></div>';
+    }
+
+    function bangunPratinjauTerbit(d) {
+      const catColor = CATEGORY_COLORS[d.category] || '#0A2540';
+      const authorInfo = AUTHORS_MAP[d.author] || { role: 'Kontributor', bio: '' };
+      const bodyPlain = String(d.body || '').replace(/\s+/g, ' ').trim();
+      const summaryPlain = String(d.summary || '').replace(/\s+/g, ' ').trim();
+      const leadDuplicatesBody = summaryPlain.length > 0 && bodyPlain.startsWith(summaryPlain.slice(0, 100));
+      const terkait = artikelTerkait(d.category, d.tags || [], d.kecualiSlug);
+      const bacaJuga = terkait[0] || artikelLainTerbaru(d.kecualiSlug);
+      const cover = d.image || '/images/cover-default.svg';
+      let h = '<article class="mx-auto max-w-[1200px] px-4 pb-10 pt-6"><div class="mx-auto max-w-[760px]">';
+      h += '<nav class="text-sm text-slate-500 dark:text-slate-400"><span>Beranda</span><span class="mx-1">/</span><span>' + esc(d.category || '') + '</span><span class="mx-1">/</span><span class="font-semibold text-slate-800 dark:text-slate-200">' + esc(d.title || '(tanpa judul)') + '</span></nav>';
+      h += '<h1 class="mt-4 text-3xl font-black leading-tight sm:text-4xl">' + esc(d.title || '(tanpa judul)') + '</h1>';
+      if (!leadDuplicatesBody && summaryPlain) {
+        h += '<p class="mt-3 text-lg leading-relaxed text-slate-600 dark:text-slate-300">' + esc(d.summary) + '</p>';
+      }
+      h += '<div class="mt-4 flex flex-wrap items-center gap-2">';
+      if (d.category) h += '<span class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide text-white" style="background:' + esc(catColor) + '">' + esc(d.category) + '</span>';
+      if (d.upt) h += '<span class="rounded-full border border-[#0A2540] px-3 py-1 text-xs font-bold text-[#0A2540] dark:border-slate-400 dark:text-slate-200">' + esc(d.upt) + '</span>';
+      h += '<span class="rounded-full bg-[#0A2540] px-3 py-1 text-xs font-bold text-white">Artikel ZonaPas</span></div>';
+      h += '<div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-slate-200 py-3 text-sm dark:border-slate-800">';
+      h += '<span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540] text-sm font-black text-white">' + esc((d.author || '?').charAt(0)) + '</span>';
+      h += '<span><span class="block font-bold">' + esc(d.author || 'Rezie Novian Putra') + '</span><span class="block text-xs text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</span></span>';
+      h += '<span class="text-slate-300 dark:text-slate-600">|</span>';
+      h += '<span class="text-slate-600 dark:text-slate-300">' + esc(formatDateLong(d.publishDate)) + '</span>';
+      h += '<span class="text-slate-300 dark:text-slate-600">|</span>';
+      h += '<span class="text-slate-600 dark:text-slate-300">' + readingMinutesOf(d.body) + ' menit baca</span></div>';
+      h += '<div class="mt-4">' + shareButtonsVisual() + '</div>';
+      h += '<figure class="mt-5"><img src="' + esc(cover) + '" alt="' + esc(d.imageCaption || '') + '" class="h-auto w-full rounded-xl" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" />';
+      h += '<figcaption class="mt-2 text-sm italic text-slate-500 dark:text-slate-400">' + esc(d.imageCaption || '') + '</figcaption></figure>';
+      h += '<div class="article-body mt-6 text-[17px] text-slate-800 dark:text-slate-200">' + (isiMarkdownToHtml(d.body) || '<p class="text-slate-400">Isi berita masih kosong.</p>') + '</div>';
+      if (bacaJuga) {
+        h += '<aside class="my-6 rounded-xl border-l-4 border-[#D9232E] bg-slate-50 p-4 dark:bg-slate-900" aria-label="Baca juga"><p class="text-xs font-black uppercase tracking-wider text-[#D9232E]">Baca Juga</p><span class="mt-1 block text-lg font-bold leading-snug">' + esc(bacaJuga.data.title || '') + '</span></aside>';
+      }
+      h += '<div class="mt-8 border-t border-slate-200 pt-5 dark:border-slate-800"><div class="flex flex-wrap items-center gap-2"><span class="text-sm font-bold">Tag:</span>';
+      (d.tags || []).forEach((tag) => {
+        h += '<span class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">#' + esc(tag) + '</span>';
+      });
+      h += '</div><div class="mt-4">' + shareButtonsVisual() + '</div></div>';
+      h += '<div class="mt-8 flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">';
+      h += '<span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white">' + esc((d.author || '?').charAt(0)) + '</span>';
+      h += '<div><p class="font-bold">' + esc(d.author || 'Rezie Novian Putra') + '</p><p class="text-sm text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</p>';
+      if (authorInfo.bio) h += '<p class="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">' + esc(authorInfo.bio) + '</p>';
+      h += '</div></div></div>';
+      if (terkait.length) {
+        h += '<section class="mx-auto mt-10 max-w-[1200px]" aria-label="Berita terkait"><h2 class="mb-4 border-b-2 border-[#0A2540] pb-2 text-xl font-black uppercase dark:border-white">Berita Terkait</h2><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">' + terkait.map(kartuTerkaitHtml).join('') + '</div></section>';
+      }
+      h += '</article>';
+      return h;
+    }
+
+    function bukaPratinjauTerbit() {
+      const d = {
+        title: $('f-judul').value.trim(),
+        summary: $('f-ringkasan').value.trim(),
+        category: $('f-kategori').value,
+        tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
+        author: $('f-penulis').value.trim() || 'Rezie Novian Putra',
+        publishDate: $('f-tanggal').value,
+        upt: $('f-upt').value || '',
+        image: pendingCover ? pendingCover.dataUrl : (editing && editing.image ? imageUrl(editing.image) : ''),
+        imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
+        body: $('f-isi').value || '',
+        kecualiSlug: editing ? editing.slug : '',
+      };
+      $('pratinjau-terbit-isi').innerHTML = bangunPratinjauTerbit(d);
+      const modal = $('modal-pratinjau');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      modal.scrollTop = 0;
+      const tutup = $('btn-tutup-pratinjau');
+      if (tutup) tutup.focus();
+    }
+
+    function tutupPratinjauTerbit() {
+      const modal = $('modal-pratinjau');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      const btn = $('btn-pratinjau-terbit');
+      if (btn) btn.focus();
+    }
+
+    on('btn-pratinjau-terbit', 'click', bukaPratinjauTerbit);
+    on('btn-tutup-pratinjau', 'click', tutupPratinjauTerbit);
+    on('modal-pratinjau', 'click', (e) => {
+      if (e.target && !e.target.closest('#modal-pratinjau-panel')) tutupPratinjauTerbit();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = $('modal-pratinjau');
+        if (modal && !modal.classList.contains('hidden')) tutupPratinjauTerbit();
+      }
+    });
 
     function isiStatus(msg, isError) {
       const el = $('f-isi-status');
