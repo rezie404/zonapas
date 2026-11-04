@@ -5,22 +5,20 @@ category: "Kepegawaian"
 tags: ["apel pagi", "disiplin", "kepegawaian"]
 author: "Rezie Novian Putra"
 publishDate: 2026-11-03
-image: "/images/jurnalpas-disiplin-cermin-profesionalisme-kabagtum-berikan-arahan-tingkatkan-ketertiban-dan-kepatuhan-pegawai.jpg"
-imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS \u2014 jurnalpas.wordpress.com"
+image: "/images/cover-disiplin-cermin-profesionalisme-kabagtum-berikan-arahan-tingkatkan-ketertiban-dan-kepatuhan-pegawai-202611041627.jpg"
+imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"
 featured: false
 breaking: false
 upt: "Kanwil Ditjenpas Bengkulu"
-source: "jurnalpas"
-sourceUrl: "https://jurnalpas.wordpress.com/2026/11/03/disiplin-cermin-profesionalisme-kabagtum-berikan-arahan-tingkatkan-ketertiban-dan-kepatuhan-pegawai/"
+source: "zonapas"
 ---
 
 Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi pada Senin (2/11). Apel dipimpin oleh Kepala Bagian Tata Usaha, Sudirwan, yang diikuti oleh jajaran pegawai di lingkungan Kanwil Ditjenpas Bengkulu.
-
 
 Dalam arahannya, Kabag Tata Usaha mengingatkan seluruh pegawai untuk senantiasa menjaga kedisiplinan, khususnya dalam mematuhi waktu kerja dan memastikan kelengkapan atribut pakaian dinas sesuai ketentuan. Hal tersebut merupakan bentuk tanggung jawab serta cerminan profesionalisme sebagai aparatur negara.
 
 Ia menegaskan bahwa disiplin harus dimulai dari hal-hal mendasar, seperti hadir tepat waktu dan menggunakan atribut kedinasan secara lengkap dan rapi. Dengan demikian, setiap pegawai diharapkan dapat menjadi teladan serta mendukung terciptanya lingkungan kerja yang tertib dan profesional.
 
-![Dokumentasi kegiatan](/images/jurnalpas-disiplin-cermin-profesionalisme-kabagtum-berikan-arahan-tingkatkan-ketertiban-dan-kepatuhan-pegawai-foto-2.jpg)
-
 Melalui apel pagi ini, seluruh jajaran diharapkan terus meningkatkan kedisiplinan dan tanggung jawab dalam menjalankan tugas, sehingga pelaksanaan pelayanan dan fungsi Pemasyarakatan dapat berjalan secara optimal.
+
+![334436](/images/isi-disiplin-cermin-profesionalisme-kabagtum-berikan-arahan-tingkatkan-ketertiban-dan-kepatuhan-pegawai-20261104232642736807.jpg)
