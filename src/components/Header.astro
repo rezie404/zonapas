@@ -58,7 +58,7 @@ const currentPath = Astro.url.pathname;
 
     <nav class="hidden items-center gap-1 overflow-x-auto pb-2 lg:flex" aria-label="Kategori berita">
       <a href="/" class={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-bold ${currentPath === '/' ? 'bg-[#0A2540] text-white' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`}>Beranda</a>
-      {CATEGORIES.filter((cat) => cat.slug !== 'profil-upt').map((cat) => (
+      {CATEGORIES.filter((cat) => cat.slug !== 'profil-upt' && cat.slug !== 'kegiatan-upt').map((cat) => (
         <a
           href={`/${cat.slug}/`}
           class={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold ${currentPath.startsWith(`/${cat.slug}/`) ? 'bg-[#0A2540] text-white' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`}
@@ -70,7 +70,7 @@ const currentPath = Astro.url.pathname;
         href="/upt/"
         class={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold ${currentPath.startsWith('/upt/') ? 'bg-[#0A2540] text-white' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'}`}
       >
-        Profil UPT
+        Berita UPT
       </a>
     </nav>
   </div>
@@ -78,10 +78,10 @@ const currentPath = Astro.url.pathname;
   <div id="mobile-menu" class="hidden border-t border-slate-200 bg-white px-4 py-3 lg:hidden dark:border-slate-800 dark:bg-[#0F172A]">
     <nav class="grid grid-cols-2 gap-1" aria-label="Menu kategori">
       <a href="/" class="rounded-lg px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">Beranda</a>
-      {CATEGORIES.filter((cat) => cat.slug !== 'profil-upt').map((cat) => (
+      {CATEGORIES.filter((cat) => cat.slug !== 'profil-upt' && cat.slug !== 'kegiatan-upt').map((cat) => (
         <a href={`/${cat.slug}/`} class="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">{cat.name}</a>
       ))}
-      <a href="/upt/" class="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">Profil UPT</a>
+      <a href="/upt/" class="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">Berita UPT</a>
       <a href="/redaksi/login" class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540]">Masuk Redaksi</a>
     </nav>
   </div>
