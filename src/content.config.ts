@@ -7,7 +7,7 @@ const berita = defineCollection({
     title: z.string(),
     summary: z.string(),
     category: z.string(),
-    tags: z.array(z.string()),
+    tags: z.array(z.string()).default([]),
     author: z.string(),
     publishDate: z.coerce.date(),
     image: z.string(),
