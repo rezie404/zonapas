@@ -166,11 +166,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <p id="f-isi-status" class="mb-2 hidden text-xs font-medium text-slate-500 dark:text-slate-400" role="status"></p>
               <textarea id="f-isi" required rows="12" placeholder="Tulis isi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
               <p class="mt-1 text-xs text-slate-500">Gambar disisipkan di posisi kursor sebagai <span class="font-mono">![keterangan](/images/…)</span> dan bisa ditambah berkali-kali. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
-              <div class="mt-3">
-                <p class="mb-1 text-sm font-bold">Pratinjau Isi Berita</p>
-                <div id="f-isi-preview" class="article-body min-h-24 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800/50"></div>
-                <p class="mt-1 text-xs text-slate-500">Pratinjau hanya untuk melihat bentuk narasi — yang disimpan tetap teks Markdown di kolom Isi Berita.</p>
-              </div>
             </div>
           </div>
           <div class="mt-5 flex flex-wrap gap-3">
@@ -550,7 +545,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('f-foto-saat-ini').textContent = '';
       $('form-title').textContent = 'Tulis Berita Baru';
       $('btn-save').textContent = 'Simpan Berita';
-      renderIsiPreview();
     }
 
     on('btn-new', 'click', () => {
@@ -646,8 +640,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return e;
     }
     // Me-render Markdown narasi menjadi HTML (paragraf, gambar, bold,
-    // tautan). Dipakai kotak pratinjau live di bawah textarea DAN modal
-    // pratinjau tampilan terbit, supaya keduanya selalu sama.
+    // tautan). Dipakai modal pratinjau tampilan terbit.
     function isiMarkdownToHtml(md) {
       const lines = String(md || '').split('\n');
       const out = [];
@@ -664,13 +657,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       flush();
       return out.join('');
     }
-    function renderIsiPreview() {
-      const el = $('f-isi-preview');
-      if (!el) return;
-      el.innerHTML = isiMarkdownToHtml($('f-isi').value || '') || '<p class="text-slate-400">Pratinjau kosong — tulis isi berita di atas.</p>';
-    }
-    on('f-isi', 'input', renderIsiPreview);
-
     // ---------- Pratinjau tampilan terbit (modal mata) ----------
     // Merender artikel persis seperti halaman terbit (src/pages/berita/[...slug].astro):
     // breadcrumb, judul, ringkasan (hanya bila tidak menduplikasi awal isi),
@@ -863,7 +849,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
         const safeAlt = alt.replace(/[\[\])]/g, '');
         insertAtCursor($('f-isi'), '![' + safeAlt + '](' + path + ')');
-        renderIsiPreview();
         isiStatus('Gambar disisipkan di narasi: ' + path, false);
         $('f-isi-alt').value = '';
       } catch (err) {
@@ -1007,7 +992,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('f-featured').checked = a.data.featured === true;
         $('f-breaking').checked = a.data.breaking === true;
         $('f-isi').value = a.body || '';
-        renderIsiPreview();
         $('f-foto').value = '';
         pendingCover = null;
         const prev = $('f-foto-preview');
