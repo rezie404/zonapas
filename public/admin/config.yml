@@ -1,24 +1,11 @@
 # Konfigurasi Decap CMS untuk ZonaPas (zonapas.web.id)
-# ---------------------------------------------------------------------------
-# YANG MASIH HARUS DIISI SEBELUM LOGIN BISA DIPAKAI (langkah penyambungan):
-#   1. Buat repositori GitHub berisi kode sumber situs ini, misal: rezienovian/zonapas
-#   2. Buat GitHub OAuth App (https://github.com/settings/developers):
-#        - Homepage URL: https://zonapas.web.id
-#        - Authorization callback URL: https://oauth.zonapas.web.id/callback
-#      (callback ini dilayani proxy OAuth kecil di Cloudflare Workers — gratis,
-#       dipasang saat tahap deploy; Client ID + Client Secret TIDAK ditulis di sini)
-#   3. Ganti nilai `repo` di bawah dengan repo GitHub yang sebenarnya,
-#      ganti `base_url` dengan alamat proxy OAuth, dan isi `app_id` dengan
-#      Client ID dari OAuth App tersebut.
-#   4. Simpan di CMS = commit ke branch main -> Cloudflare Pages membangun
-#      ulang situs otomatis dan berita langsung tayang.
-# ---------------------------------------------------------------------------
+# Repo, proxy OAuth, dan Client ID sudah terisi dan aktif.
 
 backend:
   name: github
   repo: rezie404/zonapas
   branch: main
-  # Proxy OAuth (Cloudflare Workers, gratis) — ganti dengan alamat sebenarnya.
+  # Proxy OAuth (Cloudflare Workers) — melayani callback https://oauth.zonapas.web.id/callback.
   base_url: https://oauth.zonapas.web.id
   # Client ID dari GitHub OAuth App "ZonaPas CMS".
   app_id: Ov23liQ7wMCu80EyjHzN

@@ -70,7 +70,7 @@ const byCategory = (name: string) => all.filter((e) => e.data.category === name)
               <div class="grid gap-4 sm:grid-cols-2">
                 <NewsCard entry={first} size="medium" showCategory={false} />
                 <div class="divide-y divide-slate-200 dark:divide-slate-800">
-                  {rest.slice(0, 4).map((entry) => (
+                  {rest.map((entry) => (
                     <NewsCard entry={entry} size="small" showCategory={false} />
                   ))}
                 </div>
