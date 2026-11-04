@@ -216,16 +216,9 @@ const jsonLd = [
     )}
   </article>
 
-  <script is:inline>
-    // Pindahkan kotak "Baca Juga" ke tengah artikel, setelah paragraf ke-2
-    (function () {
-      const body = document.getElementById('article-body');
-      const box = document.getElementById('baca-juga');
-      if (!body || !box) return;
-      const paras = body.querySelectorAll(':scope > p');
-      if (paras.length >= 2) {
-        paras[1].after(box);
-      }
-    })();
-  </script>
+  {/*
+    Kotak "Baca Juga" dibiarkan pada posisi statisnya di atas (setelah isi
+    artikel dan catatan sumber, sebelum tag/bagikan) — tidak lagi dipindah
+    ke tengah isi oleh script. Narasi tampil utuh dari awal sampai akhir.
+  */}
 </BaseLayout>
