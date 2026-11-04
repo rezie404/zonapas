@@ -20,7 +20,7 @@ backend:
   branch: main
   # Proxy OAuth (Cloudflare Workers, gratis) — ganti dengan alamat sebenarnya.
   base_url: https://oauth.zonapas.web.id
-  # Client ID dari GitHub OAuth App — ganti dengan yang sebenarnya.
+  # Client ID dari GitHub OAuth App "ZonaPas CMS".
   app_id: Ov23liQ7wMCu80EyjHzN
   auth_scope: repo
 

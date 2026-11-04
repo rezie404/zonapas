@@ -1,0 +1,12 @@
+# Cloudflare Worker: proxy OAuth untuk login Decap CMS ke GitHub (ZonaPas).
+# JANGAN isi vars dengan nilai rahasia apa pun.
+# GITHUB_CLIENT_ID dan GITHUB_CLIENT_SECRET diatur sebagai secret Worker
+# (dashboard Cloudflare atau `wrangler secret put`), bukan di file ini.
+
+name = "zonapas-oauth"
+main = "worker.js"
+compatibility_date = "2026-11-04"
+
+routes = [
+  { pattern = "oauth.zonapas.web.id/*", zone_name = "zonapas.web.id" }
+]
