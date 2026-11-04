@@ -3,7 +3,7 @@ title: "Bahas Usulan Program Integrasi dan Remisi, Kanwil Ditjenpas Bengkulu Iku
 summary: "Bengkulu — Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu telah melaksanakan kegiatan Sidang Tim Pengamat Pemasyarakatan (TPP) di Rutan Kelas IIB Bengkulu."
 category: "Integrasi & Remisi"
 tags: ["sidang tpp", "integrasi", "remisi", "rutan bengkulu"]
-author: "Rezie Novian Putra"
+author: "Rezie"
 publishDate: 2026-11-03
 image: "/images/cover-bahas-usulan-program-integrasi-dan-remisi-kanwil-ditjenpas-bengkulu-ikuti-sidang-tpp-di-rutan-kelas-iib-bengkulu-202611041617.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"

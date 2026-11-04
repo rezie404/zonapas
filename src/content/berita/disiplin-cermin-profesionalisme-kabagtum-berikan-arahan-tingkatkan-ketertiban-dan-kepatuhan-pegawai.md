@@ -3,7 +3,7 @@ title: "Disiplin Cermin Profesionalisme, Kabagtum Berikan Arahan Tingkatkan Kete
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi pada Senin (2/11). Apel dipimpin oleh Kepala Bagian Tata Usaha, Sudirwan, yang diikuti oleh jajaran pegawai di lingkungan Kanwil Ditjenpas Bengkulu."
 category: "Kepegawaian"
 tags: ["apel pagi", "disiplin", "kepegawaian"]
-author: "Rezie Novian Putra"
+author: "Rezie"
 publishDate: 2026-11-03
 image: "/images/cover-disiplin-cermin-profesionalisme-kabagtum-berikan-arahan-tingkatkan-ketertiban-dan-kepatuhan-pegawai-202611041627.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"

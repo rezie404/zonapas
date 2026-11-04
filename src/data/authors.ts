@@ -10,8 +10,8 @@ export const AUTHORS: Record<string, Author> = {
     role: 'Tim Redaksi',
     bio: 'Tim redaksi ZonaPas yang menyusun berita pemasyarakatan dari berbagai sumber terpercaya.',
   },
-  'Rezie Novian Putra': {
-    name: 'Rezie Novian Putra',
+  'Rezie': {
+    name: 'Rezie',
     role: 'JurnalPAS',
     bio: 'Pengelola JurnalPAS, media online berita pemasyarakatan. Artikelnya diterbitkan ulang di ZonaPas dengan atribusi sumber.',
   },

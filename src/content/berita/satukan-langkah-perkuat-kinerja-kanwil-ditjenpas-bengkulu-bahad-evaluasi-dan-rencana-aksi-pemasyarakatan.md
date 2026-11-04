@@ -3,7 +3,7 @@ title: "Satukan Langkah, Perkuat Kinerja, Kanwil Ditjenpas Bengkulu Bahas Evalua
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan rapat koordinasi Kepala Satuan Kerja/Kepala Unit Pelaksana Teknis (UPT) Pemasyarakatan pada Sabtu (31/10). Kegiatan ini membahas penyamaan arah kebijakan, evaluasi kondisi terkini, serta penguatan pola kerja seluruh satuan kerja berdasarkan analisis data per 29 Oktober 2026."
 category: "Sinergi"
 tags: ["rakor", "upt", "evaluasi kinerja", "rencana aksi"]
-author: "Rezie Novian Putra"
+author: "Rezie"
 publishDate: 2026-11-03
 image: "/images/cover-satukan-langkah-perkuat-kinerja-kanwil-ditjenpas-bengkulu-bahad-evaluasi-dan-rencana-aksi-pemasyarakatan-202611041648.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"

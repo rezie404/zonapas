@@ -49,7 +49,7 @@ collections:
           - Kegiatan UPT
           - Profil UPT
       - { name: tags, label: Tag, widget: list, required: false }
-      - { name: author, label: Penulis, widget: string, default: "Rezie Novian Putra" }
+      - { name: author, label: Penulis, widget: string, default: "Rezie" }
       - { name: publishDate, label: Tanggal Terbit, widget: datetime, date_format: YYYY-MM-DD, time_format: false, default: "" }
       - { name: image, label: Foto Sampul, widget: image }
       - { name: imageCaption, label: Keterangan Foto, widget: string, default: "Dokumentasi kegiatan. (ZonaPas)" }

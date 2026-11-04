@@ -3,7 +3,7 @@ title: "Percepat Alur Pelaporan, Kanwil Ditjenpas Bengkulu Gelar Pangarahan Publ
 summary: "Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengadakan pengarahan publikasi untuk seluruh Unit Pelaksana Teknis (UPT) Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu."
 category: "Sinergi"
 tags: ["Tata Usaha dan Umum", "Humas", "Pengarahan"]
-author: "Rezie Novian Putra"
+author: "Rezie"
 publishDate: 2026-11-04
 image: "/images/334083.jpg"
 imageCaption: "Dokumentasi kegiatan. (ZonaPas)"

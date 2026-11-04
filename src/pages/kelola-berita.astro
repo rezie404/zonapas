@@ -127,7 +127,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             </div>
             <div>
               <label for="f-penulis" class="mb-1 block text-sm font-bold">Penulis</label>
-              <input id="f-penulis" value="Rezie Novian Putra" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <input id="f-penulis" value="Rezie" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
             </div>
             <div>
               <label for="f-tanggal" class="mb-1 block text-sm font-bold">Tanggal Terbit *</label>
@@ -576,7 +576,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       editing = null;
       pendingCover = null;
       $('form-berita').reset();
-      $('f-penulis').value = 'Rezie Novian Putra';
+      $('f-penulis').value = 'Rezie';
       $('f-keterangan').value = 'Dokumentasi kegiatan. (ZonaPas)';
       $('f-tanggal').value = todayISO();
       $('f-foto-preview').classList.add('hidden');
@@ -790,7 +790,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       h += '<span class="rounded-full bg-[#0A2540] px-3 py-1 text-xs font-bold text-white">Artikel ZonaPas</span></div>';
       h += '<div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-slate-200 py-3 text-sm dark:border-slate-800">';
       h += '<span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540] text-sm font-black text-white">' + esc((d.author || '?').charAt(0)) + '</span>';
-      h += '<span><span class="block font-bold">' + esc(d.author || 'Rezie Novian Putra') + '</span><span class="block text-xs text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</span></span>';
+      h += '<span><span class="block font-bold">' + esc(d.author || 'Rezie') + '</span><span class="block text-xs text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</span></span>';
       h += '<span class="text-slate-300 dark:text-slate-600">|</span>';
       h += '<span class="text-slate-600 dark:text-slate-300">' + esc(formatDateLong(d.publishDate)) + '</span>';
       h += '<span class="text-slate-300 dark:text-slate-600">|</span>';
@@ -809,7 +809,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       h += '</div><div class="mt-4">' + shareButtonsVisual() + '</div></div>';
       h += '<div class="mt-8 flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">';
       h += '<span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white">' + esc((d.author || '?').charAt(0)) + '</span>';
-      h += '<div><p class="font-bold">' + esc(d.author || 'Rezie Novian Putra') + '</p><p class="text-sm text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</p>';
+      h += '<div><p class="font-bold">' + esc(d.author || 'Rezie') + '</p><p class="text-sm text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</p>';
       if (authorInfo.bio) h += '<p class="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">' + esc(authorInfo.bio) + '</p>';
       h += '</div></div></div>';
       if (terkait.length) {
@@ -825,7 +825,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         summary: $('f-ringkasan').value.trim(),
         category: $('f-kategori').value,
         tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
-        author: $('f-penulis').value.trim() || 'Rezie Novian Putra',
+        author: $('f-penulis').value.trim() || 'Rezie',
         publishDate: $('f-tanggal').value,
         upt: $('f-upt').value || '',
         image: pendingCover ? pendingCover.dataUrl : (editing && editing.image ? imageUrl(editing.image) : ''),
@@ -1251,7 +1251,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const data = {
           title, summary, category,
           tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
-          author: $('f-penulis').value.trim() || 'Rezie Novian Putra',
+          author: $('f-penulis').value.trim() || 'Rezie',
           publishDate,
           image,
           imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
@@ -1300,7 +1300,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('f-ringkasan').value = a.data.summary || '';
         $('f-kategori').value = a.data.category || '';
         $('f-tag').value = (a.data.tags || []).join(', ');
-        $('f-penulis').value = a.data.author || 'Rezie Novian Putra';
+        $('f-penulis').value = a.data.author || 'Rezie';
         $('f-tanggal').value = String(a.data.publishDate || '').slice(0, 10);
         $('f-upt').value = a.data.upt || '';
         $('f-keterangan').value = a.data.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
