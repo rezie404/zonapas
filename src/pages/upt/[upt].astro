@@ -1,0 +1,56 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { SITE } from '../../data/site';
+import { UPTS } from '../../data/upt';
+
+export async function getStaticPaths() {
+  return UPTS.map((upt) => ({ params: { upt: upt.slug }, props: { upt } }));
+}
+
+const { upt } = Astro.props;
+const items = (await getCollection('berita', ({ data }) => data.upt === upt.name)).sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
+);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `${upt.name} | ${SITE.name}`,
+  url: `${SITE.url}/upt/${upt.slug}/`,
+  description: upt.description,
+  inLanguage: 'id-ID',
+};
+---
+
+<BaseLayout title={upt.name} description={upt.description} jsonLd={jsonLd}>
+  <div class="mx-auto max-w-[1200px] px-4 pt-6">
+    <nav class="text-sm text-slate-500 dark:text-slate-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:underline">Beranda</a>
+      <span class="mx-1">/</span>
+      <a href="/upt/" class="hover:underline">Profil UPT</a>
+      <span class="mx-1">/</span>
+      <span class="font-semibold text-slate-800 dark:text-slate-200">{upt.name}</span>
+    </nav>
+
+    <div class="mt-4 border-b-4 border-[#0A2540] pb-3 dark:border-white">
+      <span class="text-xs font-bold uppercase tracking-wider text-[#D9232E]">{upt.type}</span>
+      <h1 class="mt-1 text-3xl font-black tracking-tight text-[#0A2540] dark:text-white">{upt.name}</h1>
+      <p class="mt-1 text-slate-600 dark:text-slate-400">{upt.description}</p>
+    </div>
+
+    {items.length === 0 ? (
+      <p class="py-10 text-slate-600 dark:text-slate-400">Belum ada berita dari {upt.name}.</p>
+    ) : (
+      <div class="mt-6">
+        <NewsCard entry={items[0]} size="large" />
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items.slice(1).map((entry) => (
+            <NewsCard entry={entry} size="medium" />
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</BaseLayout>

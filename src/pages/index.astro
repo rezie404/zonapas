@@ -1,0 +1,115 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Ticker from '../components/Ticker.astro';
+import NewsCard from '../components/NewsCard.astro';
+import { CATEGORIES, SITE, slugify } from '../data/site';
+
+const all = (await getCollection('berita')).sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
+);
+
+const breaking = all.filter((e) => e.data.breaking);
+const featured = all.filter((e) => e.data.featured);
+const hero = featured[0] ?? all[0];
+const heroRest = all.filter((e) => e.id !== hero.id).slice(0, 4);
+const latest = all.slice(0, 8);
+
+// Terpopuler: placeholder deterministik — artikel featured + terbaru (belum ada data tampilan pembaca).
+const popular = [...featured, ...all.filter((e) => !e.data.featured)].slice(0, 5);
+
+// Trending tags: tag paling sering dipakai
+const tagCounts = new Map<string, number>();
+for (const e of all) {
+  for (const t of e.data.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+}
+const trendingTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
+
+const byCategory = (name: string) => all.filter((e) => e.data.category === name);
+---
+
+<BaseLayout title={SITE.name} description={SITE.description}>
+  <Ticker items={breaking} />
+
+  <div class="mx-auto max-w-[1200px] px-4">
+    <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div>
+        <!-- Headline utama -->
+        <section class="pt-5" aria-label="Headline utama">
+          <NewsCard entry={hero} size="large" />
+          <div class="mt-4 divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+            {heroRest.map((entry) => (
+              <NewsCard entry={entry} size="small" />
+            ))}
+          </div>
+        </section>
+
+        <!-- Berita terbaru -->
+        <section class="pt-8" aria-label="Berita terbaru">
+          <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+            <h2 class="text-xl font-black uppercase tracking-tight">Berita Terbaru</h2>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            {latest.map((entry) => (
+              <NewsCard entry={entry} size="medium" />
+            ))}
+          </div>
+        </section>
+
+        <!-- Seksi per kategori -->
+        {CATEGORIES.map((cat) => {
+          const items = byCategory(cat.name);
+          if (items.length === 0) return null;
+          const [first, ...rest] = items;
+          return (
+            <section class="pt-8" aria-label={`Berita ${cat.name}`}>
+              <div class="mb-4 flex items-center justify-between border-b-2 pb-2" style={`border-color:${cat.color}`}>
+                <h2 class="text-xl font-black uppercase tracking-tight" style={`color:${cat.color}`}>{cat.name}</h2>
+                <a href={`/${cat.slug}/`} class="text-sm font-bold text-[#D9232E] hover:underline">Lihat Semua &rarr;</a>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <NewsCard entry={first} size="medium" showCategory={false} />
+                <div class="divide-y divide-slate-200 dark:divide-slate-800">
+                  {rest.slice(0, 4).map((entry) => (
+                    <NewsCard entry={entry} size="small" showCategory={false} />
+                  ))}
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-8 pt-5 lg:pt-5">
+        <section aria-label="Terpopuler" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h2 class="border-b-2 border-[#D9232E] pb-2 text-lg font-black uppercase">Terpopuler</h2>
+          <ol class="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
+            {popular.map((entry, i) => (
+              <li class="flex gap-3 py-3">
+                <span class="text-3xl font-black leading-none text-[#D9232E]">{i + 1}</span>
+                <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} class="text-sm font-bold leading-snug hover:text-[#D9232E] hover:underline">
+                  {entry.data.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-label="Trending Tags" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h2 class="border-b-2 border-[#0A2540] pb-2 text-lg font-black uppercase dark:border-white">Trending Tags</h2>
+          <div class="mt-3 flex flex-wrap gap-2">
+            {trendingTags.map(([tag]) => (
+              <a
+                href={`/tag/${slugify(tag)}/`}
+                class="rounded-full bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#D9232E] dark:bg-slate-700 dark:hover:bg-[#D9232E]"
+              >
+                #{tag}
+              </a>
+            ))}
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>

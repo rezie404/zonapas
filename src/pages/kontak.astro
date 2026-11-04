@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<BaseLayout title="Kontak" description="Hubungi redaksi ZonaPas.">
+  <div class="mx-auto max-w-[760px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Kontak</h1>
+    <div class="article-body mt-4 text-[17px]">
+      <p>Untuk kirim rilis, koreksi berita, kerja sama, atau pertanyaan lain, silakan hubungi kami:</p>
+      <p><strong>Email redaksi:</strong> {SITE.email}</p>
+      <p><strong>Alamat situs:</strong> {SITE.url}</p>
+      <p>Kami berusaha membalas setiap pesan yang masuk pada hari kerja. Untuk koreksi berita, sertakan tautan artikel dan bagian yang perlu diperbaiki.</p>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<BaseLayout title="Kebijakan Privasi" description="Kebijakan privasi portal berita ZonaPas.">
+  <div class="mx-auto max-w-[760px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Kebijakan Privasi</h1>
+    <div class="article-body mt-4 text-[17px]">
+      <p>ZonaPas menghormati privasi pembaca. Kebijakan ini menjelaskan data apa yang kami kumpulkan dan bagaimana kami menggunakannya.</p>
+      <h2>Data yang Dikumpulkan</h2>
+      <p>Kami tidak meminta data pribadi untuk membaca berita. Preferensi mode gelap/terang disimpan di peramban Anda sendiri (localStorage) dan tidak dikirim ke server kami.</p>
+      <h2>Analitik</h2>
+      <p>Kami dapat menggunakan layanan analitik yang menghormati privasi untuk memahami halaman yang paling banyak dibaca, tanpa mengidentifikasi pembaca secara individu.</p>
+      <h2>Tautan Eksternal</h2>
+      <p>Artikel dapat memuat tautan ke situs lain. ZonaPas tidak bertanggung jawab atas kebijakan privasi situs-situs tersebut.</p>
+      <h2>Perubahan Kebijakan</h2>
+      <p>Kebijakan ini dapat diperbarui sewaktu-waktu. Perubahan akan diumumkan di halaman ini.</p>
+      <p>Pertanyaan mengenai kebijakan privasi dapat dikirim ke {SITE.email}.</p>
+    </div>
+  </div>
+</BaseLayout>

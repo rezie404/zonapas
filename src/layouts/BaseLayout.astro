@@ -1,0 +1,108 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE } from '../data/site';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: string;
+  canonical?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  title = SITE.name,
+  description = SITE.description,
+  image = '/images/cover-default.svg',
+  type = 'website',
+  canonical,
+  jsonLd,
+} = Astro.props;
+
+const fullTitle = title === SITE.name ? `${SITE.name} — ${SITE.tagline}` : `${title} | ${SITE.name}`;
+const pageUrl = canonical ?? new URL(Astro.url.pathname, SITE.url).toString();
+const ogImage = image.startsWith('http') ? image : new URL(image, SITE.url).toString();
+const ld = jsonLd
+  ? Array.isArray(jsonLd)
+    ? jsonLd
+    : [jsonLd]
+  : [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: SITE.name,
+        url: SITE.url,
+        description: SITE.description,
+        inLanguage: 'id-ID',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: SITE.name,
+        url: SITE.url,
+        logo: `${SITE.url}/favicon.png`,
+        email: SITE.email,
+      },
+    ];
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={pageUrl} />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={pageUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="id_ID" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="alternate" type="application/rss+xml" title={`${SITE.name} RSS`} href="/rss.xml" />
+    <meta name="theme-color" content="#0A2540" />
+    <script is:inline>
+      try {
+        const saved = localStorage.getItem('zonapas-theme');
+        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
+    {ld.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
+  </head>
+  <body class="bg-white text-slate-900 antialiased dark:bg-[#0F172A] dark:text-slate-100">
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+    <script is:inline>
+      // Toggle mode gelap/terang
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-theme-toggle]');
+        if (!btn) return;
+        const isDark = document.documentElement.classList.toggle('dark');
+        try { localStorage.setItem('zonapas-theme', isDark ? 'dark' : 'light'); } catch (err) {}
+        document.querySelectorAll('[data-theme-toggle] .theme-icon-moon').forEach((el) => el.classList.toggle('hidden', isDark));
+        document.querySelectorAll('[data-theme-toggle] .theme-icon-sun').forEach((el) => el.classList.toggle('hidden', !isDark));
+      });
+      // Menu mobile
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-menu-toggle]');
+        if (!btn) return;
+        document.getElementById('mobile-menu')?.classList.toggle('hidden');
+      });
+    </script>
+  </body>
+</html>

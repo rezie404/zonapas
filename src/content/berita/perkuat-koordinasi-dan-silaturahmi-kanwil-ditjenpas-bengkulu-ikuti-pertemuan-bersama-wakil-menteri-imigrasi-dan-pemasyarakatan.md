@@ -1,0 +1,22 @@
+---
+title: "Perkuat Koordinasi Dan Silaturahmi, Kanwil Ditjenpas Bengkulu Ikuti Pertemuan Bersama Wakil Menteri Imigrasi Dan Pemasyarakatan"
+summary: "Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri secara langsung pertemuan dan silaturahmi bersama Wakil Menteri Imigrasi dan Pemasyarakatan yang dilaksanakan di Ruang Rapat Sahardjo Lantai 2, Direktorat Jenderal Pemasyarakatan, Jakarta Pusat, Selasa (3/11). Pertemuan tersebut menjadi wadah untuk mempererat silaturahmi serta memperkuat koordinasi antara pimpinan pusat dan jajaran pemasyarakatan di wilayah. Kegiatan"
+category: "Sinergi"
+tags: ["wakil menteri", "silaturahmi", "koordinasi", "kanwil bengkulu"]
+author: "Rezie Novian Putra"
+publishDate: 2026-11-03
+image: "/images/jurnalpas-perkuat-koordinasi-dan-silaturahmi-kanwil-ditjenpas-bengkulu-ikuti-pertemuan-bersama-wakil-menteri-imigrasi-dan-pemasyarakatan.jpg"
+imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS \u2014 jurnalpas.wordpress.com"
+featured: true
+breaking: true
+upt: "Kanwil Ditjenpas Bengkulu"
+source: "jurnalpas"
+sourceUrl: "https://jurnalpas.wordpress.com/2026/11/03/perkuat-koordinasi-dan-silaturahmi-kanwil-ditjenpas-bengkulu-ikuti-pertemuan-bersama-wakil-menteri-imigrasi-dan-pemasyarakatan/"
+---
+
+Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri secara langsung pertemuan dan silaturahmi bersama Wakil Menteri Imigrasi dan Pemasyarakatan yang dilaksanakan di Ruang Rapat Sahardjo Lantai 2, Direktorat Jenderal Pemasyarakatan, Jakarta Pusat, Selasa (3/11). 
+
+
+Pertemuan tersebut menjadi wadah untuk mempererat silaturahmi serta memperkuat koordinasi antara pimpinan pusat dan jajaran pemasyarakatan di wilayah. Kegiatan ini juga diikuti oleh para Kepala Unit Pelaksana Teknis (UPT) Pemasyarakatan melalui Zoom Meeting.
+
+Melalui pertemuan ini, diharapkan terjalin komunikasi dan sinergi yang semakin baik dalam mendukung pelaksanaan tugas dan fungsi Pemasyarakatan serta menyelaraskan langkah kebijakan antara pusat dan wilayah.

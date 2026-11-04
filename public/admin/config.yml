@@ -1,0 +1,86 @@
+# Konfigurasi Decap CMS untuk ZonaPas (zonapas.web.id)
+# ---------------------------------------------------------------------------
+# YANG MASIH HARUS DIISI SEBELUM LOGIN BISA DIPAKAI (langkah penyambungan):
+#   1. Buat repositori GitHub berisi kode sumber situs ini, misal: rezienovian/zonapas
+#   2. Buat GitHub OAuth App (https://github.com/settings/developers):
+#        - Homepage URL: https://zonapas.web.id
+#        - Authorization callback URL: https://oauth.zonapas.web.id/callback
+#      (callback ini dilayani proxy OAuth kecil di Cloudflare Workers — gratis,
+#       dipasang saat tahap deploy; Client ID + Client Secret TIDAK ditulis di sini)
+#   3. Ganti nilai `repo` di bawah dengan repo GitHub yang sebenarnya,
+#      ganti `base_url` dengan alamat proxy OAuth, dan isi `app_id` dengan
+#      Client ID dari OAuth App tersebut.
+#   4. Simpan di CMS = commit ke branch main -> Cloudflare Pages membangun
+#      ulang situs otomatis dan berita langsung tayang.
+# ---------------------------------------------------------------------------
+
+backend:
+  name: github
+  repo: rezie404/zonapas
+  branch: main
+  # Proxy OAuth (Cloudflare Workers, gratis) — ganti dengan alamat sebenarnya.
+  base_url: https://oauth.zonapas.web.id
+  # Client ID dari GitHub OAuth App — ganti dengan yang sebenarnya.
+  app_id: GANTI-DENGAN-CLIENT-ID-OAUTH-APP
+  auth_scope: repo
+
+# Situs tidak memakai workflow draf/review: simpan di CMS langsung tayang.
+publish_mode: simple
+editorial_workflow: false
+
+site_url: https://zonapas.web.id
+display_url: https://zonapas.web.id
+logo_url: /images/logo-zonapas.png
+locale: id
+
+media_folder: public/images
+public_folder: /images
+
+collections:
+  - name: berita
+    label: Berita
+    label_singular: Berita
+    folder: src/content/berita
+    create: true
+    slug: "{{slug}}"
+    extension: md
+    format: frontmatter
+    summary: "{{title}} ({{category}} — {{upt}})"
+    fields:
+      - { name: title, label: Judul, widget: string }
+      - { name: summary, label: Ringkasan, widget: text }
+      - name: category
+        label: Kategori
+        widget: select
+        options:
+          - Pembinaan
+          - Pengamanan
+          - Pelayanan
+          - Integrasi & Remisi
+          - Kepegawaian
+          - Sinergi
+          - Kegiatan UPT
+          - Profil UPT
+      - { name: tags, label: Tag, widget: list, required: false }
+      - { name: author, label: Penulis, widget: string, default: "Rezie Novian Putra" }
+      - { name: publishDate, label: Tanggal Terbit, widget: datetime, date_format: YYYY-MM-DD, time_format: false, default: "" }
+      - { name: image, label: Foto Sampul, widget: image }
+      - { name: imageCaption, label: Keterangan Foto, widget: string, default: "Dokumentasi kegiatan. (ZonaPas)" }
+      - { name: featured, label: Tampilkan sebagai Headline, widget: boolean, required: false, default: false }
+      - { name: breaking, label: Breaking News, widget: boolean, required: false, default: false }
+      - name: upt
+        label: UPT Terkait
+        widget: select
+        required: false
+        options:
+          - Kanwil Ditjenpas Bengkulu
+          - Lapas Kelas IIA Bengkulu
+          - Lapas Kelas IIA Curup
+          - Lapas Kelas IIB Arga Makmur
+          - Lapas Perempuan Kelas IIB Bengkulu
+          - LPKA Kelas II Bengkulu
+          - Rutan Kelas IIB Bengkulu
+          - Rutan Kelas IIB Manna
+          - Bapas Kelas I Bengkulu
+      - { name: source, label: Sumber Artikel, widget: hidden, default: "zonapas" }
+      - { name: body, label: Isi Berita, widget: markdown }

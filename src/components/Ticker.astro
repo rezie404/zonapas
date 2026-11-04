@@ -1,0 +1,30 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  items: CollectionEntry<'berita'>[];
+}
+
+const { items } = Astro.props;
+const tickerItems = [...items, ...items];
+---
+
+{items.length > 0 && (
+  <div class="bg-[#D9232E] text-white" aria-label="Berita terkini">
+    <div class="mx-auto flex max-w-[1200px] items-center gap-0 px-0 sm:px-4">
+      <span class="z-10 flex shrink-0 items-center gap-2 bg-[#0A2540] px-3 py-2 text-xs font-black uppercase tracking-wider sm:px-4">
+        <span class="inline-block h-2 w-2 animate-pulse rounded-full bg-[#ff4d57]"></span>
+        Berita Terkini
+      </span>
+      <div class="relative flex-1 overflow-hidden py-2">
+        <div class="ticker-track flex w-max whitespace-nowrap">
+          {tickerItems.map((entry) => (
+            <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} class="mx-6 text-sm font-semibold hover:underline">
+              {entry.data.title}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}

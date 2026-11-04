@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AUTHORS } from '../data/authors';
+import { SITE } from '../data/site';
+---
+
+<BaseLayout title="Redaksi" description="Susunan redaksi portal berita ZonaPas.">
+  <div class="mx-auto max-w-[760px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Redaksi</h1>
+    <p class="mt-3 text-slate-600 dark:text-slate-300">
+      ZonaPas dikelola oleh tim redaksi berikut. Email redaksi: {SITE.email}.
+    </p>
+    <div class="mt-6 space-y-4">
+      {Object.values(AUTHORS).map((author) => (
+        <div class="flex items-start gap-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white">
+            {author.name.charAt(0)}
+          </span>
+          <div>
+            <p class="font-bold">{author.name}</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{author.role}</p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{author.bio}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+    <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">
+      Penanggung jawab: Redaksi ZonaPas. Seluruh isi artikel menjadi tanggung jawab redaksi.
+    </p>
+  </div>
+</BaseLayout>

@@ -1,0 +1,60 @@
+---
+import { CATEGORIES, SITE } from '../data/site';
+---
+
+<footer class="mt-12 border-t-4 border-[#D9232E] bg-[#0A2540] text-slate-300">
+  <div class="mx-auto max-w-[1200px] px-4 py-10">
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <a href="/" class="flex items-center gap-2">
+          <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" width="36" height="36" class="h-9 w-9 shrink-0 rounded-full" />
+          <span class="text-2xl font-black tracking-tight text-white">
+            Zona<span class="text-[#ff4d57]">Pas</span>
+          </span>
+        </a>
+        <p class="mt-3 text-sm leading-relaxed text-slate-400">
+          {SITE.tagline}. Portal berita pemasyarakatan — pembinaan, pengamanan, pelayanan, integrasi dan remisi, serta kegiatan UPT Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu.
+        </p>
+        <p class="mt-3 text-sm italic text-slate-400">
+          Moto Ditjenpas: &ldquo;Griya Winaya Janma Wimarga Laksa Dharmmesti&rdquo;
+        </p>
+        <p class="mt-3 text-sm text-slate-400">Email redaksi: {SITE.email}</p>
+        <p class="mt-2 text-sm">
+          <a href="https://ditjenpas.go.id" target="_blank" rel="noopener" class="font-bold text-white hover:underline">Situs resmi Ditjenpas &rarr;</a>
+        </p>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-white">Kategori</h3>
+        <ul class="mt-3 grid grid-cols-2 gap-2 text-sm">
+          {CATEGORIES.map((cat) => (
+            <li><a href={`/${cat.slug}/`} class="hover:text-white">{cat.name}</a></li>
+          ))}
+          <li><a href="/upt/" class="hover:text-white">Profil UPT</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-white">Tentang Kami</h3>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="/tentang/" class="hover:text-white">Tentang ZonaPas</a></li>
+          <li><a href="/redaksi/" class="hover:text-white">Redaksi</a></li>
+          <li><a href="/pedoman-media-siber/" class="hover:text-white">Pedoman Media Siber</a></li>
+          <li><a href="/kebijakan-privasi/" class="hover:text-white">Kebijakan Privasi</a></li>
+          <li><a href="/kontak/" class="hover:text-white">Kontak</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-white">Layanan</h3>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="/info-iklan/" class="hover:text-white">Info Iklan</a></li>
+          <li><a href="/cari/" class="hover:text-white">Pencarian Berita</a></li>
+          <li><a href="/rss.xml" class="hover:text-white">RSS Feed</a></li>
+          <li><a href="/sitemap.xml" class="hover:text-white">Peta Situs</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-5 text-xs text-slate-400 sm:flex-row">
+      <p>&copy; {new Date().getFullYear()} {SITE.name}. Hak cipta dilindungi undang-undang.</p>
+      <p>Portal berita berbahasa Indonesia.</p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<BaseLayout title="Cari Berita" description={`Cari berita di ${SITE.name}.`}>
+  <div class="mx-auto max-w-[1200px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Cari Berita</h1>
+    <form id="search-form" class="mt-4 flex gap-2" role="search">
+      <input
+        id="search-input"
+        type="search"
+        name="q"
+        placeholder="Ketik kata kunci, misalnya: bengkulu, ekonomi, timnas…"
+        class="h-12 flex-1 rounded-lg border border-slate-300 px-4 text-base outline-none focus:border-[#0A2540] focus:ring-2 focus:ring-[#0A2540]/20 dark:border-slate-700 dark:bg-slate-900"
+        autocomplete="off"
+      />
+      <button type="submit" class="h-12 rounded-lg bg-[#0A2540] px-5 font-bold text-white hover:bg-[#D9232E]">Cari</button>
+    </form>
+    <p id="search-status" class="mt-4 text-sm text-slate-500 dark:text-slate-400">Ketik kata kunci untuk mencari di seluruh berita ZonaPas.</p>
+    <div id="search-results" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      const form = document.getElementById('search-form');
+      const input = document.getElementById('search-input');
+      const status = document.getElementById('search-status');
+      const results = document.getElementById('search-results');
+      let index = null;
+
+      async function loadIndex() {
+        if (index) return index;
+        const res = await fetch('/search-index.json');
+        index = await res.json();
+        return index;
+      }
+
+      function esc(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      async function doSearch(q) {
+        q = (q || '').trim();
+        if (!q) {
+          status.textContent = 'Ketik kata kunci untuk mencari di seluruh berita ZonaPas.';
+          results.innerHTML = '';
+          return;
+        }
+        const data = await loadIndex();
+        const needle = q.toLowerCase();
+        const hits = data.filter((item) =>
+          (item.title + ' ' + item.summary + ' ' + item.category + ' ' + item.tags.join(' ')).toLowerCase().includes(needle)
+        );
+        status.textContent = hits.length + ' hasil untuk "' + q + '".';
+        results.innerHTML = hits.map((item) =>
+          '<a href="' + item.url + '" class="block overflow-hidden rounded-xl border border-slate-200 bg-white hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">' +
+          '<img src="' + esc(item.image) + '" alt="" loading="lazy" class="aspect-[16/9] w-full object-cover" />' +
+          '<span class="block p-4"><span class="text-xs font-bold uppercase tracking-wide text-slate-500">' + esc(item.category) + ' • ' + esc(item.date) + '</span>' +
+          '<span class="mt-1 block text-base font-bold leading-snug">' + esc(item.title) + '</span>' +
+          '<span class="mt-2 block text-sm text-slate-600 dark:text-slate-400">' + esc(item.summary) + '</span></span></a>'
+        ).join('');
+        if (hits.length === 0) {
+          results.innerHTML = '<p class="text-slate-600 dark:text-slate-400">Tidak ada hasil. Coba kata kunci lain.</p>';
+        }
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = input.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('q', q);
+        history.replaceState(null, '', url);
+        doSearch(q);
+      });
+
+      const initial = new URLSearchParams(window.location.search).get('q') || '';
+      if (initial) {
+        input.value = initial;
+        doSearch(initial);
+      }
+    })();
+  </script>
+</BaseLayout>

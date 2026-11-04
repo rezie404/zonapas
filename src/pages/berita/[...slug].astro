@@ -1,0 +1,219 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { SITE, categoryByName, formatDate, formatDateShort, readingMinutes, slugify } from '../../data/site';
+import { uptByName } from '../../data/upt';
+import { getAuthor } from '../../data/authors';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('berita');
+  return entries.map((entry) => ({
+    params: { slug: entry.id.replace(/\.md$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { title, summary, category, tags, author, publishDate, image, imageCaption, upt, source, sourceUrl } = entry.data;
+const slug = entry.id.replace(/\.md$/, '');
+const url = `${SITE.url}/berita/${slug}/`;
+const cat = categoryByName(category);
+const uptInfo = upt ? uptByName(upt) : undefined;
+const authorInfo = getAuthor(author);
+const minutes = readingMinutes(entry.body);
+
+// Berita terkait: kategori sama dulu, lalu tag yang sama
+const all = await getCollection('berita');
+const related = all
+  .filter((e) => e.id !== entry.id)
+  .map((e) => {
+    let score = 0;
+    if (e.data.category === category) score += 2;
+    score += e.data.tags.filter((t) => tags.includes(t)).length;
+    return { e, score };
+  })
+  .filter((x) => x.score > 0)
+  .sort((a, b) => b.score - a.score || b.e.data.publishDate.getTime() - a.e.data.publishDate.getTime())
+  .slice(0, 3)
+  .map((x) => x.e);
+const bacaJuga = related[0] ?? all.filter((e) => e.id !== entry.id).sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())[0];
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: title,
+    description: summary,
+    image: [new URL(image, SITE.url).toString()],
+    datePublished: publishDate.toISOString(),
+    dateModified: publishDate.toISOString(),
+    author: { '@type': 'Person', name: author },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE.name,
+      url: SITE.url,
+      logo: { '@type': 'ImageObject', url: `${SITE.url}/favicon.png` },
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    articleSection: category,
+    inLanguage: 'id-ID',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Beranda', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: category, item: cat ? `${SITE.url}/${cat.slug}/` : SITE.url },
+      { '@type': 'ListItem', position: 3, name: title, item: url },
+    ],
+  },
+];
+---
+
+<BaseLayout title={title} description={summary} image={image} type="article" canonical={url} jsonLd={jsonLd}>
+  <article class="mx-auto max-w-[1200px] px-4 pt-6">
+    <div class="mx-auto max-w-[760px]">
+      <nav class="text-sm text-slate-500 dark:text-slate-400" aria-label="Breadcrumb">
+        <a href="/" class="hover:underline">Beranda</a>
+        <span class="mx-1">/</span>
+        {cat ? (
+          <a href={`/${cat.slug}/`} class="hover:underline">{cat.name}</a>
+        ) : (
+          <span>{category}</span>
+        )}
+        <span class="mx-1">/</span>
+        <span class="font-semibold text-slate-800 dark:text-slate-200">{title}</span>
+      </nav>
+
+      <h1 class="mt-4 text-3xl font-black leading-tight sm:text-4xl">{title}</h1>
+      <p class="mt-3 text-lg leading-relaxed text-slate-600 dark:text-slate-300">{summary}</p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        {cat && (
+          <a href={`/${cat.slug}/`} class="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide text-white" style={`background:${cat.color}`}>{cat.name}</a>
+        )}
+        {uptInfo && (
+          <a href={`/upt/${uptInfo.slug}/`} class="rounded-full border border-[#0A2540] px-3 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:border-slate-400 dark:text-slate-200 dark:hover:bg-white dark:hover:text-[#0A2540]">
+            {uptInfo.name}
+          </a>
+        )}
+        {source === 'jurnalpas' && (
+          <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Artikel asli JurnalPAS</span>
+        )}
+        {source === 'zonapas' && (
+          <span class="rounded-full bg-[#0A2540] px-3 py-1 text-xs font-bold text-white">Artikel ZonaPas</span>
+        )}
+        {source === 'contoh' && (
+          <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>
+        )}
+      </div>
+
+      <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-slate-200 py-3 text-sm dark:border-slate-800">
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540] text-sm font-black text-white">
+          {authorInfo.name.charAt(0)}
+        </span>
+        <span>
+          <span class="block font-bold">{authorInfo.name}</span>
+          <span class="block text-xs text-slate-500 dark:text-slate-400">{authorInfo.role}</span>
+        </span>
+        <span class="text-slate-300 dark:text-slate-600">|</span>
+        <span class="text-slate-600 dark:text-slate-300">{formatDate(publishDate)}</span>
+        <span class="text-slate-300 dark:text-slate-600">|</span>
+        <span class="text-slate-600 dark:text-slate-300">{minutes} menit baca</span>
+      </div>
+
+      <div class="mt-4">
+        <ShareButtons url={url} title={title} />
+      </div>
+
+      <figure class="mt-5">
+        <img src={image} alt={imageCaption} width="1200" height="675" class="aspect-[16/9] w-full rounded-xl object-cover" />
+        <figcaption class="mt-2 text-sm italic text-slate-500 dark:text-slate-400">{imageCaption}</figcaption>
+      </figure>
+
+      <div id="article-body" class="article-body mt-6 text-[17px] text-slate-800 dark:text-slate-200">
+        <Content />
+      </div>
+
+      {source === 'jurnalpas' && sourceUrl && (
+        <aside class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed dark:border-slate-800 dark:bg-slate-900" aria-label="Sumber artikel">
+          <p class="font-bold">Sumber: JurnalPAS</p>
+          <p class="mt-1 text-slate-600 dark:text-slate-300">
+            Artikel ini pertama kali diterbitkan di <a href={sourceUrl} target="_blank" rel="noopener" class="font-bold text-[#0A2540] hover:underline dark:text-white">jurnalpas.wordpress.com</a> dan diterbitkan ulang di ZonaPas dengan atribusi sumber.
+          </p>
+          <p class="mt-2">
+            <a href={sourceUrl} target="_blank" rel="noopener" class="font-bold text-[#D9232E] hover:underline">Baca artikel asli di JurnalPAS &rarr;</a>
+          </p>
+        </aside>
+      )}
+
+      {bacaJuga && (
+        <aside
+          id="baca-juga"
+          class="my-6 rounded-xl border-l-4 border-[#D9232E] bg-slate-50 p-4 dark:bg-slate-900"
+          aria-label="Baca juga"
+        >
+          <p class="text-xs font-black uppercase tracking-wider text-[#D9232E]">Baca Juga</p>
+          <a href={`/berita/${bacaJuga.id.replace(/\.md$/, '')}/`} class="mt-1 block text-lg font-bold leading-snug hover:text-[#D9232E] hover:underline">
+            {bacaJuga.data.title}
+          </a>
+        </aside>
+      )}
+
+      <div class="mt-8 border-t border-slate-200 pt-5 dark:border-slate-800">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm font-bold">Tag:</span>
+          {tags.map((tag) => (
+            <a
+              href={`/tag/${slugify(tag)}/`}
+              class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-[#0A2540] hover:text-white dark:bg-slate-800 dark:text-slate-200"
+            >
+              #{tag}
+            </a>
+          ))}
+        </div>
+        <div class="mt-4">
+          <ShareButtons url={url} title={title} />
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white">
+          {authorInfo.name.charAt(0)}
+        </span>
+        <div>
+          <p class="font-bold">{authorInfo.name}</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">{authorInfo.role}</p>
+          {authorInfo.bio && <p class="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{authorInfo.bio}</p>}
+        </div>
+      </div>
+    </div>
+
+    {related.length > 0 && (
+      <section class="mx-auto mt-10 max-w-[1200px]" aria-label="Berita terkait">
+        <h2 class="mb-4 border-b-2 border-[#0A2540] pb-2 text-xl font-black uppercase dark:border-white">Berita Terkait</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {related.map((rel) => (
+            <NewsCard entry={rel} size="medium" />
+          ))}
+        </div>
+      </section>
+    )}
+  </article>
+
+  <script is:inline>
+    // Pindahkan kotak "Baca Juga" ke tengah artikel, setelah paragraf ke-2
+    (function () {
+      const body = document.getElementById('article-body');
+      const box = document.getElementById('baca-juga');
+      if (!body || !box) return;
+      const paras = body.querySelectorAll(':scope > p');
+      if (paras.length >= 2) {
+        paras[1].after(box);
+      }
+    })();
+  </script>
+</BaseLayout>

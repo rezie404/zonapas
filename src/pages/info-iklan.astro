@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../data/site';
+---
+
+<BaseLayout title="Info Iklan" description="Informasi pemasangan iklan di portal berita ZonaPas.">
+  <div class="mx-auto max-w-[760px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Info Iklan</h1>
+    <div class="article-body mt-4 text-[17px]">
+      <p>ZonaPas membuka ruang kerja sama periklanan bagi perusahaan, instansi, dan pelaku usaha yang ingin menjangkau pembaca kami.</p>
+      <h2>Format yang Tersedia</h2>
+      <p>Banner di beranda dan halaman artikel, artikel sponsor (ditandai jelas sebagai konten sponsor), serta penempatan pada buletin dan kanal media sosial ZonaPas.</p>
+      <h2>Ketentuan</h2>
+      <p>Materi iklan tidak boleh mengandung unsur penipuan, ujaran kebencian, atau konten yang melanggar hukum. Redaksi berhak menolak materi iklan yang tidak sesuai dengan ketentuan dan nilai-nilai ZonaPas.</p>
+      <p>Iklan dibedakan secara tegas dari konten redaksi dan tidak memengaruhi independensi pemberitaan.</p>
+      <h2>Hubungi Kami</h2>
+      <p>Untuk daftar harga dan ketersediaan slot, silakan hubungi tim pemasaran melalui email {SITE.email} atau halaman <a href="/kontak/">Kontak</a>.</p>
+    </div>
+  </div>
+</BaseLayout>

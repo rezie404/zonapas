@@ -1,0 +1,50 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE } from '../../data/site';
+import { UPTS } from '../../data/upt';
+
+const all = await getCollection('berita');
+const countFor = (name: string) => all.filter((e) => e.data.upt === name).length;
+---
+
+<BaseLayout
+  title="Profil UPT"
+  description="Daftar Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu: Kanwil, Lapas, LPKA, Rutan, dan Bapas."
+>
+  <div class="mx-auto max-w-[1200px] px-4 pt-6">
+    <nav class="text-sm text-slate-500 dark:text-slate-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:underline">Beranda</a>
+      <span class="mx-1">/</span>
+      <span class="font-semibold text-slate-800 dark:text-slate-200">Profil UPT</span>
+    </nav>
+
+    <div class="mt-4 border-b-4 border-[#0A2540] pb-3 dark:border-white">
+      <h1 class="text-3xl font-black uppercase tracking-tight text-[#0A2540] dark:text-white">Profil UPT</h1>
+      <p class="mt-1 text-slate-600 dark:text-slate-400">
+        Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kantor Wilayah Direktorat Jenderal
+        Pemasyarakatan Bengkulu.
+      </p>
+    </div>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {UPTS.map((upt) => (
+        <a
+          href={`/upt/${upt.slug}/`}
+          class="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div class="border-b-4 border-[#D9232E] bg-[#0A2540] px-5 py-4">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">{upt.type}</span>
+            <span class="mt-1 block text-lg font-black leading-snug text-white group-hover:underline">{upt.name}</span>
+          </div>
+          <div class="p-5">
+            <p class="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{upt.description}</p>
+            <p class="mt-3 text-sm font-bold text-[#D9232E]">
+              {countFor(upt.name)} berita &rarr;
+            </p>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

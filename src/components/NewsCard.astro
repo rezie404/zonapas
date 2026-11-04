@@ -1,0 +1,50 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { categoryByName, formatDateShort } from '../data/site';
+
+interface Props {
+  entry: CollectionEntry<'berita'>;
+  size?: 'small' | 'medium' | 'large';
+  showCategory?: boolean;
+}
+
+const { entry, size = 'medium', showCategory = true } = Astro.props;
+const { title, summary, category, image, imageCaption, publishDate, source } = entry.data;
+const cat = categoryByName(category);
+const url = `/berita/${entry.id.replace(/\.md$/, '')}/`;
+---
+
+{size === 'small' ? (
+  <a href={url} class="group flex gap-3 py-3">
+    <img src={image} alt={imageCaption} loading="lazy" width="120" height="80" class="h-20 w-28 shrink-0 rounded-lg object-cover" />
+    <span>
+      {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
+      {source === 'contoh' && <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>}
+      <span class="mt-0.5 block text-sm font-bold leading-snug group-hover:text-[#D9232E] group-hover:underline">{title}</span>
+      <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">{formatDateShort(publishDate)}</span>
+    </span>
+  </a>
+) : size === 'large' ? (
+  <a href={url} class="group relative block overflow-hidden rounded-2xl">
+    <img src={image} alt={imageCaption} loading="eager" width="1200" height="675" class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+    <span class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></span>
+    <span class="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+      {showCategory && cat && <span class="inline-block rounded bg-[#D9232E] px-2 py-1 text-xs font-bold uppercase tracking-wide text-white">{cat.name}</span>}
+      {source === 'contoh' && <span class="ml-2 inline-block rounded bg-amber-400 px-2 py-1 text-xs font-bold uppercase tracking-wide text-amber-950">Artikel Contoh</span>}
+      <span class="mt-2 block text-xl font-extrabold leading-tight text-white sm:text-3xl">{title}</span>
+      <span class="mt-2 hidden text-sm text-slate-200 sm:block">{summary}</span>
+      <span class="mt-2 block text-xs text-slate-300">{formatDateShort(publishDate)}</span>
+    </span>
+  </a>
+) : (
+  <a href={url} class="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+    <img src={image} alt={imageCaption} loading="lazy" width="600" height="338" class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+    <span class="block p-4">
+      {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
+      {source === 'contoh' && <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>}
+      <span class="mt-1 block text-base font-bold leading-snug group-hover:text-[#D9232E]">{title}</span>
+      <span class="mt-2 line-clamp-2 block text-sm text-slate-600 dark:text-slate-400">{summary}</span>
+      <span class="mt-3 block text-xs text-slate-500 dark:text-slate-400">{formatDateShort(publishDate)}</span>
+    </span>
+  </a>
+)}
