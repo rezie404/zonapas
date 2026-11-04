@@ -12,6 +12,7 @@ breaking: true
 breakingSince: "2026-11-04T23:26:54.452Z"
 upt: "Bapas Kelas I Bengkulu"
 source: "zonapas"
+jurnalpas_id: 221
 ---
 
 Bengkulu – Kepala Subdirektorat Jenderal Pemasyarakatan melaksanakan kunjungan kerja ke Balai Pemasyarakatan Kelas I Bengkulu dalam rangka meningkatkan pemahaman serta memperkuat implementasi tugas dan fungsi di bidang Kerja Sama dan Hubungan Antar Lembaga. Kegiatan ini turut dihadiri oleh Kabid Pelayanan dan Pembinaan serta Kabid Pembimbing Kemasyarakatan Kanwil Ditjenpas Bengkulu pada Rabu, (04/11).
