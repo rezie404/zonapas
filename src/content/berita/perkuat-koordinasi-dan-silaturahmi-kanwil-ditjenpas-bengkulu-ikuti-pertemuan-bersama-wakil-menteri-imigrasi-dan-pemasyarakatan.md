@@ -1,6 +1,6 @@
 ---
 title: "Perkuat Koordinasi Dan Silaturahmi, Kanwil Ditjenpas Bengkulu Ikuti Pertemuan Bersama Wakil Menteri Imigrasi Dan Pemasyarakatan"
-summary: "Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri secara langsung pertemuan dan silaturahmi bersama Wakil Menteri Imigrasi dan Pemasyarakatan yang dilaksanakan di Ruang Rapat Sahardjo Lantai 2, Direktorat Jenderal Pemasyarakatan, Jakarta Pusat, Selasa (3/11). Pertemuan tersebut menjadi wadah untuk mempererat silaturahmi serta memperkuat koordinasi antara pimpinan pusat dan jajaran pemasyarakatan di wilayah. Kegiatan"
+summary: "Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri secara langsung pertemuan dan silaturahmi bersama Wakil Menteri Imigrasi dan Pemasyarakatan yang dilaksanakan di Ruang Rapat Sahardjo Lantai 2, Direktorat Jenderal Pemasyarakatan, Jakarta Pusat, Selasa (3/11). Pertemuan tersebut menjadi wadah untuk mempererat silaturahmi serta memperkuat koordinasi antara pimpinan pusat dan jajaran pemasyarakatan di wilayah."
 category: "Sinergi"
 tags: ["wakil menteri", "silaturahmi", "koordinasi", "kanwil bengkulu"]
 author: "Rezie Novian Putra"

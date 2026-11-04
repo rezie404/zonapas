@@ -1,6 +1,6 @@
 ---
 title: "Perkuat Keamanan Pemasyarakatan, Kanwil Ditjenpas Bengkulu Ikuti Evaluasi Dan Penguatan Tugas Pengamanan"
-summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Zoom Meeting Evaluasi dan Penguatan Tugas dan Fungsi Pengamanan yang diselenggarakan oleh Direktorat Pengamanan dan Intelijen. Kegiatan ini dipimpin langsung oleh Direktur Pengamanan dan Intelijen sebagai bagian dari upaya meningkatkan kualitas pelaksanaan tugas pengamanan di lingkungan pemasyarakatan. Dalam kegiatan tersebut, dilaksanakan evaluasi terhadap pelaksanaan tugas"
+summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Zoom Meeting Evaluasi dan Penguatan Tugas dan Fungsi Pengamanan yang diselenggarakan oleh Direktorat Pengamanan dan Intelijen. Kegiatan ini dipimpin langsung oleh Direktur Pengamanan dan Intelijen sebagai bagian dari upaya meningkatkan kualitas pelaksanaan tugas pengamanan di lingkungan pemasyarakatan."
 category: "Pengamanan"
 tags: ["pengamanan", "pamintel", "evaluasi", "deteksi dini"]
 author: "Rezie Novian Putra"

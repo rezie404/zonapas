@@ -1,6 +1,6 @@
 ---
 title: "Lanjutkan Estafet Pengabdian, Pisah Sambut Kakanwil Ditjenpas Bengkulu Perkiat Sinergi Pemasyarakatan"
-summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menyelenggarakan kegiatan pisah sambut Kepala Kantor Wilayah sebagai bentuk penghormatan atas pengabdian pejabat lama sekaligus penyambutan pejabat baru, Sabtu (31/10). Kegiatan ini menandai peralihan kepemimpinan dari Aris Munandar, yang selanjutnya mengemban amanah sebagai Direktur Pembinaan Narapidana dan Anak Binaan pada Direktorat Jenderal Pemasyarakatan, kepada Masjuno sebagai Kepala"
+summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menyelenggarakan kegiatan pisah sambut Kepala Kantor Wilayah sebagai bentuk penghormatan atas pengabdian pejabat lama sekaligus penyambutan pejabat baru, Sabtu (31/10)."
 category: "Sinergi"
 tags: ["pisah sambut", "kakanwil", "masjuno", "aris munandar"]
 author: "Rezie Novian Putra"
