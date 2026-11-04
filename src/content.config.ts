@@ -14,6 +14,7 @@ const berita = defineCollection({
     imageCaption: z.string(),
     featured: z.boolean().default(false),
     breaking: z.boolean().default(false),
+    breakingSince: z.string().optional(),
     upt: z.string().optional(),
     source: z.enum(['jurnalpas', 'contoh', 'zonapas']).default('contoh'),
     sourceUrl: z.string().optional(),

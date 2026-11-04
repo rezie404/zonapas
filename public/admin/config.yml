@@ -54,7 +54,7 @@ collections:
       - { name: image, label: Foto Sampul, widget: image }
       - { name: imageCaption, label: Keterangan Foto, widget: string, default: "Dokumentasi kegiatan. (ZonaPas)" }
       - { name: featured, label: Tampilkan sebagai Headline, widget: boolean, required: false, default: false }
-      - { name: breaking, label: Breaking News, widget: boolean, required: false, default: false }
+      - { name: breaking, label: Breaking News, widget: boolean, required: false, default: true }
       - name: upt
         label: UPT Terkait
         widget: select

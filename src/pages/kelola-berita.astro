@@ -153,7 +153,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             </div>
             <div class="flex items-center gap-6 md:col-span-2">
               <label class="flex items-center gap-2 text-sm font-bold"><input id="f-featured" type="checkbox" class="h-4 w-4" /> Tampilkan sebagai Headline (Pilihan Redaksi)</label>
-              <label class="flex items-center gap-2 text-sm font-bold"><input id="f-breaking" type="checkbox" class="h-4 w-4" /> Breaking News</label>
+              <label class="flex items-center gap-2 text-sm font-bold"><input id="f-breaking" type="checkbox" class="h-4 w-4" checked /> Breaking News</label>
             </div>
             <div class="md:col-span-2">
               <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
@@ -1212,6 +1212,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         'featured: ' + (d.featured ? 'true' : 'false'),
         'breaking: ' + (d.breaking ? 'true' : 'false'),
       ];
+      // Waktu masuk pita Breaking News (ISO): hanya ditulis bila breaking
+      // aktif; dipakai aturan kedaluwarsa 2 hari (lihat index.astro).
+      if (d.breaking && d.breakingSince) lines.push('breakingSince: ' + q(d.breakingSince));
       if (d.upt) lines.push('upt: ' + q(d.upt));
       lines.push('source: "zonapas"', '---', '', d.body.trim() + '', '');
       return lines.join('\n');
@@ -1248,6 +1251,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (uploaded) image = uploaded;
         }
         if (!image) throw new Error('Foto sampul wajib diunggah.');
+        // Waktu masuk pita Breaking News: bila breaking dicentang dan
+        // artikel belum punya catatan waktu masuk, catat sekarang; bila
+        // sedang diubah dan sudah punya catatan, pertahankan (jam tidak
+        // diulang); bila breaking dimatikan, hapus catatannya.
+        const breakingChecked = $('f-breaking').checked;
+        let breakingSince = '';
+        if (breakingChecked) {
+          breakingSince = (editing && editing.breakingSince) || new Date().toISOString();
+        }
         const data = {
           title, summary, category,
           tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
@@ -1256,7 +1268,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           image,
           imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
           featured: $('f-featured').checked,
-          breaking: $('f-breaking').checked,
+          breaking: breakingChecked,
+          breakingSince,
           upt: $('f-upt').value || '',
           body,
         };
@@ -1295,7 +1308,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (editBtn) {
         const a = articles.find((x) => x.slug === editBtn.getAttribute('data-edit'));
         if (!a) return;
-        editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '' };
+        editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '' };
         $('f-judul').value = a.data.title || '';
         $('f-ringkasan').value = a.data.summary || '';
         $('f-kategori').value = a.data.category || '';

@@ -7,10 +7,15 @@ interface Props {
 
 const { items } = Astro.props;
 const tickerItems = [...items, ...items];
+// Waktu masuk pita per artikel (ISO): `breakingSince` bila ada, fallback
+// ke tanggal terbit — aturan yang sama dengan filter build di index.astro.
+function sinceISO(entry: CollectionEntry<'berita'>) {
+  return entry.data.breakingSince || entry.data.publishDate.toISOString();
+}
 ---
 
 {items.length > 0 && (
-  <div class="bg-[#D9232E] text-white" aria-label="Berita terkini">
+  <div id="ticker-berita" class="bg-[#D9232E] text-white" aria-label="Berita terkini">
     <div class="mx-auto flex max-w-[1200px] items-center gap-0 px-0 sm:px-4">
       <span class="z-10 flex shrink-0 items-center gap-2 bg-[#0A2540] px-3 py-2 text-xs font-black uppercase tracking-wider sm:px-4">
         <span class="inline-block h-2 w-2 animate-pulse rounded-full bg-[#ff4d57]"></span>
@@ -19,7 +24,7 @@ const tickerItems = [...items, ...items];
       <div class="relative flex-1 overflow-hidden py-2">
         <div class="ticker-track flex w-max whitespace-nowrap">
           {tickerItems.map((entry) => (
-            <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} class="mx-6 text-sm font-semibold hover:underline">
+            <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} data-breaking-since={sinceISO(entry)} class="mx-6 text-sm font-semibold hover:underline">
               {entry.data.title}
             </a>
           ))}
@@ -28,3 +33,27 @@ const tickerItems = [...items, ...items];
     </div>
   </div>
 )}
+
+<script>
+  // Kedaluwarsa Breaking News di sisi klien: sembunyikan butir yang sudah
+  // lewat 2×24 jam sejak masuk pita (aturan yang sama dengan filter build
+  // di index.astro), supaya artikel hilang dari pita secara otomatis tanpa
+  // menunggu rebuild situs. Sembunyikan seluruh pita bila tidak ada butir
+  // yang tersisa.
+  (function () {
+    var MS = 2 * 24 * 60 * 60 * 1000;
+    var now = Date.now();
+    var links = document.querySelectorAll('#ticker-berita a[data-breaking-since]');
+    if (!links.length) return;
+    var tersisa = 0;
+    links.forEach(function (a) {
+      var since = Date.parse(a.getAttribute('data-breaking-since') || '');
+      if (!isNaN(since) && now - since >= MS) { a.classList.add('hidden'); }
+      else { tersisa++; }
+    });
+    if (tersisa === 0) {
+      var bar = document.getElementById('ticker-berita');
+      if (bar) bar.classList.add('hidden');
+    }
+  })();
+</script>

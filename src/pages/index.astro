@@ -9,7 +9,21 @@ const all = (await getCollection('berita')).sort(
   (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
 );
 
-const breaking = all.filter((e) => e.data.breaking);
+// Aturan Breaking News: artikel tampil di pita "Berita Terkini" selama
+// 2×24 jam SEJAK MASUK PITA (sejak breaking dicentang/disimpan), bukan
+// sejak tanggal terbit. Waktu masuk dicatat di frontmatter `breakingSince`
+// (ISO); bila tidak ada (artikel lama), fallback ke tanggal terbit.
+const BREAKING_MS = 2 * 24 * 60 * 60 * 1000;
+function breakingSinceMs(e) {
+  const s = e.data.breakingSince ? new Date(e.data.breakingSince).getTime() : e.data.publishDate.getTime();
+  return Number.isFinite(s) ? s : 0;
+}
+function isBreakingActive(e) {
+  if (!e.data.breaking) return false;
+  const since = breakingSinceMs(e);
+  return since > 0 && Date.now() - since < BREAKING_MS;
+}
+const breaking = all.filter((e) => isBreakingActive(e));
 const featured = all.filter((e) => e.data.featured);
 const hero = featured[0] ?? all[0];
 const heroRest = all.filter((e) => e.id !== hero.id).slice(0, 4);
