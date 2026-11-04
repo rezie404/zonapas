@@ -10,7 +10,7 @@
 // ini otomatis me-watermark SEMUA foto berita baru dari CMS (/admin) maupun dari
 // Redaksi (yang sudah di-watermark sekali di canvas editor — geometri di sini
 // SAMA PERSIS dengan canvas Redaksi: lebar logo 15% lebar foto, padding 2%,
-// alpha 0.85, pojok kanan bawah — jadi pada foto Redaksi hanya opasitasnya
+// alpha 0,6, pojok kanan bawah — jadi pada foto Redaksi hanya opasitasnya
 // sedikit menguat, tanpa bayangan ganda bergeser).
 //
 // BATASAN (jujur): file di repo GitHub (public/images/...) sendiri TIDAK
@@ -35,7 +35,7 @@ const LOGO_FILE = "logo-zonapas.png";
 const SKIP_FILES = new Set(["logo-zonapas.png", "logo-zonapas-asli.jpg"]);
 const SKIP_PREFIXES = ["jurnalpas-"];
 const LOGO_FRACTION = 0.15; // lebar logo = 15% lebar foto
-const LOGO_ALPHA = 0.85; // semi-transparan
+const LOGO_ALPHA = 0.6; // lebih transparan namun tetap terlihat
 const PAD_FRACTION = 0.02; // jarak dari tepi = 2% lebar foto
 const JPEG_QUALITY = 85;
 
