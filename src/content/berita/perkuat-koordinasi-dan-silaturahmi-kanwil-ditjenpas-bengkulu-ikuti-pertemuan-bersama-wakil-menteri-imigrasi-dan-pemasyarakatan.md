@@ -5,7 +5,7 @@ category: "Sinergi"
 tags: ["wakil menteri", "silaturahmi", "koordinasi", "kanwil bengkulu"]
 author: "Rezie Novian Putra"
 publishDate: 2026-11-03
-image: "/images/cover-perkuat-koordinasi-dan-silaturahmi-kanwil-ditjenpas-bengkulu-ikuti-pertemuan-bersama-wakil-menteri-imigrasi-dan-pemasyarakatan-202611041612.jpg"
+image: "/images/cover-perkuat-koordinasi-dan-silaturahmi-kanwil-ditjenpas-bengkulu-ikuti-pertemuan-bersama-wakil-menteri-imigrasi-dan-pemasyarakatan-202611041614.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"
 featured: true
 breaking: true
