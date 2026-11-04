@@ -157,7 +157,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <button id="btn-tambah-gambar" type="button" class="rounded-lg bg-[#FACC15] px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">📷 Tambah Gambar</button>
                 <input id="f-isi-alt" type="text" placeholder="Keterangan gambar (opsional)" class="min-w-[200px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-                <input id="f-isi-file" type="file" accept="image/*" class="hidden" />
+                <input id="f-isi-file" type="file" accept="image/jpeg,image/png" class="hidden" />
               </div>
               <p id="f-isi-status" class="mb-2 hidden text-xs font-medium text-slate-500 dark:text-slate-400" role="status"></p>
               <textarea id="f-isi" required rows="12" placeholder="Tulis isi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
@@ -530,7 +530,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
     function stampId() {
       const d = new Date();
       const p = (n) => String(n).padStart(2, '0');
-      return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + String(Math.floor(Math.random() * 90) + 10);
+      return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + String(d.getMilliseconds()).padStart(3, '0') + String(Math.floor(Math.random() * 900) + 100);
     }
 
     function cleanAlt(name) {
@@ -599,7 +599,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       try {
         const path = await uploadBodyImage(file);
         const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
-        const safeAlt = alt.replace(/[\[\]]/g, '');
+        const safeAlt = alt.replace(/[\[\])]/g, '');
         insertAtCursor($('f-isi'), '![' + safeAlt + '](' + path + ')');
         isiStatus('Gambar disisipkan di narasi: ' + path, false);
         $('f-isi-alt').value = '';
