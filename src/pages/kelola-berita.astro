@@ -154,7 +154,14 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
             </div>
             <div class="md:col-span-2">
               <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <button id="btn-tambah-gambar" type="button" class="rounded-lg bg-[#FACC15] px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">📷 Tambah Gambar</button>
+                <input id="f-isi-alt" type="text" placeholder="Keterangan gambar (opsional)" class="min-w-[200px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                <input id="f-isi-file" type="file" accept="image/*" class="hidden" />
+              </div>
+              <p id="f-isi-status" class="mb-2 hidden text-xs font-medium text-slate-500 dark:text-slate-400" role="status"></p>
               <textarea id="f-isi" required rows="12" placeholder="Tulis isi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+              <p class="mt-1 text-xs text-slate-500">Gambar disisipkan di posisi kursor sebagai <span class="font-mono">![keterangan](/images/…)</span> dan bisa ditambah berkali-kali. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
             </div>
           </div>
           <div class="mt-5 flex flex-wrap gap-3">
@@ -502,7 +509,7 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       const preview = $('f-foto-preview');
       if (!file) { pendingCover = null; preview.classList.add('hidden'); return; }
       try {
-        const dataUrl = await resizeCover(file);
+        const dataUrl = await resizeImage(file);
         pendingCover = { dataUrl };
         preview.src = dataUrl;
         preview.classList.remove('hidden');
@@ -513,7 +520,99 @@ const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color
       }
     });
 
-    function resizeCover(file) {
+    // ---------- Gambar di badan narasi ----------
+    // Foto dipilih -> di-resize seperti sampul -> langsung diunggah ke
+    // public/images -> sintaks Markdown disisipkan di posisi kursor.
+    // Bisa dipakai berkali-kali dalam satu artikel, juga saat Ubah (isi
+    // narasi yang sudah ada tetap utuh). Bila penulis menutup formulir
+    // tanpa menyimpan, foto yang sudah terunggah tetap ada di repo (sama
+    // seperti media di Decap CMS) — hapus manual bila tidak terpakai.
+    function stampId() {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + String(Math.floor(Math.random() * 90) + 10);
+    }
+
+    function cleanAlt(name) {
+      const base = String(name || '').replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return base || 'Foto kegiatan';
+    }
+
+    function padAwal(s) {
+      if (!s) return '';
+      if (s.endsWith('\n\n')) return '';
+      if (s.endsWith('\n')) return '\n';
+      return '\n\n';
+    }
+
+    function padAkhir(s) {
+      if (!s) return '';
+      if (s.startsWith('\n\n')) return '';
+      if (s.startsWith('\n')) return '\n';
+      return '\n\n';
+    }
+
+    function insertAtCursor(ta, text) {
+      const start = ta.selectionStart ?? ta.value.length;
+      const end = ta.selectionEnd ?? ta.value.length;
+      const before = ta.value.slice(0, start);
+      const after = ta.value.slice(end);
+      const chunk = padAwal(before) + text + padAkhir(after);
+      ta.value = before + chunk + after;
+      const pos = before.length + chunk.length;
+      ta.focus();
+      try { ta.setSelectionRange(pos, pos); } catch (e) {}
+    }
+
+    function isiStatus(msg, isError) {
+      const el = $('f-isi-status');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      el.style.color = isError ? '#B91C1C' : '';
+    }
+
+    async function uploadBodyImage(file) {
+      const dataUrl = await resizeImage(file);
+      const slug = editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita');
+      const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
+      const base64 = dataUrl.split(',')[1];
+      await gh('/contents/public/images/' + encodeURIComponent(filename), {
+        method: 'PUT',
+        body: JSON.stringify({ message: 'Unggah gambar isi: ' + filename, content: base64, branch: 'main' }),
+      });
+      return '/images/' + filename;
+    }
+
+    on('btn-tambah-gambar', 'click', () => {
+      const input = $('f-isi-file');
+      if (input) input.click();
+    });
+
+    on('f-isi-file', 'change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const btn = $('btn-tambah-gambar');
+      if (!file) return;
+      btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = 'Mengunggah…';
+      isiStatus('Mengunggah gambar…', false);
+      try {
+        const path = await uploadBodyImage(file);
+        const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
+        const safeAlt = alt.replace(/[\[\]]/g, '');
+        insertAtCursor($('f-isi'), '![' + safeAlt + '](' + path + ')');
+        isiStatus('Gambar disisipkan di narasi: ' + path, false);
+        $('f-isi-alt').value = '';
+      } catch (err) {
+        isiStatus('Gagal mengunggah gambar: ' + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+        e.target.value = '';
+      }
+    });
+
+    function resizeImage(file) {
       return new Promise((resolve, reject) => {
         const url = URL.createObjectURL(file);
         const img = new Image();
