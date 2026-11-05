@@ -821,12 +821,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       // Email Administrator Cadangan: baris tetap admin utama + daftar
       // cadangan dari Worker (admin_emails), tiap baris bisa dihapus.
+      // API mengembalikan tiap entri sebagai OBJEK { email, created_by,
+      // created_at } — ambil field email-nya (tetap tahan bila API suatu
+      // saat mengembalikan string biasa). Sebelumnya objek diinterpolasi
+      // langsung sehingga tampil "[object Object]" dan tombol Hapus
+      // mengirim alamat itu (gagal 404).
+      const alamatEmail = (e) => (typeof e === 'string' ? e : (e && e.email) || '');
       const al = $('admin-email-list');
       if (al) {
         const utama = '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
           '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">rezienovian@gmail.com</span>' +
           '<span class="block text-xs text-slate-500">Administrator utama</span></span></div>';
-        const cadangan = adminEmails.filter((e) => String(e).toLowerCase() !== 'rezienovian@gmail.com').map((email) => {
+        const cadangan = adminEmails.map(alamatEmail).filter((a) => a && a.toLowerCase() !== 'rezienovian@gmail.com').map((email) => {
           return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
             '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(email) + '</span>' +
             '<span class="block text-xs text-slate-500">Administrator cadangan</span></span>' +
