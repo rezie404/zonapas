@@ -560,6 +560,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return workerApi(path, { method: 'GET' });
     }
 
+    // Tulis file ke repo lewat Worker — dipakai bila TIDAK ADA token GitHub
+    // di browser (Administrator yang masuk lewat Google). Worker menulis
+    // dengan GITHUB_TOKEN miliknya; jalurnya dibatasi di server.
+    async function githubTulis(path, content, message, sha) {
+      const payload = { path, content, message };
+      if (sha) payload.sha = sha;
+      const res = await workerPost('/redaksi/api/github-tulis', payload);
+      if (!res || res.ok !== true) {
+        const err = new Error((res && res.error) || 'Worker gagal menulis file.');
+        err.status = (res && res.status) || 0;
+        throw err;
+      }
+      return res;
+    }
+
     function labelPeran(r) { return ROLE_LABEL[r] || r || '-'; }
 
     function terapkanIdentitas(user, sumber) {
@@ -1477,10 +1492,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const slug = editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita');
       const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
       const base64 = dataUrl.split(',')[1];
-      await gh('/contents/public/images/' + encodeURIComponent(filename), {
-        method: 'PUT',
-        body: JSON.stringify({ message: 'Unggah gambar isi: ' + filename, content: base64, branch: 'main' }),
-      });
+      if (token) {
+        await gh('/contents/public/images/' + encodeURIComponent(filename), {
+          method: 'PUT',
+          body: JSON.stringify({ message: 'Unggah gambar isi: ' + filename, content: base64, branch: 'main' }),
+        });
+      } else {
+        // Masuk lewat Google: tidak ada token GitHub di browser — tulis lewat Worker.
+        await githubTulis('public/images/' + filename, base64, 'Unggah gambar isi: ' + filename);
+      }
       previewImgMap['/images/' + filename] = dataUrl;
       return '/images/' + filename;
     }
@@ -1981,10 +2001,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
       const filename = 'cover-' + slug + '-' + stamp + '.jpg';
       const base64 = pendingCover.dataUrl.split(',')[1];
-      await gh('/contents/public/images/' + encodeURIComponent(filename), {
-        method: 'PUT',
-        body: JSON.stringify({ message: 'Unggah foto sampul: ' + filename, content: base64, branch: 'main' }),
-      });
+      if (token) {
+        await gh('/contents/public/images/' + encodeURIComponent(filename), {
+          method: 'PUT',
+          body: JSON.stringify({ message: 'Unggah foto sampul: ' + filename, content: base64, branch: 'main' }),
+        });
+      } else {
+        // Masuk lewat Google: tidak ada token GitHub di browser — tulis lewat Worker.
+        await githubTulis('public/images/' + filename, base64, 'Unggah foto sampul: ' + filename);
+      }
       return '/images/' + filename;
     }
 
@@ -2017,7 +2042,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const data = { ...d, image };
         let finalSlug = slug;
         let sha = editing ? editing.sha : undefined;
-        if (!editing) {
+        if (token && !editing) {
           let n = 2;
           while (true) {
             try {
@@ -2028,9 +2053,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           }
         }
         const md = buildMarkdown(data);
-        const payload = { message: (editing ? 'Ubah berita: ' : 'Tambah berita: ') + title, content: b64encodeUnicode(md), branch: 'main' };
-        if (sha) payload.sha = sha;
-        await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md', { method: 'PUT', body: JSON.stringify(payload) });
+        const pesanSimpan = (editing ? 'Ubah berita: ' : 'Tambah berita: ') + title;
+        if (token) {
+          const payload = { message: pesanSimpan, content: b64encodeUnicode(md), branch: 'main' };
+          if (sha) payload.sha = sha;
+          await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md', { method: 'PUT', body: JSON.stringify(payload) });
+        } else {
+          // Masuk lewat Google: tulis lewat Worker. 422 = slug sudah
+          // dipakai (cek di atas dilewati tanpa token) — coba slug
+          // berikutnya, maks. 3 percobaan.
+          let percobaan = 0;
+          while (true) {
+            try {
+              await githubTulis('src/content/berita/' + finalSlug + '.md', b64encodeUnicode(md), pesanSimpan, sha);
+              break;
+            } catch (err) {
+              if (!editing && err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slug + '-' + (percobaan + 1); continue; }
+              throw err;
+            }
+          }
+        }
         showStatus('Berita "' + title + '" tersimpan. Artikel tayang di situs setelah rebuild sekitar 1–2 menit: ' + SITE_URL + '/berita/' + finalSlug + '/', true);
         resetForm();
         $('form-section').classList.add('hidden');
