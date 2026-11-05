@@ -281,14 +281,21 @@ const shareLinks = {
           tampilkanKomentar(d.comments || []);
         } catch (e) { /* Worker tidak terjangkau: biarkan angka 0 */ }
       }
+      // Token login GitHub (sessionStorage, hanya tab Kelola Berita) — harus
+      // ikut di SEMUA kiriman ke Worker, bukan hanya /api/me: kiriman tanpa
+      // token ditolak 401 walau /api/me sudah mengenali adminnya.
+      function tokenGithub() {
+        try { return sessionStorage.getItem('zonapas-kelola-token'); } catch (e) { return null; }
+      }
+      function badanDenganToken(badan) {
+        const t = tokenGithub();
+        return t ? Object.assign({}, badan || {}, { github_token: t }) : (badan || {});
+      }
       async function muatSaya() {
         try {
           // Administrator yang masuk lewat GitHub (token di sessionStorage)
           // juga dikenali di halaman artikel, bukan hanya sesi cookie Google.
-          let tokenGithub = null;
-          try { tokenGithub = sessionStorage.getItem('zonapas-kelola-token'); } catch (e) {}
-          const badan = tokenGithub ? { github_token: tokenGithub } : {};
-          const r = await fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badan) });
+          const r = await fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badanDenganToken({})) });
           const d = await r.json();
           pengguna = d.ok ? d.user : null;
         } catch (e) { pengguna = null; }
@@ -303,8 +310,10 @@ const shareLinks = {
         }
       }
       async function kirimJson(path, badan) {
-        const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badan || {}) });
-        return r.json();
+        const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badanDenganToken(badan)) });
+        const d = await r.json().catch(() => ({}));
+        d._status = r.status;
+        return d;
       }
       function bukaLogin(teks) {
         const t = document.getElementById('teks-login');
@@ -322,6 +331,12 @@ const shareLinks = {
             disukai = !!d.liked;
             aturJumlah('jumlah-suka', d.likes || 0);
             tampilkanSuka();
+          } else if (d._status === 401) {
+            // Sesi habis / token tidak terbawa: jangan diam saja, buka
+            // lembar login supaya pengguna tahu harus masuk lagi.
+            pengguna = null;
+            await muatSaya();
+            bukaLogin('Login untuk menyukai konten ini');
           }
         } catch (e) {}
         btnSuka.disabled = false;
@@ -353,6 +368,10 @@ const shareLinks = {
           if (d.ok) {
             ta.value = '';
             if (status) { status.textContent = 'Komentar terkirim dan menunggu persetujuan Redaksi.'; status.classList.remove('hidden'); status.style.color = '#047857'; }
+          } else if (d._status === 401) {
+            pengguna = null;
+            await muatSaya();
+            bukaLogin('Login untuk mengomentari artikel ini');
           } else if (status) {
             status.textContent = d.error || 'Gagal mengirim komentar.';
             status.classList.remove('hidden');
