@@ -218,7 +218,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               </div>
               <p id="f-isi-status" class="mb-2 hidden text-xs font-medium text-slate-500 dark:text-slate-400" role="status"></p>
               <textarea id="f-isi" required rows="12" placeholder="Tulis isi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
-              <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, potong dulu bagian yang dipakai. Gambar disisipkan di posisi kursor sebagai <span class="font-mono">![keterangan](/images/…)</span> dan bisa ditambah berkali-kali. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+              <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, potong dulu bagian yang dipakai. Foto badan narasi hanya boleh 1 foto dan selalu tampil setelah narasi (1 baris kosong di antaranya). Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
             </div>
           </div>
           <div class="mt-5 flex flex-wrap gap-3">
@@ -744,7 +744,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const title = $('f-judul').value.trim();
       const summary = $('f-ringkasan').value.trim();
       const category = $('f-kategori').value;
-      const body = $('f-isi').value.trim();
+      const body = normalisasiIsi($('f-isi').value.trim());
+      if (hitungFotoBadan(body) > 1) throw new Error('Foto badan narasi hanya boleh 1 foto. Hapus foto yang lain bila ingin menggantinya.');
       const publishDate = $('f-tanggal').value;
       if (!title || !summary || !category || !body || !publishDate) throw new Error('Judul, ringkasan, kategori, tanggal terbit, dan isi berita wajib diisi.');
       const breakingChecked = $('f-breaking').checked;
@@ -763,7 +764,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         breaking: breakingChecked,
         breakingSince,
         upt: $('f-upt').value || '',
-        body: normalisasiIsi(body),
+        body,
       };
     }
 
@@ -1131,11 +1132,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     // ---------- Gambar di badan narasi ----------
     // Foto dipilih -> di-resize seperti sampul -> langsung diunggah ke
-    // public/images -> sintaks Markdown disisipkan di posisi kursor.
-    // Bisa dipakai berkali-kali dalam satu artikel, juga saat Ubah (isi
-    // narasi yang sudah ada tetap utuh). Bila penulis menutup formulir
-    // tanpa menyimpan, foto yang sudah terunggah tetap ada di repo (sama
-    // seperti media di Decap CMS) — hapus manual bila tidak terpakai.
+    // public/images -> sintaks Markdown ditambahkan di AKHIR narasi (1 baris
+    // kosong di antaranya). Hanya boleh 1 foto badan narasi per artikel,
+    // juga saat Ubah (isi narasi yang sudah ada tetap utuh). Bila penulis
+    // menutup formulir tanpa menyimpan, foto yang sudah terunggah tetap ada
+    // di repo (sama seperti media di Decap CMS) — hapus manual bila tidak
+    // terpakai.
     function stampId() {
       const d = new Date();
       const p = (n) => String(n).padStart(2, '0');
@@ -1171,6 +1173,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       while (rapat.length && rapat[0].trim() === '') rapat.shift();
       if (!rapat.length) return gambar.join('\n');
       return rapat.join('\n') + '\n\n' + gambar.join('\n');
+    }
+
+    // Foto badan narasi hanya boleh 1 foto.
+    function hitungFotoBadan(teks) {
+      return (String(teks || '').match(/^\s*!\[.*\]\(.*\)\s*$/gm) || []).length;
     }
 
     // Sisipkan gambar badan narasi di AKHIR narasi (bukan di posisi kursor),
@@ -1396,6 +1403,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     on('btn-tambah-gambar', 'click', () => {
+      if (hitungFotoBadan($('f-isi').value) >= 1) {
+        isiStatus('Foto badan narasi hanya boleh 1 foto. Hapus foto yang ada dulu bila ingin menggantinya.', true);
+        return;
+      }
       const input = $('f-isi-file');
       if (input) input.click();
     });
@@ -1404,6 +1415,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const file = e.target.files && e.target.files[0];
       const btn = $('btn-tambah-gambar');
       if (!file) return;
+      if (hitungFotoBadan($('f-isi').value) >= 1) {
+        isiStatus('Foto badan narasi hanya boleh 1 foto. Hapus foto yang ada dulu bila ingin menggantinya.', true);
+        e.target.value = '';
+        return;
+      }
       // Potong dulu sebelum resize/unggah; Batal = tidak ada yang diunggah/disisip.
       let terpotong = null;
       try {
