@@ -920,12 +920,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // tautan header bertanda data-header-masuk berubah jadi "Keluar" dan
     // memanggil keluar(); saat keluar, kembali jadi "Masuk" ke /masuk/.
     // Keluar dari Kelola Berita selalu kembali ke menu login (/masuk/),
-    // bukan menampilkan kotak login di halaman ini.
+    // bukan menampilkan kotak login di halaman ini. Akhiri SEMUA sesi:
+    // sesi Google (cookie Worker) maupun token GitHub — tanpa ini, sesi
+    // Google yang masih hidup di browser yang sama akan dipulihkan
+    // otomatis saat halaman dimuat lagi.
     async function keluar(e) {
       if (e) e.preventDefault();
-      if (sumberLogin === 'google') {
-        try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
-      }
+      try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
       try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (err) {}
       window.location.href = '/masuk/';
     }
