@@ -30,6 +30,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
         {!isMasukPage && (
           <a
             href="/masuk/"
+            data-header-masuk
             class="flex h-10 items-center rounded-full bg-[#0A2540] px-4 text-sm font-bold text-white hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540] dark:hover:bg-slate-200"
           >
             Masuk
@@ -86,7 +87,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       ))}
       <a href="/upt/" class="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800">Berita UPT</a>
       {!isMasukPage && (
-        <a href="/masuk/" class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540]">Masuk</a>
+        <a href="/masuk/" data-header-masuk class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540]">Masuk</a>
       )}
     </nav>
   </div>

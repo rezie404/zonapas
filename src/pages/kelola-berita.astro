@@ -83,7 +83,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
           <span id="user-name"></span>
         </span>
-        <button id="btn-logout" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
         <span class="flex-1"></span>
         <button id="btn-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Daftar</button>
         <button id="btn-new" type="button" class="rounded-lg bg-[#FACC15] px-4 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">+ Tulis Berita Baru</button>
@@ -917,11 +916,40 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let popup = null;
     let popupTimer = null;
 
+    // Tombol keluar saat login tinggal di header (posisi tombol Masuk):
+    // tautan header bertanda data-header-masuk berubah jadi "Keluar" dan
+    // memanggil keluar(); saat keluar, kembali jadi "Masuk" ke /masuk/.
+    async function keluar(e) {
+      if (e) e.preventDefault();
+      if (sumberLogin === 'google') {
+        try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+        try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (err) {}
+        window.location.href = '/masuk/';
+        return;
+      }
+      setLoggedOut('Anda sudah keluar.');
+    }
+
+    function terapkanTombolHeaderKeluar(aktif) {
+      document.querySelectorAll('[data-header-masuk]').forEach((el) => {
+        if (aktif) {
+          el.textContent = 'Keluar';
+          el.setAttribute('href', '/kelola-berita/');
+          el.onclick = keluar;
+        } else {
+          el.textContent = 'Masuk';
+          el.setAttribute('href', '/masuk/');
+          el.onclick = null;
+        }
+      });
+    }
+
     function setLoggedIn(user) {
       loginBox.classList.add('hidden');
       const ditolak = $('akses-ditolak');
       if (ditolak) ditolak.classList.add('hidden');
       appEl.classList.remove('hidden');
+      terapkanTombolHeaderKeluar(true);
       const nama = (identitas && identitas.nama) || user.login || 'GitHub';
       $('user-name').textContent = 'Masuk sebagai ' + nama + (peran ? ' (' + labelPeran(peran) + ')' : '') + ' · ' + (sumberLogin === 'google' ? 'Google' : 'GitHub');
       const avatar = $('user-avatar');
@@ -943,6 +971,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const ditolak = $('akses-ditolak');
       if (ditolak) ditolak.classList.add('hidden');
       loginBox.classList.remove('hidden');
+      terapkanTombolHeaderKeluar(false);
       $('form-section').classList.add('hidden');
       if (msg) showStatus(msg, false);
     }
@@ -1009,16 +1038,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           }
         }
       }, 500);
-    });
-
-    on('btn-logout', 'click', async () => {
-      if (sumberLogin === 'google') {
-        try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
-        try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
-        window.location.href = '/masuk/';
-        return;
-      }
-      setLoggedOut('Anda sudah keluar.');
     });
 
     // ---------- Form ----------
