@@ -124,6 +124,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div id="antrean-list" class="grid gap-3"><p class="text-sm text-slate-500">Memuat…</p></div>
       </section>
 
+      <!-- Moderasi Komentar (Penyunting + Administrator) -->
+      <section id="moderasi-section" class="hidden pt-8" aria-label="Moderasi Komentar">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Moderasi Komentar</h2>
+          <button id="btn-moderasi-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
+        </div>
+        <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Komentar pembaca baru tampil di artikel setelah disetujui Penyunting/Administrator.</p>
+        <h3 class="mt-2 text-base font-black">Menunggu Persetujuan</h3>
+        <div id="moderasi-menunggu" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+        <h3 class="mt-6 text-base font-black">Sudah Tampil</h3>
+        <div id="moderasi-terbit" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
       <!-- Pengguna (hanya Administrator) -->
       <section id="pengguna-section" class="hidden pt-8" aria-label="Pengguna">
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
@@ -524,7 +537,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // + header X-GitHub-Token bila login GitHub; POST juga membawa
     // github_token di body sebagai auth alternatif. Token TIDAK PERNAH
     // ditulis ke log/DOM.
-    const ROLE_LABEL = { admin: 'Administrator', penyunting: 'Penyunting', penulis: 'Penulis' };
+    const ROLE_LABEL = { admin: 'Administrator', penyunting: 'Penyunting', penulis: 'Penulis', pembaca: 'Pembaca' };
 
     async function workerApi(path, options) {
       const opts = options || {};
@@ -611,6 +624,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       const antreanSection = $('antrean-section');
       if (antreanSection) antreanSection.classList.toggle('hidden', !(peran === 'admin' || peran === 'penyunting' || peran === 'penulis'));
+      const moderasiSection = $('moderasi-section');
+      const bisaModerasi = peran === 'admin' || peran === 'penyunting';
+      if (moderasiSection) moderasiSection.classList.toggle('hidden', !bisaModerasi);
+      if (bisaModerasi) muatModerasi();
       const penggunaSection = $('pengguna-section');
       if (penggunaSection) penggunaSection.classList.toggle('hidden', peran !== 'admin');
       renderLists();
@@ -710,6 +727,43 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!modal) return;
       modal.classList.add('hidden');
       document.body.style.overflow = '';
+    }
+
+    // ---------- Moderasi Komentar (Penyunting + Administrator) ----------
+    async function muatModerasi() {
+      if (!(peran === 'admin' || peran === 'penyunting')) return;
+      try {
+        const res = await workerGet('/redaksi/api/komentar/antrean');
+        renderModerasi((res && res.menunggu) || [], (res && res.terbit) || []);
+      } catch (err) {
+        const el = $('moderasi-menunggu');
+        if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat komentar: ' + esc(err.message) + '</p>';
+      }
+    }
+
+    function kartuKomentar(k, aksi) {
+      const waktu = k.created_at ? new Date(k.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      let h = '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-800">' +
+        '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="text-base font-bold leading-snug">' + esc(k.name || 'Pembaca') + '</h3>' +
+        '<a href="/berita/' + esc(k.slug) + '/" target="_blank" rel="noopener" class="shrink-0 text-xs font-bold text-[#0A2540] hover:underline dark:text-white">Lihat artikel &rarr;</a></div>' +
+        '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc(waktu) + '</p>' +
+        '<p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-200">' + esc(k.body || '') + '</p>' +
+        '<div class="mt-3 flex flex-wrap gap-2">';
+      if (aksi === 'menunggu') {
+        h += '<button type="button" data-moderasi-setujui="' + esc(k.id) + '" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Setujui &amp; Tampilkan</button>';
+        h += '<button type="button" data-moderasi-tolak="' + esc(k.id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Tolak</button>';
+      } else {
+        h += '<button type="button" data-moderasi-hapus="' + esc(k.id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button>';
+      }
+      h += '</div></article>';
+      return h;
+    }
+
+    function renderModerasi(menunggu, terbit) {
+      const elM = $('moderasi-menunggu');
+      if (elM) elM.innerHTML = menunggu.length ? menunggu.map((k) => kartuKomentar(k, 'menunggu')).join('') : '<p class="text-sm text-slate-500">Tidak ada komentar yang menunggu.</p>';
+      const elT = $('moderasi-terbit');
+      if (elT) elT.innerHTML = terbit.length ? terbit.map((k) => kartuKomentar(k, 'terbit')).join('') : '<p class="text-sm text-slate-500">Belum ada komentar yang tampil.</p>';
     }
 
     async function bukaDetailAntrean(id) {
@@ -900,7 +954,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             const role = u.role || 'penulis';
             const aktif = u.status ? (u.status !== 'nonaktif' && u.active !== false) : (u.active !== false);
             const utama = !!(u.is_main_admin || u.main_admin || u.is_main);
-            const opsi = ['admin', 'penyunting', 'penulis'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
+            const opsi = ['admin', 'penyunting', 'penulis', 'pembaca'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
             return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
               '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(nama) + '</span>' +
               '<span class="block text-xs text-slate-500">' + esc(email) + (aktif ? '' : ' · Nonaktif') + '</span></span>' +
@@ -1050,6 +1104,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     function setLoggedIn(user) {
+      // Pembaca TIDAK punya akses Kelola Berita: kembalikan ke beranda.
+      if (peran === 'pembaca') {
+        showStatus('Akun Anda adalah Pembaca — Kelola Berita hanya untuk Redaksi. Anda dialihkan ke beranda…', false);
+        setTimeout(() => { window.location.href = '/'; }, 1500);
+        return;
+      }
       loginBox.classList.add('hidden');
       const ditolak = $('akses-ditolak');
       if (ditolak) ditolak.classList.add('hidden');
@@ -2222,6 +2282,43 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         return;
       }
     });
+
+    // ---------- Aksi moderasi komentar (delegation) ----------
+    document.addEventListener('click', async (e) => {
+      const setujui = e.target.closest('[data-moderasi-setujui]');
+      const tolak = e.target.closest('[data-moderasi-tolak]');
+      const hapus = e.target.closest('[data-moderasi-hapus]');
+      if (setujui) {
+        const id = setujui.getAttribute('data-moderasi-setujui');
+        try {
+          await workerPost('/redaksi/api/komentar/' + encodeURIComponent(id) + '/setujui', {});
+          showStatus('Komentar disetujui dan tampil di artikel.', true);
+          await muatModerasi();
+        } catch (err) { showStatus('Gagal menyetujui komentar: ' + err.message, false); }
+        return;
+      }
+      if (tolak) {
+        const id = tolak.getAttribute('data-moderasi-tolak');
+        try {
+          await workerPost('/redaksi/api/komentar/' + encodeURIComponent(id) + '/tolak', {});
+          showStatus('Komentar ditolak.', true);
+          await muatModerasi();
+        } catch (err) { showStatus('Gagal menolak komentar: ' + err.message, false); }
+        return;
+      }
+      if (hapus) {
+        const id = hapus.getAttribute('data-moderasi-hapus');
+        if (!confirm('Hapus komentar ini dari artikel?')) return;
+        try {
+          await workerPost('/redaksi/api/komentar/' + encodeURIComponent(id) + '/hapus', {});
+          showStatus('Komentar dihapus.', true);
+          await muatModerasi();
+        } catch (err) { showStatus('Gagal menghapus komentar: ' + err.message, false); }
+        return;
+      }
+    });
+
+    on('btn-moderasi-refresh', 'click', () => muatModerasi());
 
     // ---------- Aksi pengguna (admin, delegation) ----------
     document.addEventListener('click', async (e) => {

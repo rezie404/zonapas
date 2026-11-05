@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ShareButtons from '../../components/ShareButtons.astro';
+import InteraksiArtikel from '../../components/InteraksiArtikel.astro';
 import NewsCard from '../../components/NewsCard.astro';
 import { SITE, categoryByName, formatDate, formatDateShort, readingMinutes, slugify } from '../../data/site';
 import { uptByName } from '../../data/upt';
@@ -131,7 +132,7 @@ const jsonLd = [
       </div>
 
       <div class="mt-4">
-        <ShareButtons url={url} title={title} />
+        <InteraksiArtikel mode="bar" slug={slug} url={url} title={title} />
       </div>
 
       <figure class="mt-5">
@@ -196,6 +197,8 @@ const jsonLd = [
           {authorInfo.bio && <p class="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{authorInfo.bio}</p>}
         </div>
       </div>
+
+      <InteraksiArtikel mode="komentar" slug={slug} />
     </div>
 
     {related.length > 0 && (

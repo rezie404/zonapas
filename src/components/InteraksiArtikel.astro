@@ -1,0 +1,371 @@
+---
+// Baris interaksi artikel ala Kompas: Suka, Komentar, Bagikan + seksi komentar.
+// Dipakai dua kali di halaman artikel: mode="bar" di bawah baris penulis,
+// mode="komentar" di bawah kotak penulis (sebelum Berita Terkait).
+// Jumlah suka/komentar dan daftar komentar diambil dari Worker Redaksi
+// (GET /redaksi/api/interaksi?slug=...) supaya sama di semua perangkat.
+// Suka dan komentar HARUS login Google dulu (peran Pembaca); yang belum
+// masuk melihat lembar login. Komentar yang dikirim berstatus menunggu dan
+// baru tampil setelah disetujui Penyunting/Administrator.
+interface Props {
+  slug: string;
+  url?: string;
+  title?: string;
+  mode?: 'bar' | 'komentar';
+}
+
+const { slug, url = '', title = '', mode = 'bar' } = Astro.props;
+const encodedUrl = encodeURIComponent(url);
+const encodedTitle = encodeURIComponent(title);
+const nextPath = `/berita/${slug}/`;
+const loginHref = `/masuk/?next=${encodeURIComponent(nextPath)}`;
+const shareLinks = {
+  wa: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`,
+  fb: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+  x: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
+  line: `https://social-plugins.line.me/lineit/share?url=${encodedUrl}`,
+  tg: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`,
+};
+---
+
+{
+  mode === 'bar' && (
+    <>
+    <div class="flex flex-wrap items-center gap-2" data-interaksi-bar data-slug={slug}>
+      <button
+        type="button"
+        data-btn-suka
+        aria-pressed="false"
+        class="flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-[#DC2626] hover:text-[#DC2626] dark:border-slate-600 dark:text-slate-200 dark:hover:border-[#F87171] dark:hover:text-[#F87171]"
+      >
+        <svg data-ikon-suka xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+        <span data-label-suka>Suka</span>
+        <span data-jumlah-suka class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] dark:bg-slate-800">0</span>
+      </button>
+      <button
+        type="button"
+        data-btn-komentar
+        class="flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-[#0A2540] hover:text-[#0A2540] dark:border-slate-600 dark:text-slate-200 dark:hover:border-white dark:hover:text-white"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        Komentar
+        <span data-jumlah-komentar class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] dark:bg-slate-800">0</span>
+      </button>
+      <button
+        type="button"
+        data-btn-bagikan
+        class="flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-[#0A2540] hover:text-[#0A2540] dark:border-slate-600 dark:text-slate-200 dark:hover:border-white dark:hover:text-white"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+        Bagikan
+      </button>
+    </div>
+
+    {/* Lembar bagikan (seperti Kompas) */}
+    <div id="lembar-bagikan" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label="Bagikan artikel">
+      <div class="w-full max-w-md rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl dark:bg-slate-900">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="text-base font-black text-[#0A2540] dark:text-white">{title}</h3>
+          <button type="button" data-tutup-lembar aria-label="Tutup" class="shrink-0 rounded-full p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <p class="mt-4 text-center text-sm font-bold text-slate-700 dark:text-slate-200">Bagikan artikel ini melalui</p>
+        <div class="mt-4 grid grid-cols-4 gap-3 text-center">
+          <a href={shareLinks.fb} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#1877F2] text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8V11H8v3h2.5v7h3z" /></svg></span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Facebook</span>
+          </a>
+          <a href={shareLinks.x} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.7 3H21l-7.3 8.3L22.2 21h-6.7l-5.2-6.3L4.3 21H1l7.8-8.9L1.5 3h6.9l4.7 5.7L17.7 3zm-1.2 16h1.9L6.9 4.9H4.9L16.5 19z" /></svg></span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">X</span>
+          </a>
+          <a href={shareLinks.wa} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4 0-.5.2-.8l.4-.5c.1-.2.1-.4 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.5 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z" /></svg></span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">WhatsApp</span>
+          </a>
+          <a href={shareLinks.line} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#06C755] text-xs font-black text-white">LINE</span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Line</span>
+          </a>
+          <a href={shareLinks.tg} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#229ED9] text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.9.4l.3-4.6L18.1 8c.4-.3-.1-.5-.6-.2L7.2 14.1 2.7 12.7c-1-.3-1-1 .2-1.4l17.6-6.8c.8-.3 1.5.2 1.4 1.1z" /></svg></span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Telegram</span>
+          </a>
+          <button type="button" data-share-instagram data-url={url} class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full text-white" style="background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg></span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200" data-ig-label>Instagram</span>
+          </button>
+          <button type="button" data-copy-link={url} class="flex flex-col items-center gap-1.5">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg></span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200" data-copy-label>Copy Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* Lembar login (seperti Kompas: login dulu baru bisa suka/komen) */}
+    <div id="lembar-login" class="fixed inset-0 z-50 hidden items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label="Masuk untuk berinteraksi">
+      <div class="w-full max-w-md rounded-t-2xl bg-white p-6 text-center shadow-xl sm:rounded-2xl dark:bg-slate-900">
+        <div class="flex justify-end">
+          <button type="button" data-tutup-lembar aria-label="Tutup" class="rounded-full p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <p class="text-xl font-black text-[#0A2540] dark:text-white">ZonaPas</p>
+        <p id="teks-login" class="mt-3 text-lg font-bold text-slate-800 dark:text-slate-100">Login untuk menyukai konten ini</p>
+        <a href={loginHref} class="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">
+          <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" /><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" /><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" /><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" /></svg>
+          Lanjutkan dengan Google
+        </a>
+        <p class="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">Masuk dengan Gmail — tanpa undangan. Anda menjadi Pembaca dan bisa menyukai serta mengomentari artikel.</p>
+      </div>
+    </div>
+    </>
+  )
+}
+
+{
+  mode === 'komentar' && (
+    <section id="komentar" class="mt-10" aria-label="Komentar" data-interaksi-komentar data-slug={slug}>
+      <h2 class="border-b-2 border-[#0A2540] pb-2 text-xl font-black uppercase dark:border-white">
+        Komentar (<span data-jumlah-komentar>0</span>)
+      </h2>
+      <div data-kotak-tulis class="mt-4 hidden">
+        <label for="isi-komentar" class="text-sm font-bold">Berikan Opinimu</label>
+        <textarea
+          id="isi-komentar"
+          rows="3"
+          maxlength="1000"
+          placeholder="Tulis komentar"
+          class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-[15px] leading-relaxed dark:border-slate-600 dark:bg-slate-900"
+        ></textarea>
+        <div class="mt-2 flex items-center gap-3">
+          <button type="button" data-btn-kirim class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Kirim Komentar</button>
+          <span data-status-komentar class="hidden text-sm font-medium" role="status"></span>
+        </div>
+      </div>
+      <div data-login-komentar class="mt-4 hidden rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <p class="font-bold">Login dulu untuk berkomentar.</p>
+        <p class="mt-1 text-slate-600 dark:text-slate-300">Masuk dengan Gmail untuk menyukai dan mengomentari artikel ini.</p>
+        <a href={loginHref} class="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Lanjutkan dengan Google</a>
+      </div>
+      <div data-daftar-komentar class="mt-4 space-y-4"></div>
+      <p data-komentar-kosong class="mt-4 hidden text-sm text-slate-500 dark:text-slate-400">Belum ada komentar. Jadilah yang pertama berkomentar.</p>
+    </section>
+  )
+}
+
+<script is:inline>
+  // Komponen dipakai dua kali per halaman artikel (bar + seksi komentar),
+  // jadi skrip ini ikut tampil dua kali — inisialisasi hanya sekali.
+  if (!window.__zonapasInteraksiBound) {
+    window.__zonapasInteraksiBound = true;
+    const jalankan = () => {
+      const bar = document.querySelector('[data-interaksi-bar]');
+      const seksi = document.querySelector('[data-interaksi-komentar]');
+      if (!bar && !seksi) return;
+      const slug = (bar || seksi).getAttribute('data-slug') || '';
+      if (!slug) return;
+      let pengguna = null;
+      let disukai = false;
+
+      const $ = (s, r) => (r || document).querySelector(s);
+      const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+      function aturJumlah(nama, nilai) {
+        $$('[data-' + nama + ']').forEach((el) => { el.textContent = String(nilai); });
+      }
+      function bukaLembar(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      }
+      function tutupLembar(el) {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      }
+      ['lembar-bagikan', 'lembar-login'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', (e) => { if (e.target === el) tutupLembar(el); });
+        $$('[data-tutup-lembar]', el).forEach((b) => b.addEventListener('click', () => tutupLembar(el)));
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        ['lembar-bagikan', 'lembar-login'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) tutupLembar(el);
+        });
+      });
+
+      function tampilkanSuka() {
+        const btn = $('[data-btn-suka]');
+        if (!btn) return;
+        btn.setAttribute('aria-pressed', disukai ? 'true' : 'false');
+        const ikon = $('[data-ikon-suka]', btn);
+        if (ikon) ikon.setAttribute('fill', disukai ? 'currentColor' : 'none');
+        btn.classList.toggle('text-[#DC2626]', disukai);
+        btn.classList.toggle('border-[#DC2626]', disukai);
+        const label = $('[data-label-suka]', btn);
+        if (label) label.textContent = disukai ? 'Disukai' : 'Suka';
+      }
+      function tanggalIndo(ts) {
+        try {
+          return new Date(ts).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return ''; }
+      }
+      function tampilkanKomentar(daftar) {
+        const wadah = $('[data-daftar-komentar]');
+        const kosong = $('[data-komentar-kosong]');
+        if (!wadah) return;
+        wadah.innerHTML = '';
+        if (!daftar || !daftar.length) {
+          if (kosong) kosong.classList.remove('hidden');
+          return;
+        }
+        if (kosong) kosong.classList.add('hidden');
+        daftar.forEach((k) => {
+          const item = document.createElement('div');
+          item.className = 'flex items-start gap-3';
+          const avatar = document.createElement('span');
+          avatar.className = 'relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0A2540] text-sm font-black text-white';
+          avatar.textContent = (k.name || '?').charAt(0);
+          if (k.picture) {
+            const img = document.createElement('img');
+            img.src = k.picture;
+            img.alt = k.name || '';
+            img.loading = 'lazy';
+            img.className = 'absolute inset-0 h-full w-full object-cover';
+            img.onerror = function () { this.remove(); };
+            avatar.appendChild(img);
+          }
+          const isi = document.createElement('div');
+          isi.className = 'min-w-0 flex-1';
+          const kepala = document.createElement('p');
+          kepala.className = 'text-sm';
+          const nama = document.createElement('span');
+          nama.className = 'font-bold';
+          nama.textContent = k.name || 'Pembaca';
+          const waktu = document.createElement('span');
+          waktu.className = 'ml-2 text-xs text-slate-500 dark:text-slate-400';
+          waktu.textContent = tanggalIndo(k.created_at);
+          kepala.appendChild(nama);
+          kepala.appendChild(waktu);
+          const teks = document.createElement('p');
+          teks.className = 'mt-1 text-[15px] leading-relaxed text-slate-700 dark:text-slate-200';
+          teks.textContent = k.body || '';
+          isi.appendChild(kepala);
+          isi.appendChild(teks);
+          item.appendChild(avatar);
+          item.appendChild(isi);
+          wadah.appendChild(item);
+        });
+      }
+      async function muatInteraksi() {
+        try {
+          const r = await fetch('/redaksi/api/interaksi?slug=' + encodeURIComponent(slug));
+          const d = await r.json();
+          if (!d.ok) return;
+          disukai = !!d.liked;
+          aturJumlah('jumlah-suka', d.likes || 0);
+          aturJumlah('jumlah-komentar', (d.comments || []).length);
+          tampilkanSuka();
+          tampilkanKomentar(d.comments || []);
+        } catch (e) { /* Worker tidak terjangkau: biarkan angka 0 */ }
+      }
+      async function muatSaya() {
+        try {
+          const r = await fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+          const d = await r.json();
+          pengguna = d.ok ? d.user : null;
+        } catch (e) { pengguna = null; }
+        const kotak = $('[data-kotak-tulis]');
+        const login = $('[data-login-komentar]');
+        if (pengguna) {
+          if (kotak) kotak.classList.remove('hidden');
+          if (login) login.classList.add('hidden');
+        } else {
+          if (kotak) kotak.classList.add('hidden');
+          if (login) login.classList.remove('hidden');
+        }
+      }
+      async function kirimJson(path, badan) {
+        const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badan || {}) });
+        return r.json();
+      }
+      function bukaLogin(teks) {
+        const t = document.getElementById('teks-login');
+        if (t) t.textContent = teks;
+        bukaLembar('lembar-login');
+      }
+
+      const btnSuka = $('[data-btn-suka]');
+      if (btnSuka) btnSuka.addEventListener('click', async () => {
+        if (!pengguna) { bukaLogin('Login untuk menyukai konten ini'); return; }
+        btnSuka.disabled = true;
+        try {
+          const d = await kirimJson('/redaksi/api/suka', { slug });
+          if (d.ok) {
+            disukai = !!d.liked;
+            aturJumlah('jumlah-suka', d.likes || 0);
+            tampilkanSuka();
+          }
+        } catch (e) {}
+        btnSuka.disabled = false;
+      });
+      const btnKomentar = $('[data-btn-komentar]');
+      if (btnKomentar) btnKomentar.addEventListener('click', () => {
+        const target = document.getElementById('komentar');
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+        if (!pengguna) { bukaLogin('Login untuk mengomentari artikel ini'); return; }
+        const ta = document.getElementById('isi-komentar');
+        if (ta) ta.focus();
+      });
+      const btnBagikan = $('[data-btn-bagikan]');
+      if (btnBagikan) btnBagikan.addEventListener('click', () => bukaLembar('lembar-bagikan'));
+      const btnKirim = $('[data-btn-kirim]');
+      if (btnKirim) btnKirim.addEventListener('click', async () => {
+        if (!pengguna) { bukaLogin('Login untuk mengomentari artikel ini'); return; }
+        const ta = document.getElementById('isi-komentar');
+        const status = $('[data-status-komentar]');
+        if (!ta) return;
+        const isi = ta.value.trim();
+        if (!isi) {
+          if (status) { status.textContent = 'Komentar masih kosong.'; status.classList.remove('hidden'); status.style.color = '#B91C1C'; }
+          return;
+        }
+        btnKirim.disabled = true;
+        try {
+          const d = await kirimJson('/redaksi/api/komentar', { slug, body: isi });
+          if (d.ok) {
+            ta.value = '';
+            if (status) { status.textContent = 'Komentar terkirim dan menunggu persetujuan Redaksi.'; status.classList.remove('hidden'); status.style.color = '#047857'; }
+          } else if (status) {
+            status.textContent = d.error || 'Gagal mengirim komentar.';
+            status.classList.remove('hidden');
+            status.style.color = '#B91C1C';
+          }
+        } catch (e) {
+          if (status) { status.textContent = 'Gagal mengirim komentar. Coba lagi.'; status.classList.remove('hidden'); status.style.color = '#B91C1C'; }
+        }
+        btnKirim.disabled = false;
+      });
+
+      muatInteraksi();
+      muatSaya();
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', jalankan);
+    } else {
+      jalankan();
+    }
+  }
+</script>
