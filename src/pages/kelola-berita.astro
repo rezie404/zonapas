@@ -1667,6 +1667,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const gambarDaerah = (r) => {
           const d = document.createElement('div');
           d.className = 'crop-blur-daerah';
+          // Gaya ditulis sebaris, bukan lewat kelas CSS: Astro memberi
+          // atribut scoping pada aturan <style> halaman, dan elemen yang
+          // dibuat lewat createElement tidak mendapat atribut itu sehingga
+          // aturan kelasnya tidak pernah cocok.
+          d.style.position = 'absolute';
+          d.style.border = '2px dashed #fff';
+          d.style.borderRadius = '6px';
+          d.style.background = 'rgba(255,255,255,0.08)';
+          d.style.backdropFilter = 'blur(14px)';
+          d.style.webkitBackdropFilter = 'blur(14px)';
           d.style.left = (st.gambar.x + r.x * s) + 'px';
           d.style.top = (st.gambar.y + r.y * s) + 'px';
           d.style.width = (r.w * s) + 'px';
