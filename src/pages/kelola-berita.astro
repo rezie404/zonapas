@@ -1864,8 +1864,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       if (adminEmailHapus) {
         const email = adminEmailHapus.getAttribute('data-admin-email-hapus');
-        if (!confirm('Hapus email Administrator cadangan "' + email + '"?')) return;
-        try { await workerPost('/redaksi/api/admin-email/hapus', { email }); showStatus('Email Administrator cadangan dihapus.', true); await muatPengguna(); }
+        const sayaSendiri = !!(identitas && identitas.email && identitas.email.toLowerCase() === email.toLowerCase());
+        const pesan = 'Hapus email Administrator cadangan "' + email + '"?\n\n' +
+          'Menghapus email ini JUGA MENONAKTIFKAN akun admin yang terdaftar dengan email tersebut, sehingga akun itu tidak bisa masuk lagi ke Kelola Berita.' +
+          (sayaSendiri ? '\n\nPERINGATAN: ini adalah email akun Anda sendiri yang sedang login — Anda akan menonaktifkan akun Anda sendiri dan tidak bisa masuk lagi setelah ini.' : '') +
+          '\n\nTindakan ini tidak bisa dibatalkan.';
+        if (!confirm(pesan)) return;
+        try {
+          const hasil = await workerPost('/redaksi/api/admin-email/hapus', { email });
+          showStatus(hasil && hasil.pengguna_dinonaktifkan
+            ? 'Email Administrator cadangan dihapus. Akun admin dengan email itu ikut dinonaktifkan dan tidak bisa masuk lagi.'
+            : 'Email Administrator cadangan dihapus.', true);
+          await muatPengguna();
+        }
         catch (err) { showStatus('Gagal menghapus email: ' + err.message, false); }
         return;
       }
