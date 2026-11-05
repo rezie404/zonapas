@@ -1,5 +1,5 @@
 ---
-title: "Lanjutkan Estafet Pengabdian, Pisah Sambut Kakanwil Ditjenpas Bengkulu Perkiat Sinergi Pemasyarakatan"
+title: "Lanjutkan Estafet Pengabdian, Pisah Sambut Kakanwil Ditjenpas Bengkulu Perkuat Sinergi Pemasyarakatan"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menyelenggarakan kegiatan pisah sambut Kepala Kantor Wilayah sebagai bentuk penghormatan atas pengabdian pejabat lama sekaligus penyambutan pejabat baru, Sabtu (31/10)."
 category: "Sinergi"
 tags: ["pisah sambut", "kakanwil", "masjuno", "aris munandar"]
@@ -11,7 +11,6 @@ featured: true
 breaking: false
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
-jurnalpas_id: 108
 ---
 
 Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menyelenggarakan kegiatan pisah sambut Kepala Kantor Wilayah sebagai bentuk penghormatan atas pengabdian pejabat lama sekaligus penyambutan pejabat baru, Sabtu (31/10).
