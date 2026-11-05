@@ -720,7 +720,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('f-keterangan').value = art.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
         $('f-featured').checked = art.featured === true;
         $('f-breaking').checked = art.breaking === true;
-        $('f-isi').value = art.body || '';
+        $('f-isi').value = normalisasiIsi(art.body || '');
         $('f-foto').value = '';
         const prev = $('f-foto-preview');
         if (res.cover && res.cover.base64) { prev.src = 'data:' + (res.cover.mime || 'image/jpeg') + ';base64,' + res.cover.base64; prev.classList.remove('hidden'); }
@@ -763,7 +763,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         breaking: breakingChecked,
         breakingSince,
         upt: $('f-upt').value || '',
-        body,
+        body: normalisasiIsi(body),
       };
     }
 
@@ -1147,30 +1147,39 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return base || 'Foto kegiatan';
     }
 
-    function padAwal(s) {
-      if (!s) return '';
-      if (s.endsWith('\n\n')) return '';
-      if (s.endsWith('\n')) return '\n';
-      return '\n\n';
+    // Foto badan narasi SELALU di akhir narasi (1 baris kosong di antara
+    // narasi dan foto) dan posisinya tidak bisa diubah siapa pun — Penulis,
+    // Penyunting, maupun Administrator. Fungsi ini memindahkan semua baris
+    // gambar Markdown ke akhir isi.
+    function normalisasiIsi(teks) {
+      const baris = String(teks || '').replace(/\r\n?/g, '\n').split('\n');
+      const gambar = [];
+      const narasi = [];
+      for (const b of baris) {
+        if (/^\s*!\[.*\]\(.*\)\s*$/.test(b)) gambar.push(b.trim());
+        else narasi.push(b);
+      }
+      if (!gambar.length) return String(teks || '').replace(/\r\n?/g, '\n');
+      // Rapatkan baris kosong berlebih (mis. bekas baris gambar yang dicabut)
+      // supaya antarparagraf tetap 1 baris kosong.
+      const rapat = [];
+      for (const b of narasi) {
+        if (b.trim() === '' && rapat.length && rapat[rapat.length - 1].trim() === '') continue;
+        rapat.push(b);
+      }
+      while (rapat.length && rapat[rapat.length - 1].trim() === '') rapat.pop();
+      while (rapat.length && rapat[0].trim() === '') rapat.shift();
+      if (!rapat.length) return gambar.join('\n');
+      return rapat.join('\n') + '\n\n' + gambar.join('\n');
     }
 
-    function padAkhir(s) {
-      if (!s) return '';
-      if (s.startsWith('\n\n')) return '';
-      if (s.startsWith('\n')) return '\n';
-      return '\n\n';
-    }
-
-    function insertAtCursor(ta, text) {
-      const start = ta.selectionStart ?? ta.value.length;
-      const end = ta.selectionEnd ?? ta.value.length;
-      const before = ta.value.slice(0, start);
-      const after = ta.value.slice(end);
-      const chunk = padAwal(before) + text + padAkhir(after);
-      ta.value = before + chunk + after;
-      const pos = before.length + chunk.length;
+    // Sisipkan gambar badan narasi di AKHIR narasi (bukan di posisi kursor),
+    // dengan 1 baris kosong di antara narasi dan foto.
+    function sisipGambarAkhir(ta, text) {
+      const isi = normalisasiIsi(ta.value);
+      ta.value = isi.trim() === '' ? text : isi + '\n\n' + text;
       ta.focus();
-      try { ta.setSelectionRange(pos, pos); } catch (e) {}
+      try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
     }
 
     // ---------- Pratinjau live isi berita ----------
@@ -1332,7 +1341,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         upt: $('f-upt').value || '',
         image: pendingCover ? pendingCover.dataUrl : (editing && editing.image ? imageUrl(editing.image) : ''),
         imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
-        body: $('f-isi').value || '',
+        body: normalisasiIsi($('f-isi').value || ''),
         kecualiSlug: editing ? editing.slug : '',
       };
       $('pratinjau-terbit-isi').innerHTML = bangunPratinjauTerbit(d);
@@ -1420,15 +1429,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           previewImgMap['/images/' + filename] = dataUrl;
           const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
           const safeAlt = alt.replace(/[\[\])]/g, '');
-          insertAtCursor($('f-isi'), '![' + safeAlt + '](' + '/images/' + filename + ')');
+          sisipGambarAkhir($('f-isi'), '![' + safeAlt + '](' + '/images/' + filename + ')');
           isiStatus('Gambar ditahan untuk antrean — akan diunggah saat disimpan: /images/' + filename, false);
           $('f-isi-alt').value = '';
         } else {
           const path = await uploadBodyImage(terpotong);
           const alt = ($('f-isi-alt').value || '').trim() || cleanAlt(file.name);
           const safeAlt = alt.replace(/[\[\])]/g, '');
-          insertAtCursor($('f-isi'), '![' + safeAlt + '](' + path + ')');
-          isiStatus('Gambar disisipkan di narasi: ' + path, false);
+          sisipGambarAkhir($('f-isi'), '![' + safeAlt + '](' + path + ')');
+          isiStatus('Gambar ditambahkan setelah narasi: ' + path, false);
           $('f-isi-alt').value = '';
         }
       } catch (err) {
@@ -1991,7 +2000,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('f-keterangan').value = a.data.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
         $('f-featured').checked = a.data.featured === true;
         $('f-breaking').checked = a.data.breaking === true;
-        $('f-isi').value = a.body || '';
+        $('f-isi').value = normalisasiIsi(a.body || '');
         $('f-foto').value = '';
         pendingCover = null;
         const prev = $('f-foto-preview');
