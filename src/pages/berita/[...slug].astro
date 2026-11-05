@@ -17,7 +17,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const { title, summary, category, tags, author, publishDate, image, imageCaption, upt, source, sourceUrl } = entry.data;
+const { title, summary, category, tags, author, authorImage, publishDate, image, imageCaption, upt, source, sourceUrl } = entry.data;
 
 // Ringkasan TIDAK ditampilkan di dalam halaman berita (05 Nov 2026):
 // narasi artikel sudah memuat isinya, jadi paragraf ringkasan hanya
@@ -116,8 +116,9 @@ const jsonLd = [
       </div>
 
       <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-slate-200 py-3 text-sm dark:border-slate-800">
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540] text-sm font-black text-white">
+        <span class="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0A2540] text-sm font-black text-white">
           {authorInfo.name.charAt(0)}
+          {authorImage && <img src={authorImage} alt={authorInfo.name} class="absolute inset-0 h-full w-full object-cover" loading="lazy" onerror="this.remove()" />}
         </span>
         <span>
           <span class="block font-bold">{authorInfo.name}</span>
@@ -185,8 +186,9 @@ const jsonLd = [
       </div>
 
       <div class="mt-8 flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white">
+        <span class="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0A2540] text-lg font-black text-white">
           {authorInfo.name.charAt(0)}
+          {authorImage && <img src={authorImage} alt={authorInfo.name} class="absolute inset-0 h-full w-full object-cover" loading="lazy" onerror="this.remove()" />}
         </span>
         <div>
           <p class="font-bold">{authorInfo.name}</p>

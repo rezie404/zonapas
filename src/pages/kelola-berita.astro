@@ -357,7 +357,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // --- Peran (login terpadu) ---
     let peran = null; // 'admin' | 'penyunting' | 'penulis' | null
     let sumberLogin = null; // 'github' | 'google' | null
-    let identitas = null; // { nama, peran, email, login }
+    let identitas = null; // { nama, peran, email, login, picture }
     let antrean = [];
     let editingAntrean = null; // { id, coverAda, breakingSince }
     let pendingGambarIsi = []; // antrean: { filename, dataUrl } — ditahan, diunggah saat simpan
@@ -581,6 +581,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         peran: user.role || null,
         email: user.email || '',
         login: user.login || '',
+        picture: user.picture || '',
       };
     }
 
@@ -623,7 +624,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function terapkanPenulis() {
       const f = $('f-penulis'); if (!f) return;
       const hint = $('f-penulis-hint');
-      if (peran !== 'penulis' && peran !== 'penyunting') {
+      // Nama penulis dibedakan menurut CARA MASUK, bukan peran: semua yang
+      // masuk lewat Google (Penulis, Penyunting, MAUPUN Administrator)
+      // memakai nama lengkap Gmail dan tidak bisa mengubahnya; hanya
+      // Administrator yang masuk lewat GitHub yang bebas mengganti nama.
+      if (sumberLogin !== 'google') {
         f.readOnly = false;
         if (hint) hint.classList.add('hidden');
         return;
@@ -738,7 +743,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const res = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/detail', {});
         const art = (res && res.article) || {};
         resetForm();
-        editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '' };
+        editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '', author_picture: art.author_picture || '' };
         $('f-judul').value = normalisasiJudul(art.title || '');
         $('f-kategori').value = art.category || '';
         $('f-tag').value = (art.tags || []).join(', ');
@@ -821,6 +826,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         title, summary, category,
         tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
         author: $('f-penulis').value.trim() || 'Rezie',
+        // Foto penulis: dipertahankan dari artikel yang sedang diedit (jalur
+        // terbit langsung admin mengedit berita Penulis); bila artikel baru
+        // dan masuk lewat Google (peran apa pun) pakai foto profil Google
+        // pengguna saat ini; masuk lewat GitHub -> tanpa foto. Jalur antrean
+        // dihitung ulang server dari penulis aslinya, jadi nilai ini
+        // diabaikan di sana.
+        authorImage: (editing && editing.authorImage) || (sumberLogin === 'google' && identitas && identitas.picture ? identitas.picture : ''),
         publish_date: publishDate,
         publishDate,
         imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
@@ -1401,6 +1413,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         '<span class="mt-3 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + '</span></span></div>';
     }
 
+    // Ikon penulis pratinjau: foto profil Google bila ada, menutupi lingkaran
+    // huruf awal; bila foto gagal dimuat, gambar dihapus dan huruf awal yang
+    // tampil (sama seperti halaman artikel terbit).
+    function fotoPenulisHtml(nama, foto, besar) {
+      const cls = besar
+        ? 'flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white'
+        : 'flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540] text-sm font-black text-white';
+      const awal = esc((nama || '?').charAt(0));
+      if (!foto) return '<span class="' + cls + '">' + awal + '</span>';
+      return '<span class="relative ' + cls + ' overflow-hidden">' + awal + '<img src="' + esc(foto) + '" alt="' + esc(nama || '') + '" class="absolute inset-0 h-full w-full object-cover" loading="lazy" onerror="this.remove()" /></span>';
+    }
+
     function bangunPratinjauTerbit(d) {
       const catColor = CATEGORY_COLORS[d.category] || '#0A2540';
       const authorInfo = AUTHORS_MAP[d.author] || { role: 'Kontributor', bio: '' };
@@ -1421,7 +1445,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (d.upt) h += '<span class="rounded-full border border-[#0A2540] px-3 py-1 text-xs font-bold text-[#0A2540] dark:border-slate-400 dark:text-slate-200">' + esc(d.upt) + '</span>';
       h += '<span class="rounded-full bg-[#0A2540] px-3 py-1 text-xs font-bold text-white">Artikel ZonaPas</span></div>';
       h += '<div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-slate-200 py-3 text-sm dark:border-slate-800">';
-      h += '<span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A2540] text-sm font-black text-white">' + esc((d.author || '?').charAt(0)) + '</span>';
+      h += fotoPenulisHtml(d.author, d.authorImage, false);
       h += '<span><span class="block font-bold">' + esc(d.author || 'Rezie') + '</span><span class="block text-xs text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</span></span>';
       h += '<span class="text-slate-300 dark:text-slate-600">|</span>';
       h += '<span class="text-slate-600 dark:text-slate-300">' + esc(formatDateLong(d.publishDate)) + '</span>';
@@ -1440,7 +1464,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       h += '</div><div class="mt-4">' + shareButtonsVisual() + '</div></div>';
       h += '<div class="mt-8 flex items-start gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">';
-      h += '<span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-lg font-black text-white">' + esc((d.author || '?').charAt(0)) + '</span>';
+      h += fotoPenulisHtml(d.author, d.authorImage, true);
       h += '<div><p class="font-bold">' + esc(d.author || 'Rezie') + '</p><p class="text-sm text-slate-500 dark:text-slate-400">' + esc(authorInfo.role || '') + '</p>';
       if (authorInfo.bio) h += '<p class="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">' + esc(authorInfo.bio) + '</p>';
       h += '</div></div></div>';
@@ -1459,6 +1483,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         category: $('f-kategori').value,
         tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
         author: $('f-penulis').value.trim() || 'Rezie',
+        // Foto pratinjau: foto tersimpan artikel yang sedang diedit, atau
+        // foto profil Google pengguna saat ini bila masuk lewat Google
+        // (peran apa pun); masuk lewat GitHub -> tanpa foto.
+        authorImage: (editingAntrean && editingAntrean.author_picture) || (editing && editing.authorImage) || (sumberLogin === 'google' && identitas && identitas.picture ? identitas.picture : ''),
         publishDate: $('f-tanggal').value,
         upt: $('f-upt').value || '',
         image: pendingCover ? pendingCover.dataUrl : (editing && editing.image ? imageUrl(editing.image) : ''),
@@ -2012,6 +2040,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // aktif; dipakai aturan kedaluwarsa 2 hari (lihat index.astro).
       if (d.breaking && d.breakingSince) lines.push('breakingSince: ' + q(d.breakingSince));
       if (d.upt) lines.push('upt: ' + q(d.upt));
+      // Foto profil penulis (Google) — hanya untuk Penulis/Penyunting;
+      // artikel Administrator tidak membawa field ini.
+      if (d.authorImage) lines.push('authorImage: ' + q(d.authorImage));
       lines.push('source: "zonapas"', '---', '', d.body.trim() + '', '');
       return lines.join('\n');
     }
@@ -2281,7 +2312,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (peran !== 'admin') return;
         const a = articles.find((x) => x.slug === editBtn.getAttribute('data-edit'));
         if (!a) return;
-        editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '' };
+        editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '', authorImage: a.data.authorImage || '' };
         $('f-judul').value = normalisasiJudul(a.data.title || '');
         $('f-kategori').value = a.data.category || '';
         $('f-tag').value = (a.data.tags || []).join(', ');
