@@ -7,6 +7,13 @@ export interface Upt {
 
 export const UPTS: Upt[] = [
   {
+    name: 'Semua UPT Pemasyarakatan Bengkulu',
+    slug: 'semua-upt-pemasyarakatan-bengkulu',
+    type: 'Semua UPT',
+    description:
+      'Berita dan kegiatan yang melibatkan seluruh Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu.',
+  },
+  {
     name: 'Kanwil Ditjenpas Bengkulu',
     slug: 'kanwil-ditjenpas-bengkulu',
     type: 'Kantor Wilayah',

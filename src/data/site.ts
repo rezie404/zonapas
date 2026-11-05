@@ -13,7 +13,8 @@ export const CATEGORIES: Category[] = [
   { name: 'Kepegawaian', slug: 'kepegawaian', color: '#B45309', description: 'Kepegawaian: pembinaan pegawai, disiplin, dan pengembangan SDM pemasyarakatan.' },
   { name: 'Sinergi', slug: 'sinergi', color: '#0369A1', description: 'Sinergi dan kerja sama Kanwil Ditjenpas Bengkulu dengan pemerintah daerah dan instansi lain.' },
   { name: 'Kegiatan UPT', slug: 'kegiatan-upt', color: '#15803D', description: 'Kegiatan dan liputan dari UPT Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu.' },
-  { name: 'Profil UPT', slug: 'profil-upt', color: '#475569', description: 'Profil Unit Pelaksana Teknis Pemasyarakatan di Provinsi Bengkulu.' },
+  { name: 'Pengembangan Kompetensi', slug: 'pengembangan-kompetensi', color: '#0F766E', description: 'Pengembangan kompetensi pegawai dan warga binaan: pelatihan, bimbingan teknis, dan peningkatan kapasitas.' },
+  { name: 'Edukasi', slug: 'edukasi', color: '#BE185D', description: 'Edukasi dan penyuluhan pemasyarakatan bagi masyarakat, pegawai, dan warga binaan.' },
 ];
 
 export function categoryByName(name: string): Category | undefined {
