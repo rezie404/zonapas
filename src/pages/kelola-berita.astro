@@ -164,10 +164,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <input id="f-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua.</p>
             </div>
-            <div class="md:col-span-2">
-              <label for="f-ringkasan" class="mb-1 block text-sm font-bold">Ringkasan *</label>
-              <textarea id="f-ringkasan" required rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
-            </div>
             <div>
               <label for="f-kategori" class="mb-1 block text-sm font-bold">Kategori *</label>
               <select id="f-kategori" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
@@ -744,7 +740,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         resetForm();
         editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '' };
         $('f-judul').value = normalisasiJudul(art.title || '');
-        $('f-ringkasan').value = art.summary || '';
         $('f-kategori').value = art.category || '';
         $('f-tag').value = (art.tags || []).join(', ');
         $('f-penulis').value = art.author || 'Rezie';
@@ -774,10 +769,34 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
     }
 
+    // Ringkasan tidak lagi diisi manual di formulir: diambil otomatis dari
+    // awal narasi (teks polos, maks. 160 karakter, dipotong di batas kata).
+    // Field ringkasan tetap ditulis ke berkas artikel karena dipakai meta
+    // description, JSON-LD, dan RSS — dan skema Astro + validasi Worker
+    // mewajibkannya terisi.
+    function teksPolosNarasi(teks) {
+      return (teks || '')
+        .split('\n')
+        .filter((b) => !/^\s*!\[.*?\]\(.*?\)\s*$/.test(b))
+        .join('\n')
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/[*_`#>|]/g, '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    function ringkasanOtomatis(narasi) {
+      const teks = teksPolosNarasi(narasi);
+      if (teks.length <= 160) return teks;
+      const potong = teks.slice(0, 160);
+      const spasi = potong.lastIndexOf(' ');
+      return (spasi > 100 ? potong.slice(0, spasi) : potong) + '…';
+    }
+
     // Kumpulkan + validasi field formulir (dipakai jalur langsung & antrean).
     function kumpulkanDataForm() {
       const title = normalisasiJudul($('f-judul').value);
-      const summary = $('f-ringkasan').value.trim();
       const category = $('f-kategori').value;
       // Kotak narasi hanya berisi narasi: bila ada baris gambar yang ditempel
       // di sana, pindahkan ke foto terpisah (bila belum ada) — total tetap
@@ -791,7 +810,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (hitungFotoBadan(body) > 1) throw new Error('Foto badan narasi hanya boleh 1 foto. Hapus foto yang lain bila ingin menggantinya.');
       $('f-isi').value = isi.narasi;
       const publishDate = $('f-tanggal').value;
-      if (!title || !summary || !category || !body || !publishDate) throw new Error('Judul, ringkasan, kategori, tanggal terbit, dan isi berita wajib diisi.');
+      if (!title || !category || !isi.narasi.trim() || !publishDate) throw new Error('Judul, kategori, tanggal terbit, dan isi berita wajib diisi.');
+      const summary = ringkasanOtomatis(isi.narasi);
       const breakingChecked = $('f-breaking').checked;
       let breakingSince = '';
       if (breakingChecked) {
@@ -1435,7 +1455,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const isiPratinjau = pisahkanFotoIsi($('f-isi').value || '');
       const d = {
         title: normalisasiJudul($('f-judul').value),
-        summary: $('f-ringkasan').value.trim(),
+        summary: ringkasanOtomatis(isiPratinjau.narasi),
         category: $('f-kategori').value,
         tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
         author: $('f-penulis').value.trim() || 'Rezie',
@@ -2263,7 +2283,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (!a) return;
         editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '' };
         $('f-judul').value = normalisasiJudul(a.data.title || '');
-        $('f-ringkasan').value = a.data.summary || '';
         $('f-kategori').value = a.data.category || '';
         $('f-tag').value = (a.data.tags || []).join(', ');
         $('f-penulis').value = a.data.author || 'Rezie';
