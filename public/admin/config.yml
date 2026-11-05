@@ -49,6 +49,7 @@ collections:
           - Kegiatan UPT
           - Pengembangan Kompetensi
           - Edukasi
+          - Pembimbingan
       - { name: tags, label: Tag, widget: list, required: false }
       - { name: author, label: Penulis, widget: string, default: "Rezie" }
       - { name: publishDate, label: Tanggal Terbit, widget: datetime, date_format: YYYY-MM-DD, time_format: false, default: "" }
