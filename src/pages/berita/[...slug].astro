@@ -19,15 +19,10 @@ const { entry } = Astro.props;
 const { Content } = await render(entry);
 const { title, summary, category, tags, author, publishDate, image, imageCaption, upt, source, sourceUrl } = entry.data;
 
-// Ringkasan hasil impor (khususnya dari JurnalPAS) adalah potongan awal isi
-// berita — menampilkannya lagi sebagai paragraf pembuka membuat narasi
-// tampil dua kali (dan terpotong di tengah kalimat). Sembunyikan paragraf
-// pembuka bila ringkasan menduplikasi awal isi; ringkasan tetap dipakai
-// sebagai excerpt di kartu, meta, RSS, dan indeks pencarian.
-const bodyPlain = entry.body.replace(/\s+/g, ' ').trim();
-const summaryPlain = summary.replace(/\s+/g, ' ').trim();
-const leadDuplicatesBody =
-  summaryPlain.length > 0 && bodyPlain.startsWith(summaryPlain.slice(0, 100));
+// Ringkasan TIDAK ditampilkan di dalam halaman berita (05 Nov 2026):
+// narasi artikel sudah memuat isinya, jadi paragraf ringkasan hanya
+// menduplikasi. Ringkasan tetap dipakai sebagai excerpt di kartu, meta,
+// RSS, dan indeks pencarian.
 const slug = entry.id.replace(/\.md$/, '');
 const url = `${SITE.url}/berita/${slug}/`;
 const cat = categoryByName(category);
@@ -99,9 +94,6 @@ const jsonLd = [
       </nav>
 
       <h1 class="mt-4 text-3xl font-black leading-tight sm:text-4xl">{title}</h1>
-      {!leadDuplicatesBody && (
-        <p class="mt-3 text-lg leading-relaxed text-slate-600 dark:text-slate-300">{summary}</p>
-      )}
 
       <div class="mt-4 flex flex-wrap items-center gap-2">
         {cat && (
