@@ -38,7 +38,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
       <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
       <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
-        Masuk dengan akun GitHub yang memiliki akses, atau dengan akun Google Redaksi Anda.
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Redaksi Anda.
         Akses dan tombol yang tampil mengikuti peran akun Anda.
       </p>
       <button
@@ -71,7 +71,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     <!-- Akses ditolak (akun tanpa binding peran) -->
     <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
       <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
-      <p class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
       <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
     </section>
 
@@ -144,18 +144,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <p id="invite-hasil" class="mt-2 hidden break-all rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></p>
         <h3 class="mt-6 text-base font-black">Undangan yang Masih Berlaku</h3>
         <div id="undangan-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
-        <h3 class="mt-6 text-base font-black">Akses GitHub</h3>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Akun GitHub yang boleh masuk lewat GitHub beserta perannya.</p>
+        <h3 class="mt-6 text-base font-black">Email Administrator Cadangan</h3>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Alamat Gmail cadangan milik Administrator — otomatis menjadi Administrator saat pertama login dengan Gmail itu. Tambahkan tanpa mengubah kode.</p>
         <div class="mt-2 flex flex-wrap gap-2">
-          <input id="u-gh-login" type="text" placeholder="login GitHub" class="min-w-[180px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-          <select id="u-gh-peran" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
-            <option value="penyunting">Penyunting</option>
-            <option value="penulis">Penulis</option>
-            <option value="admin">Administrator</option>
-          </select>
-          <button id="btn-gh-tambah" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah Akses</button>
+          <input id="u-admin-email" type="email" placeholder="alamat@gmail.com" class="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <button id="btn-admin-email-tambah" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah</button>
         </div>
-        <div id="gh-binding-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+        <div id="admin-email-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
       </section>
 
       <!-- Formulir tulis/ubah berita -->
@@ -561,14 +556,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     function bisaTerbitLangsung() {
-      return peran === 'admin' || (peran === 'penyunting' && sumberLogin === 'github');
+      // Login GitHub SELALU admin (rezie404) — tidak ada peran lain via GitHub.
+      return peran === 'admin';
     }
 
-    // Jalur antrean aktif: edit antrean, penulis, atau penyunting Google.
+    // Jalur antrean aktif: edit antrean, penulis, atau penyunting
+    // (penyunting hanya lewat Google).
     function jalurAntreanAktif() {
       if (editingAntrean) return true;
       if (peran === 'penulis') return true;
-      if (peran === 'penyunting' && sumberLogin === 'google') return true;
+      if (peran === 'penyunting') return true;
       return false;
     }
 
@@ -577,8 +574,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const btnAntrean = $('btn-antrean');
       if (btnSave) btnSave.classList.toggle('hidden', !bisaTerbitLangsung());
       if (btnAntrean) {
-        // admin: hanya "Simpan Berita"; penyunting GitHub: keduanya;
-        // penyunting Google + penulis: hanya antrean.
+        // admin: hanya "Simpan Berita"; penyunting + penulis: hanya antrean.
         const tampilAntrean = peran === 'penulis' || peran === 'penyunting';
         btnAntrean.classList.toggle('hidden', !tampilAntrean);
         btnAntrean.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
@@ -590,12 +586,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       renderLists();
     }
 
-    function tampilkanAksesDitolak() {
+    // pesan: error dari Worker (mis. 403 GitHub non-admin) — bila ada,
+    // tampilkan apa adanya; bila tidak ada (mis. jalur Google tanpa pesan
+    // Worker), biarkan teks baku di panel.
+    function tampilkanAksesDitolak(pesan) {
       peran = null; sumberLogin = null; identitas = null;
       loginBox.classList.add('hidden');
       appEl.classList.add('hidden');
       const panel = $('akses-ditolak');
       if (panel) panel.classList.remove('hidden');
+      const teks = $('akses-ditolak-pesan');
+      if (teks && pesan && String(pesan).indexOf('Worker mengembalikan status') !== 0) {
+        teks.textContent = pesan;
+      }
     }
 
     // ---------- Antrean ----------
@@ -782,7 +785,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function renderPengguna(data) {
       const users = data.users || [];
       const invs = data.invitations || [];
-      const binds = data.github_bindings || [];
+      const adminEmails = data.admin_emails || [];
       const ul = $('pengguna-list');
       if (ul) {
         if (!users.length) { ul.innerHTML = '<p class="text-sm text-slate-500">Belum ada pengguna.</p>'; }
@@ -816,15 +819,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             '<button type="button" data-undangan-cabut="' + esc(id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Cabut</button></div>';
         }).join('');
       }
-      const gl = $('gh-binding-list');
-      if (gl) {
-        gl.innerHTML = !binds.length ? '<p class="text-sm text-slate-500">Belum ada binding GitHub.</p>' : binds.map((b) => {
-          const login = b.github_login || b.login || '';
+      // Email Administrator Cadangan: baris tetap admin utama + daftar
+      // cadangan dari Worker (admin_emails), tiap baris bisa dihapus.
+      const al = $('admin-email-list');
+      if (al) {
+        const utama = '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+          '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">rezienovian@gmail.com</span>' +
+          '<span class="block text-xs text-slate-500">Administrator utama</span></span></div>';
+        const cadangan = adminEmails.filter((e) => String(e).toLowerCase() !== 'rezienovian@gmail.com').map((email) => {
           return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
-            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(login) + '</span>' +
-            '<span class="block text-xs text-slate-500">' + esc(labelPeran(b.role)) + '</span></span>' +
-            '<button type="button" data-gh-hapus="' + esc(login) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>';
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(email) + '</span>' +
+            '<span class="block text-xs text-slate-500">Administrator cadangan</span></span>' +
+            '<button type="button" data-admin-email-hapus="' + esc(email) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>';
         }).join('');
+        al.innerHTML = utama + (cadangan || '<p class="text-sm text-slate-500">Belum ada email cadangan.</p>');
       }
     }
 
@@ -950,9 +958,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           try { sessionStorage.setItem('zonapas-kelola-token', token); } catch (e) {}
           if (popupTimer) { clearInterval(popupTimer); popupTimer = null; }
           if (popup && !popup.closed) popup.close();
+          // Selesaikan peran lewat Worker SEBELUM menampilkan aplikasi,
+          // supaya tombol/seksi sesuai peran langsung tampil (tanpa ini
+          // peran null dan halaman tampak kosong sampai dimuat ulang).
+          const me = await workerPost('/redaksi/api/me', {});
+          if (!me || !me.ok || !me.user || !me.user.role) throw Object.assign(new Error('Peran tidak ditemukan.'), { status: 401 });
+          terapkanIdentitas(me.user, 'github');
           const user = await ghApi('https://api.github.com/user');
           setLoggedIn(user);
+          await muatAntrean();
+          await muatPengguna();
         } catch (err) {
+          if (err && err.status === 403) { tampilkanAksesDitolak(err.message); return; }
           showStatus('Login gagal: ' + err.message, false);
         }
       }
@@ -1824,7 +1841,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     document.addEventListener('click', async (e) => {
       const cabut = e.target.closest('[data-undangan-cabut]');
       const salin = e.target.closest('[data-undangan-salin]');
-      const ghHapus = e.target.closest('[data-gh-hapus]');
+      const adminEmailHapus = e.target.closest('[data-admin-email-hapus]');
       const statusBtn = e.target.closest('[data-status-user]');
       if (salin) {
         const link = salin.getAttribute('data-undangan-salin');
@@ -1839,11 +1856,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         catch (err) { showStatus('Gagal mencabut undangan: ' + err.message, false); }
         return;
       }
-      if (ghHapus) {
-        const login = ghHapus.getAttribute('data-gh-hapus');
-        if (!confirm('Hapus akses GitHub untuk "' + login + '"?')) return;
-        try { await workerPost('/redaksi/api/github/' + encodeURIComponent(login) + '/hapus', {}); showStatus('Binding GitHub dihapus.', true); await muatPengguna(); }
-        catch (err) { showStatus('Gagal menghapus binding: ' + err.message, false); }
+      if (adminEmailHapus) {
+        const email = adminEmailHapus.getAttribute('data-admin-email-hapus');
+        if (!confirm('Hapus email Administrator cadangan "' + email + '"?')) return;
+        try { await workerPost('/redaksi/api/admin-email/hapus', { email }); showStatus('Email Administrator cadangan dihapus.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal menghapus email: ' + err.message, false); }
         return;
       }
       if (statusBtn) {
@@ -1879,15 +1896,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       } catch (err) { showStatus('Gagal membuat undangan: ' + err.message, false); }
     });
 
-    on('btn-gh-tambah', 'click', async () => {
-      const login = ($('u-gh-login').value || '').trim();
-      const role = $('u-gh-peran').value;
-      if (!login) { showStatus('Isi login GitHub yang diberi akses.', false); return; }
+    on('btn-admin-email-tambah', 'click', async () => {
+      const email = ($('u-admin-email').value || '').trim();
+      if (!email) { showStatus('Isi alamat Gmail cadangan.', false); return; }
       try {
-        await workerPost('/redaksi/api/github', { github_login: login, role });
-        showStatus('Akses GitHub ditambahkan.', true);
+        await workerPost('/redaksi/api/admin-email', { email });
+        showStatus('Email Administrator cadangan ditambahkan.', true);
+        $('u-admin-email').value = '';
         await muatPengguna();
-      } catch (err) { showStatus('Gagal menambah akses GitHub: ' + err.message, false); }
+      } catch (err) { showStatus('Gagal menambah email: ' + err.message, false); }
     });
 
     // ---------- Ubah & Hapus (event delegation) ----------
@@ -1962,7 +1979,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           await muatAntrean();
           await muatPengguna();
         } catch (err) {
-          if (err && err.status === 403) { tampilkanAksesDitolak(); return; }
+          if (err && err.status === 403) { tampilkanAksesDitolak(err.message); return; }
           if (err && err.status === 401) { setLoggedOut('Sesi GitHub sudah berakhir. Silakan masuk lagi.'); return; }
           // Worker tidak bisa dihubungi / peran tidak bisa dipastikan:
           // JANGAN beri akses dari klien tanpa sandaran server. Tampilkan
@@ -1985,7 +2002,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           await muatPengguna();
         }
       } catch (err) {
-        if (err && err.status === 403) tampilkanAksesDitolak();
+        if (err && err.status === 403) tampilkanAksesDitolak(err.message);
         // 401 / lainnya: belum login — biarkan panel login tampil.
       }
     })();
