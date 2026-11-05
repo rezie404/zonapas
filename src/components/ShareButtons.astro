@@ -64,8 +64,9 @@ const tg = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
     const link = btn.getAttribute('data-url') || location.href;
     const label = btn.querySelector('[data-ig-label]');
     // Instagram tidak punya tautan berbagi seperti WA/FB/X, dan Bos Besar minta
-    // tautan saja tanpa gambar: salin tautan artikel lalu buka Instagram,
-    // tempel tautan di sana (Story/postingan/bio).
+    // tautan saja tanpa gambar: salin tautan artikel, lalu buka kamera Story
+    // Instagram langsung (tautan ditempel sebagai stiker tautan di Story).
+    // Bila aplikasi tidak terbuka, buka Instagram web sebagai cadangan.
     try {
       await navigator.clipboard.writeText(link);
     } catch (err) {
@@ -75,7 +76,14 @@ const tg = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
       document.body.removeChild(ta);
     }
     if (label) { label.textContent = 'Tautan disalin!'; setTimeout(() => { label.textContent = 'Instagram'; }, 3000); }
-    window.open('https://www.instagram.com/', '_blank', 'noopener');
+    const ifr = document.createElement('iframe');
+    ifr.style.display = 'none';
+    ifr.src = 'instagram://story-camera';
+    document.body.appendChild(ifr);
+    setTimeout(() => {
+      if (ifr.parentNode) ifr.parentNode.removeChild(ifr);
+      if (!document.hidden) window.open('https://www.instagram.com/', '_blank', 'noopener');
+    }, 2000);
   });
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-copy-link]');
