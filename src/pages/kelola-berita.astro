@@ -180,6 +180,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <div>
               <label for="f-penulis" class="mb-1 block text-sm font-bold">Penulis</label>
               <input id="f-penulis" value="Rezie" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p id="f-penulis-hint" class="mt-1 hidden text-xs text-slate-500">Nama penulis mengikuti nama lengkap di profil Gmail Anda dan tidak bisa diubah.</p>
             </div>
             <div>
               <label for="f-tanggal" class="mb-1 block text-sm font-bold">Tanggal Terbit *</label>
@@ -583,6 +584,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const penggunaSection = $('pengguna-section');
       if (penggunaSection) penggunaSection.classList.toggle('hidden', peran !== 'admin');
       renderLists();
+      terapkanPenulis();
+    }
+
+    // Nama penulis: Penulis/Penyunting memakai nama lengkap dari profil Gmail
+    // (tidak bisa diubah); Administrator bebas, default "Rezie". Bila
+    // Penyunting sedang mengedit berita milik Penulis lain, nama penulis tetap
+    // milik penulis aslinya.
+    function terapkanPenulis() {
+      const f = $('f-penulis'); if (!f) return;
+      const hint = $('f-penulis-hint');
+      if (peran !== 'penulis' && peran !== 'penyunting') {
+        f.readOnly = false;
+        if (hint) hint.classList.add('hidden');
+        return;
+      }
+      const namaSaya = (identitas && identitas.nama) || '';
+      const nilai = (f.value || '').trim();
+      const sedangEdit = !!(editing || editingAntrean);
+      if (sedangEdit && nilai && nilai !== namaSaya) {
+        // sedang mengedit berita orang lain: biarkan nama penulis aslinya
+      } else if (namaSaya) {
+        f.value = namaSaya;
+      }
+      f.readOnly = true;
+      if (hint) hint.classList.remove('hidden');
     }
 
     // pesan: error dari Worker (mis. 403 GitHub non-admin) — bila ada,
@@ -707,6 +733,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('btn-save').textContent = 'Simpan Perubahan';
         $('form-section').classList.remove('hidden');
         $('form-section').scrollIntoView({ behavior: 'smooth' });
+        terapkanPenulis();
       } catch (err) {
         showStatus('Gagal memuat berita antrean: ' + err.message, false);
       }
@@ -1059,6 +1086,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('btn-save').textContent = 'Simpan Berita';
       const ba = $('btn-antrean');
       if (ba) ba.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
+      terapkanPenulis();
     }
 
     on('btn-new', 'click', () => {
