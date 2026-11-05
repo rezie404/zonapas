@@ -283,7 +283,12 @@ const shareLinks = {
       }
       async function muatSaya() {
         try {
-          const r = await fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+          // Administrator yang masuk lewat GitHub (token di sessionStorage)
+          // juga dikenali di halaman artikel, bukan hanya sesi cookie Google.
+          let tokenGithub = null;
+          try { tokenGithub = sessionStorage.getItem('zonapas-kelola-token'); } catch (e) {}
+          const badan = tokenGithub ? { github_token: tokenGithub } : {};
+          const r = await fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badan) });
           const d = await r.json();
           pengguna = d.ok ? d.user : null;
         } catch (e) { pengguna = null; }

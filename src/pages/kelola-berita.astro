@@ -2308,7 +2308,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       if (hapus) {
         const id = hapus.getAttribute('data-moderasi-hapus');
-        if (!confirm('Hapus komentar ini dari artikel?')) return;
+        // Konfirmasi dua ketuk (bukan confirm() bawaan browser): dialog
+        // bawaan tidak bisa dijawab otomasi dan sempat membuat tombol ini
+        // tampak mati saat verifikasi klik. Ketuk pertama mempersenjatai,
+        // ketuk kedua menghapus.
+        if (hapus.getAttribute('data-hapus-arm') !== '1') {
+          hapus.setAttribute('data-hapus-arm', '1');
+          hapus.textContent = 'Ketuk lagi untuk hapus';
+          hapus.classList.add('bg-[#D9232E]', 'text-white');
+          return;
+        }
         try {
           await workerPost('/redaksi/api/komentar/' + encodeURIComponent(id) + '/hapus', {});
           showStatus('Komentar dihapus.', true);
