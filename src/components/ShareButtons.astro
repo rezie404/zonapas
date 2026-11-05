@@ -2,10 +2,9 @@
 interface Props {
   url: string;
   title: string;
-  image?: string;
 }
 
-const { url, title, image } = Astro.props;
+const { url, title } = Astro.props;
 const encodedUrl = encodeURIComponent(url);
 const encodedTitle = encodeURIComponent(title);
 const wa = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
@@ -36,8 +35,6 @@ const tg = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
     type="button"
     data-share-instagram
     data-url={url}
-    data-title={title}
-    data-image={image ?? ''}
     class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
     style="background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)"
     aria-label="Bagikan ke Instagram"
@@ -65,26 +62,10 @@ const tg = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
     const btn = e.target.closest('[data-share-instagram]');
     if (!btn) return;
     const link = btn.getAttribute('data-url') || location.href;
-    const title = btn.getAttribute('data-title') || document.title;
-    const imgSrc = btn.getAttribute('data-image') || '';
     const label = btn.querySelector('[data-ig-label]');
-    // Instagram tidak punya tautan berbagi seperti WA/FB/X: di HP, kirim foto
-    // sampul lewat lembar berbagi bawaan (pilih Instagram di sana). Bila tidak
-    // didukung, salin tautan lalu buka Instagram.
-    if (imgSrc && navigator.share && typeof navigator.canShare === 'function') {
-      try {
-        const imgUrl = imgSrc.startsWith('http') ? imgSrc : new URL(imgSrc, location.origin).href;
-        const res = await fetch(imgUrl);
-        const blob = await res.blob();
-        const file = new File([blob], 'zonapas.jpg', { type: blob.type || 'image/jpeg' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: title, text: title + ' ' + link });
-          return;
-        }
-      } catch (err) {
-        if (err && err.name === 'AbortError') return; // pengguna menutup lembar berbagi
-      }
-    }
+    // Instagram tidak punya tautan berbagi seperti WA/FB/X, dan Bos Besar minta
+    // tautan saja tanpa gambar: salin tautan artikel lalu buka Instagram,
+    // tempel tautan di sana (Story/postingan/bio).
     try {
       await navigator.clipboard.writeText(link);
     } catch (err) {
