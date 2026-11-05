@@ -57,6 +57,10 @@ const tg = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
 </div>
 
 <script is:inline>
+  // Komponen ini dipakai dua kali per halaman artikel (atas + bawah), jadi
+  // skrip ini ikut tampil dua kali — ikat listener hanya sekali.
+  if (!window.__zonapasShareBound) {
+    window.__zonapasShareBound = true;
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-share-instagram]');
     if (!btn) return;
@@ -109,4 +113,5 @@ const tg = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
       if (label) { label.textContent = 'Tersalin!'; setTimeout(() => { label.textContent = 'Salin Link'; }, 2000); }
     }
   });
+  }
 </script>
