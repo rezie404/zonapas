@@ -162,6 +162,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <div class="md:col-span-2">
               <label for="f-judul" class="mb-1 block text-sm font-bold">Judul *</label>
               <input id="f-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua.</p>
             </div>
             <div class="md:col-span-2">
               <label for="f-ringkasan" class="mb-1 block text-sm font-bold">Ringkasan *</label>
@@ -710,7 +711,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const art = (res && res.article) || {};
         resetForm();
         editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '' };
-        $('f-judul').value = art.title || '';
+        $('f-judul').value = normalisasiJudul(art.title || '');
         $('f-ringkasan').value = art.summary || '';
         $('f-kategori').value = art.category || '';
         $('f-tag').value = (art.tags || []).join(', ');
@@ -741,7 +742,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     // Kumpulkan + validasi field formulir (dipakai jalur langsung & antrean).
     function kumpulkanDataForm() {
-      const title = $('f-judul').value.trim();
+      const title = normalisasiJudul($('f-judul').value);
       const summary = $('f-ringkasan').value.trim();
       const category = $('f-kategori').value;
       const body = normalisasiIsi($('f-isi').value.trim());
@@ -1180,6 +1181,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return (String(teks || '').match(/^\s*!\[.*\]\(.*\)\s*$/gm) || []).length;
     }
 
+    // Judul artikel: setiap kata diawali huruf kapital lalu huruf kecil.
+    // Singkatan resmi tetap kapital semua (UPT, TPP, IIA, ...). Logika SAMA
+    // dengan normalisasiJudul di worker.js (server menegakkannya saat simpan).
+    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI'];
+    function normalisasiJudul(judul) {
+      return String(judul || '').trim().replace(/\s+/g, ' ').split(' ').map((kata) => {
+        const huruf = kata.replace(/[^A-Za-z]/g, '');
+        if (!huruf) return kata;
+        if (AKRONIM_JUDUL.includes(huruf.toUpperCase())) return kata.replace(huruf, huruf.toUpperCase());
+        const m = kata.match(/^([^A-Za-z]*)([A-Za-z])([\s\S]*)$/);
+        if (!m) return kata;
+        return m[1] + m[2].toUpperCase() + m[3].toLowerCase();
+      }).join(' ');
+    }
+
     // Sisipkan gambar badan narasi di AKHIR narasi (bukan di posisi kursor),
     // dengan 1 baris kosong di antara narasi dan foto.
     function sisipGambarAkhir(ta, text) {
@@ -1339,7 +1355,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     function bukaPratinjauTerbit() {
       const d = {
-        title: $('f-judul').value.trim(),
+        title: normalisasiJudul($('f-judul').value),
         summary: $('f-ringkasan').value.trim(),
         category: $('f-kategori').value,
         tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
@@ -1370,6 +1386,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     on('btn-pratinjau-terbit', 'click', bukaPratinjauTerbit);
+    // Judul dinormalisasi saat kursor meninggalkan kolomnya, supaya penulis
+    // langsung melihat format akhirnya sebelum menyimpan.
+    on('f-judul', 'blur', () => { $('f-judul').value = normalisasiJudul($('f-judul').value); });
     on('btn-tutup-pratinjau', 'click', tutupPratinjauTerbit);
     on('modal-pratinjau', 'click', (e) => {
       if (e.target && !e.target.closest('#modal-pratinjau-panel')) tutupPratinjauTerbit();
@@ -2006,7 +2025,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const a = articles.find((x) => x.slug === editBtn.getAttribute('data-edit'));
         if (!a) return;
         editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '' };
-        $('f-judul').value = a.data.title || '';
+        $('f-judul').value = normalisasiJudul(a.data.title || '');
         $('f-ringkasan').value = a.data.summary || '';
         $('f-kategori').value = a.data.category || '';
         $('f-tag').value = (a.data.tags || []).join(', ');
