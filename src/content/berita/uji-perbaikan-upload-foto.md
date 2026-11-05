@@ -10,6 +10,7 @@ imageCaption: "Dokumentasi kegiatan. (ZonaPas)"
 featured: false
 breaking: false
 source: "zonapas"
+jurnalpas_id: 230
 ---
 
 Artikel uji ini dibuat untuk memverifikasi perbaikan upload foto sampul dan foto badan artikel bagi administrator yang masuk lewat Google.
