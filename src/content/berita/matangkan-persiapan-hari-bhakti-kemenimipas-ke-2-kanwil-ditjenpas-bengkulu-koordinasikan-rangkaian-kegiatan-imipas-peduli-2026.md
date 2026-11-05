@@ -12,6 +12,7 @@ breaking: true
 breakingSince: "2026-11-05T08:45:20.173Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
+jurnalpas_id: 227
 ---
 
 Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti koordinasi secara daring terkait perencanaan rangkaian kegiatan Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kamis (5/11). Kegiatan ini membahas persiapan pelaksanaan program dan kegiatan sosial yang akan dilaksanakan di lingkungan wilayah Bengkulu.
