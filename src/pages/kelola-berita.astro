@@ -2320,8 +2320,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
         try {
           await workerPost('/redaksi/api/komentar/' + encodeURIComponent(id) + '/hapus', {});
-          showStatus('Komentar dihapus.', true);
           await muatModerasi();
+          // Status baru tampil setelah daftar dimuat ulang, supaya pesan
+          // "dihapus" tidak muncul selagi komentar lama masih terlihat.
+          showStatus('Komentar dihapus.', true);
         } catch (err) { showStatus('Gagal menghapus komentar: ' + err.message, false); }
         return;
       }
