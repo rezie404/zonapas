@@ -1,7 +1,7 @@
 ---
-title: "Tingkatkan Kompetensi Dan Sinergi, Kanwil Ditjenpas Bengkulu Gelar Bimbingan Teknis Duta Kerja Sama Dan Aplikasi SIKAP"
+title: "Tingkatkan Kompetensi Dan Sinergi, Kanwil Ditjenpas Bengkulu Gelar Bimbingan Teknis Duta Kerja Sama Dan Aplikasi Sikap"
 summary: "Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan Bimbingan Teknis Duta Kerja Sama dan Aplikasi SIKAP di lingkungan Kanwil Ditjenpas Bengkulu pada Kamis (5/11)."
-category: "Kepegawaian"
+category: "Pengembangan Kompetensi"
 tags: ["Kepegawaian", "kanwil"]
 author: "Miko Andriansyah"
 publishDate: 2026-11-05
