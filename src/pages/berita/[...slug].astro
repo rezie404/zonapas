@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import ShareButtons from '../../components/ShareButtons.astro';
 import InteraksiArtikel from '../../components/InteraksiArtikel.astro';
 import NewsCard from '../../components/NewsCard.astro';
 import { SITE, categoryByName, formatDate, formatDateShort, readingMinutes, slugify } from '../../data/site';
@@ -180,9 +179,6 @@ const jsonLd = [
               #{tag}
             </a>
           ))}
-        </div>
-        <div class="mt-4">
-          <ShareButtons url={url} title={title} />
         </div>
       </div>
 

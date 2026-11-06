@@ -167,6 +167,57 @@ const shareLinks = {
   // jadi skrip ini ikut tampil dua kali — inisialisasi hanya sekali.
   if (!window.__zonapasInteraksiBound) {
     window.__zonapasInteraksiBound = true;
+    // Handler berbagi di lembar bagikan (pindahan dari ShareButtons.astro
+    // yang dihapus 06 Nov 2026 — baris Bagikan di bawah artikel dihapus
+    // karena sudah ada di bar atas). Didelegasikan ke document supaya
+    // tombol di dalam lembar juga tertangkap.
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-share-instagram]');
+      if (!btn) return;
+      const link = btn.getAttribute('data-url') || location.href;
+      const label = btn.querySelector('[data-ig-label]');
+      const labelAsli = label ? label.textContent : '';
+      // Instagram tidak punya tautan berbagi seperti WA/FB/X: salin tautan
+      // artikel, lalu buka kamera Story Instagram langsung (tautan ditempel
+      // sebagai stiker tautan di Story). Bila aplikasi tidak terbuka, buka
+      // Instagram web sebagai cadangan.
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch (err) {
+        const ta = document.createElement('textarea');
+        ta.value = link; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e2) {}
+        document.body.removeChild(ta);
+      }
+      if (label) { label.textContent = 'Tautan disalin!'; setTimeout(() => { label.textContent = labelAsli; }, 3000); }
+      const ifr = document.createElement('iframe');
+      ifr.style.display = 'none';
+      ifr.src = 'instagram://story-camera';
+      document.body.appendChild(ifr);
+      setTimeout(() => {
+        if (ifr.parentNode) ifr.parentNode.removeChild(ifr);
+        if (!document.hidden) window.open('https://www.instagram.com/', '_blank', 'noopener');
+      }, 2000);
+    });
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-copy-link]');
+      if (!btn) return;
+      const link = btn.getAttribute('data-copy-link');
+      const label = btn.querySelector('[data-copy-label]');
+      const labelAsli = label ? label.textContent : '';
+      const salin = async () => {
+        try {
+          await navigator.clipboard.writeText(link);
+        } catch (err) {
+          const ta = document.createElement('textarea');
+          ta.value = link; document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); } catch (e2) {}
+          document.body.removeChild(ta);
+        }
+      };
+      await salin();
+      if (label) { label.textContent = 'Tersalin!'; setTimeout(() => { label.textContent = labelAsli; }, 2000); }
+    });
     const jalankan = () => {
       const bar = document.querySelector('[data-interaksi-bar]');
       const seksi = document.querySelector('[data-interaksi-komentar]');
