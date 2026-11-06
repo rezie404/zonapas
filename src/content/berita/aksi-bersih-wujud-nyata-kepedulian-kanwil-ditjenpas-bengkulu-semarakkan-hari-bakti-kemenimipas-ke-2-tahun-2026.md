@@ -13,6 +13,7 @@ breakingSince: "2026-11-06T08:40:34.914Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 235
 ---
 
 Bengkulu – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan kebersihan lingkungan kantor pada Jumat (6/11). Kegiatan ini diikuti langsung oleh Kepala Kantor Wilayah, Masjuno, bersama jajaran pegawai sebagai bentuk kepedulian terhadap kebersihan dan kenyamanan lingkungan kerja.
