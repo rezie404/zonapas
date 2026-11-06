@@ -98,7 +98,7 @@ test('markdownToHtml: badan artikel asli ZonaPas (7 artikel) tanpa sisa penanda'
   const { readdirSync } = await import('node:fs');
   const dir = new URL('../src/content/berita/', import.meta.url);
   const files = readdirSync(dir).filter((f) => f.endsWith('.md'));
-  assert.equal(files.length, 7);
+  assert.equal(files.length, 8);
   for (const f of files) {
     const text = readFileSync(new URL(`../src/content/berita/${f}`, import.meta.url), 'utf8');
     const { data, body } = parseFrontmatter(text);

@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Berlangganan Berita ZonaPas" description="Berlangganan berita ZonaPas — artikel terbaru langsung ke email Anda.">
+  <div class="mx-auto max-w-[760px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Berlangganan Berita ZonaPas</h1>
+    <div class="article-body mt-4 text-[17px]">
+      <div data-hasil="terkonfirmasi" hidden>
+        <p><strong>Langganan aktif.</strong> Artikel terbaru ZonaPas akan dikirim ke email Anda.</p>
+      </div>
+      <div data-hasil="berhenti" hidden>
+        <p>Anda sudah berhenti berlangganan. Artikel ZonaPas tidak akan dikirim lagi ke email Anda.</p>
+      </div>
+      <div data-hasil="token-tidak-valid" hidden>
+        <p>Tautan tidak valid atau sudah tidak berlaku. Daftar lagi lewat formulir di bawah halaman.</p>
+      </div>
+      <div data-hasil="default">
+        <p>Isi alamat email Anda di formulir berlangganan pada bagian bawah halaman mana pun, lalu klik tautan konfirmasi yang kami kirim ke email Anda. Setelah itu, setiap artikel baru ZonaPas akan dikirim langsung ke email Anda.</p>
+        <p>Berhenti kapan saja lewat tautan "Berhenti berlangganan" di bagian bawah tiap email yang kami kirim. Alamat email Anda hanya dipakai untuk mengirim artikel baru dan email konfirmasi — lihat <a href="/kebijakan-privasi/">Kebijakan Privasi</a>.</p>
+      </div>
+      <p><a href="/">Kembali ke Beranda</a></p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  // Situs ini SSG — query ?hasil= dibaca di sisi klien, bukan saat build.
+  (function () {
+    var hasil = new URLSearchParams(location.search).get('hasil');
+    var tampil = ['terkonfirmasi', 'berhenti', 'token-tidak-valid'].includes(hasil) ? hasil : 'default';
+    document.querySelectorAll('[data-hasil]').forEach(function (el) {
+      el.hidden = el.getAttribute('data-hasil') !== tampil;
+    });
+  })();
+</script>

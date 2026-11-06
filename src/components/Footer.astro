@@ -4,6 +4,16 @@ import { CATEGORIES, SITE } from '../data/site';
 
 <footer class="mt-12 border-t-4 border-[#D9232E] bg-[#0A2540] text-slate-300">
   <div class="mx-auto max-w-[1200px] px-4 py-10">
+    <div class="mb-8 rounded-xl border border-white/15 bg-white/5 p-5">
+      <h2 class="text-base font-black text-white">Berlangganan Berita ZonaPas</h2>
+      <p class="mt-1 text-sm text-slate-300">Artikel terbaru langsung ke email Anda.</p>
+      <form id="form-langganan" class="mt-4 flex flex-col gap-2 sm:flex-row">
+        <label for="email-langganan" class="sr-only">Alamat email</label>
+        <input id="email-langganan" name="email" type="email" required placeholder="alamat@email.com" class="w-full flex-1 rounded-lg bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400" />
+        <button type="submit" class="rounded-lg bg-[#FACC15] px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#fde047]">Berlangganan</button>
+      </form>
+      <p data-status-langganan class="mt-2 text-sm text-slate-300" role="status"></p>
+    </div>
     <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
       <div>
         <a href="/" class="flex items-center gap-2" aria-label="ZonaPas — Beranda">
@@ -56,3 +66,34 @@ import { CATEGORIES, SITE } from '../data/site';
     </div>
   </div>
 </footer>
+
+<script is:inline>
+  // Formulir langganan email berita (footer, semua halaman).
+  (function () {
+    var form = document.getElementById('form-langganan');
+    if (!form) return;
+    var status = form.parentElement.querySelector('[data-status-langganan]');
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var email = form.email.value.trim();
+      if (!email) return;
+      status.textContent = 'Mendaftar…';
+      try {
+        var r = await fetch('https://zonapas.web.id/redaksi/api/langganan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email }),
+        });
+        var d = await r.json().catch(function () { return {}; });
+        if (r.ok && d.ok) {
+          status.textContent = 'Cek email Anda untuk konfirmasi langganan.';
+          form.reset();
+        } else {
+          status.textContent = (d && d.error) || 'Gagal mendaftar. Coba lagi sebentar lagi.';
+        }
+      } catch (err) {
+        status.textContent = 'Tidak bisa terhubung ke server. Coba lagi sebentar lagi.';
+      }
+    });
+  })();
+</script>

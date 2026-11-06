@@ -61,7 +61,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -654,6 +654,16 @@ export async function main(argv = process.argv.slice(2)) {
       errors.push({ path: change.path, error: err.message });
     }
   }
+  // Daftar artikel baru untuk notifikasi email pelanggan (dibaca
+  // scripts/kirim-notifikasi.mjs pada langkah workflow berikutnya).
+  // Ditulis setiap run — array kosong bila tidak ada — supaya skrip
+  // notifikasi tidak pernah membaca file basi dari run sebelumnya.
+  // Hanya decision "create" yang masuk; dry-run memakai "dry-run-create"
+  // sehingga tidak ikut terkirim.
+  const dibuat = results.filter((r) => r.decision === 'create').map((r) => ({ path: r.path }));
+  mkdirSync(join(root, '.github'), { recursive: true });
+  writeFileSync(join(root, '.github', 'notify-created.json'), `${JSON.stringify(dibuat, null, 2)}\n`);
+  if (dibuat.length) console.log(`Artikel baru untuk notifikasi email: ${dibuat.map((n) => n.path).join(', ')}.`);
   // Commit kembali jurnalpas_id yang baru dibuat (dengan [skip ci]).
   if (!dryRun && newIds.length) {
     try {
