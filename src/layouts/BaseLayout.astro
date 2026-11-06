@@ -69,6 +69,9 @@ const ld = jsonLd
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="alternate" type="application/rss+xml" title={`${SITE.name} RSS`} href="/rss.xml" />
     <meta name="theme-color" content="#0A2540" />
     <script is:inline>
@@ -103,6 +106,22 @@ const ld = jsonLd
         if (!btn) return;
         document.getElementById('mobile-menu')?.classList.toggle('hidden');
       });
+      // Animasi muncul perlahan: kartu berita yang masuk ke layar
+      // perlahan terlihat (tanpa JS, kartu tetap terlihat normal).
+      try {
+        var kartuReveal = document.querySelectorAll('[data-reveal]');
+        if (!('IntersectionObserver' in window)) {
+          kartuReveal.forEach((el) => el.classList.add('terlihat'));
+        } else if (kartuReveal.length) {
+          document.documentElement.classList.add('js-reveal');
+          var pengamat = new IntersectionObserver((masukan) => {
+            masukan.forEach((m) => {
+              if (m.isIntersecting) { m.target.classList.add('terlihat'); pengamat.unobserve(m.target); }
+            });
+          }, { threshold: 0.1 });
+          kartuReveal.forEach((el) => pengamat.observe(el));
+        }
+      } catch (e) {}
     </script>
   </body>
 </html>

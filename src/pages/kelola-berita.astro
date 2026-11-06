@@ -114,10 +114,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div id="latest-list" class="divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
       </section>
 
+      <!-- Terpopuler Minggu Ini -->
+      <section id="terpopuler-section" class="hidden pt-8" aria-label="Terpopuler Minggu Ini">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Terpopuler Minggu Ini</h2>
+        </div>
+        <div id="terpopuler-list" class="divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
       <!-- Antrean Persetujuan (semua peran yang login) -->
       <section id="antrean-section" class="hidden pt-8" aria-label="Antrean Persetujuan">
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
-          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Antrean Persetujuan</h2>
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Antrean Persetujuan <span data-badge-antrean class="ml-1 hidden rounded-full bg-[#D9232E] px-2 py-0.5 align-middle text-xs font-bold normal-case text-white">0</span></h2>
           <button id="btn-antrean-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
         </div>
         <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Berita yang menunggu persetujuan Penyunting/Administrator sebelum terbit.</p>
@@ -127,7 +135,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <!-- Moderasi Komentar (Penyunting + Administrator) -->
       <section id="moderasi-section" class="hidden pt-8" aria-label="Moderasi Komentar">
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
-          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Moderasi Komentar</h2>
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Moderasi Komentar <span data-badge-moderasi class="ml-1 hidden rounded-full bg-[#D9232E] px-2 py-0.5 align-middle text-xs font-bold normal-case text-white">0</span></h2>
           <button id="btn-moderasi-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
         </div>
         <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Komentar pembaca baru tampil di artikel setelah disetujui Penyunting/Administrator.</p>
@@ -170,6 +178,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
           <h2 id="form-title" class="text-xl font-black uppercase tracking-tight">Tulis Berita Baru</h2>
         </div>
+        <div id="draf-banner" class="mb-3 hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-700 dark:bg-amber-900/30">
+          <p class="font-bold">Ada draf tersimpan otomatis <span id="draf-banner-waktu" class="font-medium"></span></p>
+          <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Isi teks formulir tersimpan di perangkat ini. Foto sampul &amp; foto isi tidak ikut tersimpan — pilih ulang bila perlu.</p>
+          <div class="mt-2 flex gap-2">
+            <button id="btn-draf-pulihkan" type="button" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Pulihkan Draf</button>
+            <button id="btn-draf-buang" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Buang</button>
+          </div>
+        </div>
+        <p id="draf-status" class="mb-3 hidden text-xs text-slate-500 dark:text-slate-400" role="status"></p>
         <form id="form-berita" class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div class="grid gap-4 md:grid-cols-2">
             <div class="md:col-span-2">
@@ -697,6 +714,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function renderAntrean() {
       const el = $('antrean-list');
       if (!el) return;
+      // Lencana: jumlah berita yang menunggu persetujuan.
+      const badge = document.querySelector('[data-badge-antrean]');
+      if (badge) {
+        const n = antrean.filter((a) => a.status === 'menunggu').length;
+        badge.textContent = String(n);
+        badge.classList.toggle('hidden', n === 0);
+      }
       if (!antrean.length) { el.innerHTML = '<p class="text-sm text-slate-500">Antrean kosong.</p>'; return; }
       const approver = peran === 'admin' || peran === 'penyunting';
       el.innerHTML = antrean.map((a) => {
@@ -760,6 +784,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     function renderModerasi(menunggu, terbit) {
+      // Lencana: jumlah komentar yang menunggu persetujuan.
+      const badge = document.querySelector('[data-badge-moderasi]');
+      if (badge) {
+        badge.textContent = String(menunggu.length);
+        badge.classList.toggle('hidden', menunggu.length === 0);
+      }
       const elM = $('moderasi-menunggu');
       if (elM) elM.innerHTML = menunggu.length ? menunggu.map((k) => kartuKomentar(k, 'menunggu')).join('') : '<p class="text-sm text-slate-500">Tidak ada komentar yang menunggu.</p>';
       const elT = $('moderasi-terbit');
@@ -823,6 +853,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('form-section').classList.remove('hidden');
         $('form-section').scrollIntoView({ behavior: 'smooth' });
         terapkanPenulis();
+        tawarkanDraf();
       } catch (err) {
         showStatus('Gagal memuat berita antrean: ' + err.message, false);
       }
@@ -922,6 +953,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         await workerPost('/redaksi/api/berita/' + encodeURIComponent(articleId) + '/kirim', {});
       }
       showStatus(kirim ? 'Terkirim ke antrean — menunggu persetujuan.' : 'Berita tersimpan di antrean sebagai draf.', true);
+      hapusDraf();
       resetForm();
       $('form-section').classList.add('hidden');
       await muatAntrean();
@@ -1038,6 +1070,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         '<div class="min-w-0 flex-1"><div>' + catLabel(d.category || '-') + sourceBadge(d.source) + '</div>' +
         '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="mt-0.5 block text-sm font-bold leading-snug hover:text-[#92400E] hover:underline">' + esc(d.title || '(tanpa judul)') + '</a>' +
         '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + (d.upt ? ' · ' + esc(d.upt) : '') + '</span>' +
+        '<span data-tayang="' + esc(a.slug) + '" class="mt-1 block text-xs text-slate-500 dark:text-slate-400"></span>' +
         (peran === 'admin'
           ? '<div class="mt-2 flex gap-2">' +
             '<button type="button" data-edit="' + esc(a.slug) + '" class="rounded-md border border-[#0A2540] px-2.5 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Ubah</button>' +
@@ -1068,6 +1101,46 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       const latestEl = $('latest-list');
       latestEl.innerHTML = list.length ? list.map(rowHtml).join('') : '<p class="py-3 text-sm text-slate-500">Tidak ada berita yang cocok dengan pencarian.</p>';
+      terapkanStatistik();
+      if (!statistikDimuat) muatStatistik();
+    }
+
+    // ---------- Statistik tayangan ----------
+    let statistikTayang = null;
+    let statistikDimuat = false;
+    async function muatStatistik() {
+      if (statistikDimuat || !peran) return;
+      statistikDimuat = true;
+      try {
+        const res = await workerGet('/redaksi/api/statistik');
+        statistikTayang = (res && res.perSlug) || {};
+        terapkanStatistik();
+        renderTerpopuler((res && res.terpopulerMinggu) || []);
+      } catch (err) {
+        statistikTayang = {};
+      }
+    }
+    function terapkanStatistik() {
+      if (!statistikTayang) return;
+      document.querySelectorAll('[data-tayang]').forEach((el) => {
+        const s = statistikTayang[el.getAttribute('data-tayang')] || { total: 0, minggu: 0 };
+        el.textContent = '👁 ' + s.total + ' kali dibaca' + (s.minggu ? ' · ' + s.minggu + ' minggu ini' : '');
+      });
+    }
+    function renderTerpopuler(daftar) {
+      const sec = $('terpopuler-section');
+      const el = $('terpopuler-list');
+      if (!sec || !el) return;
+      if (!daftar.length) { sec.classList.add('hidden'); return; }
+      sec.classList.remove('hidden');
+      el.innerHTML = daftar.map((x, i) => {
+        const a = articles.find((art) => art.slug === x.slug);
+        const judul = a ? a.data.title : x.slug;
+        return '<div class="flex items-center gap-3 py-3">' +
+          '<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FACC15] text-sm font-black text-[#0A2540]">' + (i + 1) + '</span>' +
+          '<div class="min-w-0 flex-1"><a href="/berita/' + esc(x.slug) + '/" target="_blank" rel="noopener" class="block truncate text-sm font-bold hover:underline">' + esc(judul || '(tanpa judul)') + '</a>' +
+          '<span class="text-xs text-slate-500 dark:text-slate-400">👁 ' + x.minggu + ' kali dibaca minggu ini · ' + x.total + ' total</span></div></div>';
+      }).join('');
     }
 
     // ---------- Login GitHub (popup + Worker OAuth) ----------
@@ -1231,17 +1304,96 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       terapkanPenulis();
     }
 
+    // ---------- Autosave draf (teks formulir, di perangkat ini) ----------
+    // Foto tidak bisa tersimpan otomatis (berkas tidak bisa diserialisasi),
+    // jadi hanya kolom teks yang dipulihkan; foto dipilih ulang bila perlu.
+    let drafTimer = null;
+    function kunciDraf() {
+      if (editingAntrean) return 'antrean:' + editingAntrean.id;
+      if (editing) return 'artikel:' + editing.slug;
+      return 'baru';
+    }
+    function kumpulkanDraf() {
+      return {
+        waktu: Date.now(),
+        judul: $('f-judul').value, kategori: $('f-kategori').value, tag: $('f-tag').value,
+        penulis: $('f-penulis').value, tanggal: $('f-tanggal').value, upt: $('f-upt').value,
+        keterangan: $('f-keterangan').value, featured: $('f-featured').checked,
+        breaking: $('f-breaking').checked, isiAlt: $('f-isi-alt').value, isi: $('f-isi').value,
+      };
+    }
+    function drafSamaDenganForm(d) {
+      const kini = kumpulkanDraf();
+      return ['judul', 'kategori', 'tag', 'penulis', 'tanggal', 'upt', 'keterangan', 'featured', 'breaking', 'isiAlt', 'isi'].every((k) => String(kini[k]) === String(d[k]));
+    }
+    function simpanDrafOtomatis() {
+      if ($('form-section').classList.contains('hidden')) return;
+      const d = kumpulkanDraf();
+      if (!d.judul.trim() && !d.isi.trim()) return;
+      try {
+        localStorage.setItem('zonapas-draf-' + kunciDraf(), JSON.stringify(d));
+        const st = $('draf-status');
+        if (st) { st.textContent = 'Draf tersimpan otomatis • ' + new Date(d.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); st.classList.remove('hidden'); }
+      } catch (e) {}
+    }
+    function jadwalkanDraf() {
+      if (drafTimer) clearTimeout(drafTimer);
+      drafTimer = setTimeout(simpanDrafOtomatis, 2000);
+      const b = $('draf-banner');
+      if (b) b.classList.add('hidden');
+    }
+    function tawarkanDraf() {
+      const b = $('draf-banner');
+      if (!b) return;
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem('zonapas-draf-' + kunciDraf()) || 'null'); } catch (e) {}
+      if (!d || drafSamaDenganForm(d)) { b.classList.add('hidden'); return; }
+      const w = $('draf-banner-waktu');
+      if (w) w.textContent = 'dari ' + new Date(d.waktu).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      b.classList.remove('hidden');
+    }
+    function hapusDraf() {
+      try { localStorage.removeItem('zonapas-draf-' + kunciDraf()); } catch (e) {}
+      const b = $('draf-banner');
+      if (b) b.classList.add('hidden');
+    }
+    function isiDariDraf() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem('zonapas-draf-' + kunciDraf()) || 'null'); } catch (e) {}
+      if (!d) return;
+      $('f-judul').value = d.judul || '';
+      $('f-kategori').value = d.kategori || '';
+      $('f-tag').value = d.tag || '';
+      $('f-penulis').value = d.penulis || '';
+      $('f-tanggal').value = d.tanggal || '';
+      $('f-upt').value = d.upt || '';
+      $('f-keterangan').value = d.keterangan || '';
+      $('f-featured').checked = !!d.featured;
+      $('f-breaking').checked = !!d.breaking;
+      $('f-isi-alt').value = d.isiAlt || '';
+      $('f-isi').value = d.isi || '';
+      $('draf-banner').classList.add('hidden');
+      showStatus('Draf tersimpan dipulihkan. Foto sampul & foto isi tidak ikut tersimpan — pilih ulang bila perlu.', true);
+    }
+
     on('btn-new', 'click', () => {
       resetForm();
       $('form-section').classList.remove('hidden');
       $('form-section').scrollIntoView({ behavior: 'smooth' });
       $('f-judul').focus();
+      tawarkanDraf();
     });
 
     on('btn-cancel', 'click', () => {
       resetForm();
       $('form-section').classList.add('hidden');
     });
+
+    // Autosave: tiap ketikan/perubahan di formulir dijadwalkan tersimpan.
+    $('form-berita').addEventListener('input', jadwalkanDraf);
+    $('form-berita').addEventListener('change', jadwalkanDraf);
+    on('btn-draf-pulihkan', 'click', isiDariDraf);
+    on('btn-draf-buang', 'click', hapusDraf);
 
     on('f-foto', 'change', async (e) => {
       const file = e.target.files && e.target.files[0];
@@ -2189,6 +2341,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           }
         }
         showStatus('Berita "' + title + '" tersimpan. Artikel tayang di situs setelah rebuild sekitar 1–2 menit: ' + SITE_URL + '/berita/' + finalSlug + '/', true);
+        hapusDraf();
         resetForm();
         $('form-section').classList.add('hidden');
         await loadArticles();
@@ -2448,6 +2601,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('btn-save').textContent = 'Simpan Perubahan';
         $('form-section').classList.remove('hidden');
         $('form-section').scrollIntoView({ behavior: 'smooth' });
+        tawarkanDraf();
       }
       if (delBtn) {
         if (peran !== 'admin') return;

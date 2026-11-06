@@ -33,7 +33,7 @@ const narasi = teksNarasi(entry.body) || summary;
 ---
 
 {size === 'small' ? (
-  <a href={url} class="group flex gap-3 py-3">
+  <a href={url} data-reveal class="group flex gap-3 py-3 transition-transform duration-200 hover:-translate-y-0.5">
     <img src={image} alt={imageCaption} loading="lazy" width="120" height="80" class="h-auto w-28 shrink-0 rounded-lg" onerror="this.onerror=null;this.src='/images/cover-default.svg'" />
     <span>
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
@@ -43,7 +43,7 @@ const narasi = teksNarasi(entry.body) || summary;
     </span>
   </a>
 ) : size === 'large' ? (
-  <a href={url} class="group relative block overflow-hidden rounded-2xl">
+  <a href={url} data-reveal class="group relative block overflow-hidden rounded-2xl">
     <img src={image} alt={imageCaption} loading="eager" width="1200" height="675" class="h-auto w-full transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='/images/cover-default.svg'" />
     <span class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></span>
     <span class="absolute inset-x-0 bottom-0 p-5 sm:p-6">
@@ -56,7 +56,7 @@ const narasi = teksNarasi(entry.body) || summary;
     </span>
   </a>
 ) : (
-  <a href={url} class="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+  <a href={url} data-reveal class="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
     <img src={image} alt={imageCaption} loading="lazy" width="600" height="338" class="h-auto w-full transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='/images/cover-default.svg'" />
     <span class="block p-4">
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
