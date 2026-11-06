@@ -133,7 +133,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <div>
             <label for="v-file" class="mb-1 block text-sm font-bold">File Video *</label>
             <input id="v-file" type="file" accept="video/*" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Video diunggah langsung ke channel YouTube ZonaPas — tidak memakai penyimpanan ZonaPas. Video besar membutuhkan waktu; jangan tutup halaman selama mengunggah. Tayang di beranda setelah rebuild sekitar 1–2 menit.</p>
+            <p class="mt-1 text-xs text-slate-500">Video diunggah langsung ke channel YouTube ZonaPas — tidak memakai penyimpanan ZonaPas. Intro (3 dtk) dan outro (4 dtk) ZonaPasTV ditempel otomatis di awal dan akhir video. Video besar membutuhkan waktu; jangan tutup halaman selama mengunggah. Tayang di beranda setelah rebuild sekitar 1–2 menit.</p>
+          </div>
+          <div id="v-trim-wrap" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="mb-2 text-sm font-bold">Potong Video (Trim)</p>
+            <video id="v-trim-preview" controls playsinline preload="metadata" class="mb-2 max-h-64 w-full rounded-lg bg-black"></video>
+            <div class="grid gap-2">
+              <label class="text-xs">Awal: <span id="v-trim-awal-teks" class="font-bold">0:00.0</span>
+                <input id="v-trim-awal" type="range" min="0" max="100" step="0.1" value="0" class="w-full" />
+              </label>
+              <label class="text-xs">Akhir: <span id="v-trim-akhir-teks" class="font-bold">0:00.0</span>
+                <input id="v-trim-akhir" type="range" min="0" max="100" step="0.1" value="0" class="w-full" />
+              </label>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">Bagian yang diunggah: <span id="v-trim-info" class="font-bold"></span> (dari total <span id="v-trim-total"></span>). Bila olahan gagal (mis. memori HP tidak cukup), video asli diunggah apa adanya.</p>
+            <button id="v-trim-pratinjau" type="button" class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Putar Potongan</button>
           </div>
           <div id="yt-progress-wrap" class="hidden">
             <progress id="yt-progress" max="100" value="0" class="w-full"></progress>
@@ -402,6 +416,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
+  <!-- Olah video ZonaPasTV (public/olah-video.mjs) — trim + intro/outro via
+       ffmpeg.wasm; diekspos ke window.__olahVideo. -->
+  <script type="module" src="/olah-video.mjs"></script>
   <script>
     const GH_API = 'https://api.github.com/repos/rezie404/zonapas';
     const OAUTH_AUTH_URL = 'https://oauth.zonapas.web.id/auth';
@@ -2970,6 +2987,74 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return hasil;
     }
 
+    // ---------- Trim video ZonaPasTV ----------
+    // Pratinjau + geser awal/akhir sebelum unggah; olahan (trim + intro/outro)
+    // dikerjakan modul /olah-video.mjs (ffmpeg.wasm) saat tombol ditekan.
+    let trimDurasi = 0;
+    let trimAwal = 0;
+    let trimAkhir = 0;
+    let trimUrl = null;
+    function fmtTrim(d) {
+      const m = Math.floor(d / 60);
+      const s = d - m * 60;
+      return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+    }
+    function perbaruiTrim() {
+      const elAwal = $('v-trim-awal');
+      const elAkhir = $('v-trim-akhir');
+      if (elAwal) elAwal.value = String(trimAwal);
+      if (elAkhir) elAkhir.value = String(trimAkhir);
+      const tAwal = $('v-trim-awal-teks'); if (tAwal) tAwal.textContent = fmtTrim(trimAwal);
+      const tAkhir = $('v-trim-akhir-teks'); if (tAkhir) tAkhir.textContent = fmtTrim(trimAkhir);
+      const info = $('v-trim-info'); if (info) info.textContent = fmtTrim(trimAwal) + ' – ' + fmtTrim(trimAkhir) + ' (' + (trimAkhir - trimAwal).toFixed(1) + ' dtk)';
+      const total = $('v-trim-total'); if (total) total.textContent = fmtTrim(trimDurasi);
+    }
+    function resetTrim() {
+      const wrap = $('v-trim-wrap'); if (wrap) wrap.classList.add('hidden');
+      const vid = $('v-trim-preview'); if (vid) { vid.removeAttribute('src'); vid.load(); }
+      if (trimUrl) { URL.revokeObjectURL(trimUrl); trimUrl = null; }
+      trimDurasi = 0; trimAwal = 0; trimAkhir = 0;
+    }
+    on('v-file', 'change', () => {
+      const f = $('v-file').files && $('v-file').files[0];
+      resetTrim();
+      if (!f) return;
+      trimUrl = URL.createObjectURL(f);
+      const vid = $('v-trim-preview');
+      const wrap = $('v-trim-wrap');
+      if (vid) {
+        vid.src = trimUrl;
+        vid.onloadedmetadata = () => {
+          trimDurasi = isFinite(vid.duration) ? vid.duration : 0;
+          trimAwal = 0;
+          trimAkhir = trimDurasi;
+          const elAwal = $('v-trim-awal'); if (elAwal) { elAwal.max = String(trimDurasi); elAwal.value = '0'; }
+          const elAkhir = $('v-trim-akhir'); if (elAkhir) { elAkhir.max = String(trimDurasi); elAkhir.value = String(trimDurasi); }
+          perbaruiTrim();
+          if (wrap) wrap.classList.remove('hidden');
+        };
+        vid.ontimeupdate = () => {
+          if (!vid.paused && trimAkhir > 0 && vid.currentTime >= trimAkhir) { vid.pause(); vid.currentTime = trimAwal; }
+        };
+      }
+    });
+    on('v-trim-awal', 'input', () => {
+      const v = Number($('v-trim-awal').value || 0);
+      trimAwal = Math.max(0, Math.min(v, trimAkhir - 0.1));
+      perbaruiTrim();
+    });
+    on('v-trim-akhir', 'input', () => {
+      const v = Number($('v-trim-akhir').value || 0);
+      trimAkhir = Math.min(trimDurasi, Math.max(v, trimAwal + 0.1));
+      perbaruiTrim();
+    });
+    on('v-trim-pratinjau', 'click', () => {
+      const vid = $('v-trim-preview');
+      if (!vid || !trimDurasi) return;
+      vid.currentTime = trimAwal;
+      vid.play().catch(() => {});
+    });
+
     on('form-video', 'submit', async (e) => {
       e.preventDefault();
       if (peran !== 'admin') return;
@@ -2981,12 +3066,27 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!file) { showStatus('Pilih file video dulu.', false); return; }
       if (!youtubeTerhubung) { showStatus('YouTube belum terhubung. Hubungkan channel YouTube dulu lewat tombol di atas formulir.', false); return; }
       btn.disabled = true;
-      btn.textContent = 'Mengunggah…';
+      btn.textContent = 'Mengolah video…';
       try {
         const slugDasar = slugify(judul);
         const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
-        aturProgres(0, file.size, 'Memulai unggahan…');
-        const hasil = await unggahKeYoutube(file, judul, deskripsi, (tk, total) => aturProgres(tk, total, 'Mengunggah ke YouTube…'));
+        // Olah dulu: potong sesuai trim + tempel intro/outro ZonaPasTV.
+        // Bila olahan gagal (mis. memori HP tidak cukup), unggah file asli
+        // apa adanya — kegagalan olahan tidak menggagalkan unggahan.
+        let fileUnggah = file;
+        let catatanOlahan = '';
+        try {
+          const olah = window.__olahVideo;
+          if (!olah || typeof olah.olahVideo !== 'function') throw new Error('modul olah video belum termuat');
+          const awal = trimDurasi > 0 ? trimAwal : 0;
+          const akhir = trimDurasi > 0 ? trimAkhir : null;
+          fileUnggah = await olah.olahVideo({ file, awal, akhir, onProgress: (p) => aturProgres(Math.round(p * 100), 100, 'Mengolah video (trim + intro/outro)…') });
+        } catch (errOlah) {
+          catatanOlahan = ' Catatan: olahan trim/intro/outro gagal (' + (errOlah && errOlah.message ? errOlah.message : 'galat') + ') — video asli diunggah tanpa olahan.';
+        }
+        btn.textContent = 'Mengunggah…';
+        aturProgres(0, fileUnggah.size, 'Memulai unggahan…');
+        const hasil = await unggahKeYoutube(fileUnggah, judul, deskripsi, (tk, total) => aturProgres(tk, total, 'Mengunggah ke YouTube…'));
         let poster = '';
         const posterFile = $('v-poster').files && $('v-poster').files[0];
         if (posterFile) {
@@ -3033,8 +3133,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           }
         }
         const privasi = hasil.privasi && hasil.privasi !== 'public' ? ' (YouTube menyimpannya sebagai ' + hasil.privasi + ' — periksa pengaturan channel bila seharusnya publik.)' : '';
-        showStatus('Video "' + judul + '" terunggah ke YouTube dan ditambahkan ke ZonaPasTV' + privasi + ' Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
+        showStatus('Video "' + judul + '" terunggah ke YouTube dan ditambahkan ke ZonaPasTV' + privasi + '.' + catatanOlahan + ' Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
         $('form-video').reset();
+        resetTrim();
         const wrap = $('yt-progress-wrap'); if (wrap) wrap.classList.add('hidden');
         await muatVideo();
       } catch (err) {
