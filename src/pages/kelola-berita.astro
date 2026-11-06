@@ -559,9 +559,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return data || {};
     }
 
-    async function workerPost(path, body) {
+    async function workerPost(path, body, opts) {
       const payload = { ...(body || {}) };
-      if (token) payload.github_token = token;
+      if (token && !(opts && opts.tanpaToken)) payload.github_token = token;
       return workerApi(path, { method: 'POST', body: JSON.stringify(payload) });
     }
 
@@ -1086,6 +1086,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (e) e.preventDefault();
       try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
       try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (err) {}
+      try { localStorage.removeItem('zonapas-aktivitas-terakhir'); } catch (err) {}
       window.location.href = '/masuk/';
     }
 
@@ -1164,6 +1165,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const me = await workerPost('/redaksi/api/me', {});
           if (!me || !me.ok || !me.user || !me.user.role) throw Object.assign(new Error('Peran tidak ditemukan.'), { status: 401 });
           terapkanIdentitas(me.user, 'github');
+          // Tukarkan token jadi sesi cookie supaya login langsung bertahan
+          // di semua tab (tanpa menunggu muat ulang halaman).
+          try { await workerPost('/redaksi/api/github-sesi', {}); } catch (e) {}
           const user = await ghApi('https://api.github.com/user');
           setLoggedIn(user);
           await muatAntrean();
@@ -2470,11 +2474,38 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
     });
 
-    // ---------- Pulihkan sesi: peran via Worker, lalu GitHub/Google ----------
+    // ---------- Pulihkan sesi: cookie dulu, lalu token GitHub ----------
+    // Sesi cookie (Google maupun GitHub yang sudah ditukar) berlaku di
+    // semua tab dan tidak hilang saat pindah laman — inilah yang membuat
+    // login bertahan. Token GitHub di tab ini hanya jadi cadangan: bila
+    // cookie belum ada, token ditukar jadi cookie dulu (github-sesi).
+    async function cobaMasukCookie() {
+      try {
+        const me = await workerPost('/redaksi/api/me', {}, { tanpaToken: true });
+        if (me && me.ok && me.user && me.user.role) {
+          terapkanIdentitas(me.user, me.user.source === 'github' ? 'github' : 'google');
+          let ghUser = null;
+          if (token) { try { ghUser = await ghApi('https://api.github.com/user'); } catch (e) {} }
+          setLoggedIn(ghUser || { login: me.user.name || me.user.email || 'Google' });
+          await muatAntrean();
+          await muatPengguna();
+          return true;
+        }
+      } catch (err) {
+        if (err && err.status === 403) { tampilkanAksesDitolak(err.message); return true; }
+      }
+      return false;
+    }
     (async () => {
       const tgl = $('f-tanggal');
       if (tgl) tgl.value = todayISO();
+      if (await cobaMasukCookie()) return;
       if (token) {
+        // Tukarkan token GitHub jadi sesi cookie supaya login bertahan di
+        // semua tab; bila penukaran gagal, token tetap bisa dipakai
+        // langsung di tab ini.
+        try { await workerPost('/redaksi/api/github-sesi', {}); } catch (e) {}
+        if (await cobaMasukCookie()) return;
         try {
           const me = await workerPost('/redaksi/api/me', {});
           if (!me || !me.ok || !me.user || !me.user.role) throw Object.assign(new Error('Peran tidak ditemukan.'), { status: 401 });
@@ -2498,19 +2529,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
         return;
       }
-      // Tanpa token GitHub: coba sesi Google (cookie Worker).
-      try {
-        const me = await workerPost('/redaksi/api/me', {});
-        if (me && me.ok && me.user && me.user.role) {
-          terapkanIdentitas(me.user, 'google');
-          setLoggedIn({ login: me.user.name || me.user.email || 'Google' });
-          await muatAntrean();
-          await muatPengguna();
-        }
-      } catch (err) {
-        if (err && err.status === 403) tampilkanAksesDitolak(err.message);
-        // 401 / lainnya: belum login — biarkan panel login tampil.
-      }
+      // Belum login — biarkan panel login tampil.
     })();
   </script>
 </BaseLayout>

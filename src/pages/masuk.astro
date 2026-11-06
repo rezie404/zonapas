@@ -86,6 +86,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         tautan.href = '/redaksi/auth/google?next=' + encodeURIComponent(next);
         if (catatan) catatan.textContent = 'Anda akan diarahkan ke Google, lalu kembali ke artikel yang Anda baca.';
       }
+      // Datang dari logout paksa karena 10 menit tanpa aktivitas.
+      if (params.get('alasan') === 'idle') {
+        const statusEl = document.getElementById('login-status');
+        if (statusEl) {
+          statusEl.textContent = 'Sesi Anda berakhir karena tidak ada aktivitas selama 10 menit. Silakan masuk lagi.';
+          statusEl.classList.remove('hidden');
+          statusEl.style.color = '#B91C1C';
+        }
+      }
     } catch (e) {}
 
     // Login GitHub dari /masuk/: popup OAuth yang sama seperti di

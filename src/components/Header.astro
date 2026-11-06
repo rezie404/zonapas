@@ -89,3 +89,83 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     </nav>
   </div>
 </header>
+
+<script is:inline>
+  // Status login + logout paksa setelah 10 menit tanpa aktivitas.
+  // - Tampilan: tombol "Masuk" di header berubah jadi nama depan pengguna
+  //   saat sudah login (kecuali di /kelola-berita/, yang diurus halaman
+  //   itu sendiri: tombolnya jadi "Keluar").
+  // - Idle: aktivitas terakhir dicatat di localStorage (dibagi semua tab)
+  //   dan disentuh ke server max 1x/2 menit; bila 10 menit tidak ada
+  //   aktivitas di tab mana pun, sesi dipaksa keluar ke /masuk/?alasan=idle.
+  (function () {
+    var IDLE_MS = 10 * 60 * 1000;
+    var TOUCH_MS = 2 * 60 * 1000;
+    var KUNCI = 'zonapas-aktivitas-terakhir';
+    var diKelola = window.location.pathname.replace(/\/$/, '') === '/kelola-berita';
+    var sedangMasuk = false;
+    var terakhirSentuh = 0;
+    var sudahKeluar = false;
+
+    function namaDepan(nama) {
+      var s = String(nama || '').trim();
+      return s ? s.split(/\s+/)[0] : 'Akun';
+    }
+    function perbaruiHeader(user) {
+      var tautan = document.querySelectorAll('[data-header-masuk]');
+      if (!tautan.length) return;
+      var tujuan = (user.role === 'pembaca') ? '/' : '/kelola-berita/';
+      tautan.forEach(function (el) {
+        el.textContent = namaDepan(user.name || user.email);
+        el.setAttribute('href', tujuan);
+      });
+    }
+    function catatAktivitas() {
+      if (!sedangMasuk) return;
+      try { localStorage.setItem(KUNCI, String(Date.now())); } catch (e) {}
+      var kini = Date.now();
+      if (kini - terakhirSentuh < TOUCH_MS) return;
+      terakhirSentuh = kini;
+      // Sentuh server supaya last_seen_at ikut diperbarui.
+      fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(function () {});
+    }
+    function cekIdle() {
+      if (!sedangMasuk || sudahKeluar) return;
+      var terakhir = 0;
+      try { terakhir = parseInt(localStorage.getItem(KUNCI) || '0', 10) || 0; } catch (e) {}
+      if (terakhir && Date.now() - terakhir > IDLE_MS) paksaKeluar();
+    }
+    async function paksaKeluar() {
+      if (sudahKeluar) return;
+      sudahKeluar = true;
+      try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
+      try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
+      try { localStorage.removeItem(KUNCI); } catch (e) {}
+      window.location.href = '/masuk/?alasan=idle';
+    }
+    ['click', 'keydown', 'touchstart'].forEach(function (ev) {
+      window.addEventListener(ev, catatAktivitas, { passive: true });
+    });
+    window.addEventListener('scroll', catatAktivitas, { passive: true });
+    var terakhirMouse = 0;
+    window.addEventListener('mousemove', function () {
+      var kini = Date.now();
+      if (kini - terakhirMouse < 5000) return;
+      terakhirMouse = kini;
+      catatAktivitas();
+    }, { passive: true });
+    setInterval(cekIdle, 30000);
+
+    fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok && d.user) {
+          sedangMasuk = true;
+          if (!diKelola) perbaruiHeader(d.user);
+          catatAktivitas();
+          cekIdle();
+        }
+      })
+      .catch(function () {});
+  })();
+</script>
