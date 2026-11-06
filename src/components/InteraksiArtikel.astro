@@ -261,6 +261,8 @@ const shareLinks = {
       var idx = 0;
       var sedang = false;
       var jeda = false;
+      var mulaiBerbunyi = false;
+      var timerAwal = null;
       function suaraIndonesia() {
         var vs = window.speechSynthesis.getVoices() || [];
         for (var i = 0; i < vs.length; i++) if ((vs[i].lang || '').toLowerCase().indexOf('id') === 0) return vs[i];
@@ -270,19 +272,36 @@ const shareLinks = {
         if (label) label.textContent = sedang ? (jeda ? 'Lanjutkan' : 'Jeda') : 'Dengarkan';
         if (btnStop) { btnStop.classList.toggle('hidden', !sedang); btnStop.classList.toggle('flex', sedang); }
       }
+      function tampilkanTidakTersedia() {
+        if (!label) return;
+        label.textContent = 'Suara tidak tersedia';
+        setTimeout(function () { if (!sedang && label) label.textContent = 'Dengarkan'; }, 3000);
+      }
       function ucap(i) {
         if (i >= antrean.length || !sedang) { berhenti(); return; }
         var u = new SpeechSynthesisUtterance(antrean[i]);
         u.lang = 'id-ID';
         var v = suaraIndonesia();
         if (v) u.voice = v;
+        u.onstart = function () { mulaiBerbunyi = true; };
         u.onend = function () { if (sedang && !jeda) { idx++; ucap(idx); } };
-        u.onerror = function (ev) { if (ev && ev.error === 'canceled') return; berhenti(); };
+        u.onerror = function (ev) { if (ev && ev.error === 'canceled') return; berhenti(); tampilkanTidakTersedia(); };
         window.speechSynthesis.speak(u);
       }
-      function mulai() { sedang = true; jeda = false; idx = 0; ucap(0); perbarui(); }
+      function mulai() {
+        sedang = true; jeda = false; idx = 0; mulaiBerbunyi = false;
+        ucap(0);
+        perbarui();
+        // Pengaman: bila suara tidak kunjung berbunyi dalam 3 detik
+        // (perangkat tanpa voice/suara), beri tahu pengguna.
+        if (timerAwal) clearTimeout(timerAwal);
+        timerAwal = setTimeout(function () {
+          if (sedang && !mulaiBerbunyi) { berhenti(); tampilkanTidakTersedia(); }
+        }, 3000);
+      }
       function berhenti() {
         sedang = false; jeda = false; idx = 0;
+        if (timerAwal) { clearTimeout(timerAwal); timerAwal = null; }
         try { window.speechSynthesis.cancel(); } catch (e) {}
         perbarui();
       }
