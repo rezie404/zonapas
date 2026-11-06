@@ -45,6 +45,8 @@ body {
 .article-body p {
   margin-bottom: 1.25rem;
   line-height: 1.8;
+  text-align: justify;
+  hyphens: auto;
 }
 .article-body h2 {
   font-size: 1.35rem;
