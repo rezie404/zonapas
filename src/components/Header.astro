@@ -155,8 +155,16 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       if (!tombol || !menu) return;
       var nama = menu.querySelector('[data-menu-nama]');
       var email = menu.querySelector('[data-menu-email]');
-      if (nama) nama.textContent = user.name || user.email || 'Akun';
-      if (email) email.textContent = user.email || '';
+      var namaTampil = user.name || user.email || 'Akun';
+      var emailTampil = user.email || '';
+      // Sesi GitHub memakai identitas sintetis ("Rezie" / "github:rezie404");
+      // di menu profil tampilkan identitas asli administrator.
+      if (user.source === 'github' && user.email === 'github:rezie404') {
+        namaTampil = 'Rezie Novian Putra';
+        emailTampil = 'rezienovian@gmail.com';
+      }
+      if (nama) nama.textContent = namaTampil;
+      if (email) email.textContent = emailTampil;
       if (user.role === 'pembaca') {
         var kelola = menu.querySelector('[data-menu-kelola]');
         if (kelola) kelola.style.display = 'none';
