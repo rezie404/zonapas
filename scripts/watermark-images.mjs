@@ -18,7 +18,7 @@
 // Bila file mentah diunduh langsung dari GitHub, watermark tidak ikut.
 //
 // File yang TIDAK di-watermark (keputusan 04 Nov 2026):
-// - logo itu sendiri (logo-zonapas.png, logo-zonapas-asli.jpg, logo-zonapas-nama.png).
+// - logo itu sendiri (logo-zonapas.png, logo-zonapas-asli.jpg, logo-zonapas-nama.png, logo-zonapas-nama-v2.png, logo-zonapastv.png).
 // - foto JurnalPAS (jurnalpas-*.jpg): foto asli dari JurnalPAS, dibiarkan apa
 //   adanya. Bila Bos Besar minta ikut di-watermark, hapus awalan "jurnalpas-"
 //   dari SKIP_PREFIXES di bawah.
@@ -32,7 +32,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const IMG_DIR = path.join(ROOT, "dist", "images");
 const LOGO_FILE = "logo-zonapas-watermark.png"; // watermark = logo lingkaran abu transparan (05 Nov 2026)
 
-const SKIP_FILES = new Set(["logo-zonapas.png", "logo-zonapas-asli.jpg", "logo-zonapas-nama.png", "logo-zonapas-nama-v2.png", "logo-zonapas-watermark.png"]);
+const SKIP_FILES = new Set(["logo-zonapas.png", "logo-zonapas-asli.jpg", "logo-zonapas-nama.png", "logo-zonapas-nama-v2.png", "logo-zonapas-watermark.png", "logo-zonapastv.png"]);
 const SKIP_PREFIXES = ["jurnalpas-"];
 const LOGO_FRACTION = 0.15; // lebar logo = 15% lebar foto
 const LOGO_ALPHA = 0.6; // lebih transparan namun tetap terlihat

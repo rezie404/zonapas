@@ -114,6 +114,38 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div id="latest-list" class="divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
       </section>
 
+      <!-- ZonaPasTV (khusus Administrator) -->
+      <section id="zonapastv-section" class="hidden pt-8" aria-label="ZonaPasTV">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#D9232E] pb-2">
+          <h2 class="flex items-center gap-2 text-xl font-black uppercase tracking-tight"><img src="/images/logo-zonapastv.png" alt="ZonaPasTV" class="h-8 w-auto" /> ZonaPasTV</h2>
+          <button id="btn-tv-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
+        </div>
+        <form id="form-video" class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <div>
+            <label for="v-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
+            <input id="v-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </div>
+          <div>
+            <label for="v-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>
+            <textarea id="v-deskripsi" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </div>
+          <div>
+            <label for="v-file" class="mb-1 block text-sm font-bold">File Video * (MP4/WebM, maks. 20 MB)</label>
+            <input id="v-file" type="file" accept="video/mp4,video/webm,video/quicktime" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <p class="mt-1 text-xs text-slate-500">Video tayang di beranda setelah rebuild sekitar 1–2 menit. Batas ukuran file Cloudflare Pages 25 MB — unggah video di bawah 20 MB (kompres dulu bila perlu).</p>
+          </div>
+          <div>
+            <label for="v-poster" class="mb-1 block text-sm font-bold">Poster / Sampul Video (opsional)</label>
+            <input id="v-poster" type="file" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <p class="mt-1 text-xs text-slate-500">Bila kosong, pemutar memakai frame pertama video sebagai gambar sampul.</p>
+          </div>
+          <div>
+            <button type="submit" id="btn-tv-simpan" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Unggah Video</button>
+          </div>
+        </form>
+        <div id="video-list" class="mt-4 divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
       <!-- Terpopuler Minggu Ini -->
       <section id="terpopuler-section" class="hidden pt-8" aria-label="Terpopuler Minggu Ini">
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
@@ -664,6 +696,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (bisaModerasi) muatModerasi();
       const penggunaSection = $('pengguna-section');
       if (penggunaSection) penggunaSection.classList.toggle('hidden', peran !== 'admin');
+      // ZonaPasTV: unggah & hapus video hanya Administrator.
+      const tvSection = $('zonapastv-section');
+      if (tvSection) tvSection.classList.toggle('hidden', peran !== 'admin');
+      if (peran === 'admin') muatVideo();
       renderLists();
       terapkanPenulis();
     }
@@ -1066,6 +1102,82 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
       articles = loaded;
       renderLists();
+    }
+
+    // ---------- ZonaPasTV (khusus Administrator) ----------
+    // Video disimpan sebagai file di public/videos/ + data di
+    // src/content/video/*.md. Batas 20 MB (Cloudflare Pages maks. 25 MB).
+    let videos = [];
+    const MAKS_VIDEO_BYTES = 20 * 1024 * 1024;
+
+    function bacaFileBase64(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(',')[1]);
+        r.onerror = () => reject(new Error('Gagal membaca file.'));
+        r.readAsDataURL(file);
+      });
+    }
+
+    function buildVideoMarkdown(d) {
+      const q = (v) => JSON.stringify(String(v ?? ''));
+      const lines = [
+        '---',
+        'title: ' + q(d.title),
+        'description: ' + q(d.description),
+        'video: ' + q(d.video),
+      ];
+      if (d.poster) lines.push('poster: ' + q(d.poster));
+      lines.push('publishDate: ' + d.publishDate, 'author: ' + q(d.author), '---', '');
+      return lines.join('\n');
+    }
+
+    async function muatVideo() {
+      let list;
+      try {
+        list = await gh('/contents/src/content/video?ref=main');
+      } catch (e) {
+        // Folder belum ada (belum pernah ada video): anggap kosong.
+        if (e && e.status === 404) { videos = []; renderVideoList(); return; }
+        throw e;
+      }
+      const files = (Array.isArray(list) ? list : []).filter((f) => f.type === 'file' && f.name.endsWith('.md'));
+      const loaded = [];
+      for (const f of files) {
+        try {
+          const file = await gh('/contents/src/content/video/' + encodeURIComponent(f.name) + '?ref=main');
+          const text = b64decodeUnicode(file.content || '');
+          const parsed = parseFrontmatter(text);
+          const slug = f.name.replace(/\.md$/, '');
+          loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data });
+        } catch (e) {
+          console.warn('Gagal memuat video ' + f.name, e);
+        }
+      }
+      loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
+      videos = loaded;
+      renderVideoList();
+    }
+
+    function renderVideoList() {
+      const el = $('video-list');
+      if (!el) return;
+      if (!videos.length) {
+        el.innerHTML = '<p class="py-3 text-sm text-slate-500">Belum ada video di ZonaPasTV.</p>';
+        return;
+      }
+      el.innerHTML = videos.map((v) => {
+        const d = v.data;
+        const thumb = d.poster
+          ? '<img src="' + esc(imageUrl(d.poster)) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" />'
+          : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
+        return '<article class="flex gap-3 py-4">' + thumb +
+          '<div class="min-w-0 flex-1">' +
+          '<span class="block text-sm font-bold leading-snug">' + esc(d.title || '(tanpa judul)') + '</span>' +
+          '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + ' · ' + esc(d.video || '') + '</span>' +
+          '<div class="mt-2 flex gap-2"><button type="button" data-video-hapus="' + esc(v.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>' +
+          '</div></article>';
+      }).join('');
     }
 
     // ---------- Render daftar ----------
@@ -2685,6 +2797,40 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           showStatus('Gagal menghapus: ' + err.message, false);
         }
       }
+      // Hapus video ZonaPasTV (khusus Administrator, login GitHub):
+      // hapus data .md, lalu file video dan posternya bila masih ada.
+      const delVideoBtn = e.target.closest('[data-video-hapus]');
+      if (delVideoBtn) {
+        if (peran !== 'admin') return;
+        const v = videos.find((x) => x.slug === delVideoBtn.getAttribute('data-video-hapus'));
+        if (!v) return;
+        if (!confirm('Hapus video "' + (v.data.title || v.slug) + '"? File video dan datanya ikut terhapus. Tindakan ini tidak bisa dibatalkan.')) return;
+        try {
+          await gh('/contents/' + v.path, {
+            method: 'DELETE',
+            body: JSON.stringify({ message: 'Hapus video ZonaPasTV: ' + (v.data.title || v.slug), sha: v.sha, branch: 'main' }),
+          });
+          const hapusFileRepo = async (rel) => {
+            try {
+              const f = await gh('/contents/public/' + rel + '?ref=main');
+              if (f && f.sha) {
+                await gh('/contents/public/' + rel, {
+                  method: 'DELETE',
+                  body: JSON.stringify({ message: 'Hapus file ZonaPasTV: ' + rel, sha: f.sha, branch: 'main' }),
+                });
+              }
+            } catch (e) { console.warn('File ZonaPasTV tidak terhapus: ' + rel, e); }
+          };
+          const videoRel = String(v.data.video || '').replace(/^\//, '');
+          if (videoRel.startsWith('videos/')) await hapusFileRepo(videoRel);
+          const posterRel = String(v.data.poster || '').replace(/^\//, '');
+          if (posterRel.startsWith('images/poster-')) await hapusFileRepo(posterRel);
+          showStatus('Video "' + (v.data.title || v.slug) + '" dihapus. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
+          await muatVideo();
+        } catch (err) {
+          showStatus('Gagal menghapus video: ' + err.message, false);
+        }
+      }
     });
 
     on('q', 'input', renderLists);
@@ -2692,6 +2838,97 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     on('btn-refresh', 'click', () => {
       showStatus('Memuat ulang daftar berita…', true);
       loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
+    });
+    on('btn-tv-refresh', 'click', () => {
+      showStatus('Memuat ulang daftar video…', true);
+      muatVideo().catch((err) => showStatus('Gagal memuat daftar video: ' + err.message, false));
+    });
+
+    // ---------- Unggah video ZonaPasTV ----------
+    on('form-video', 'submit', async (e) => {
+      e.preventDefault();
+      if (peran !== 'admin') return;
+      const btn = $('btn-tv-simpan');
+      const judul = ($('v-judul').value || '').trim();
+      const deskripsi = ($('v-deskripsi').value || '').trim();
+      const file = $('v-file').files && $('v-file').files[0];
+      if (!judul) { showStatus('Judul video wajib diisi.', false); return; }
+      if (!file) { showStatus('Pilih file video dulu.', false); return; }
+      if (file.size > MAKS_VIDEO_BYTES) {
+        showStatus('Ukuran video ' + (file.size / 1048576).toFixed(1) + ' MB — maks. 20 MB. Kompres dulu videonya.', false);
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Mengunggah…';
+      try {
+        const slugDasar = slugify(judul);
+        const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+        const ext = ((file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'mp4';
+        const videoPath = 'public/videos/video-' + slugDasar + '-' + stamp + '.' + ext;
+        const base64 = await bacaFileBase64(file);
+        if (token) {
+          await gh('/contents/' + videoPath, {
+            method: 'PUT',
+            body: JSON.stringify({ message: 'Unggah video ZonaPasTV: ' + videoPath, content: base64, branch: 'main' }),
+          });
+        } else {
+          // Masuk lewat Google: tulis lewat Worker.
+          await githubTulis(videoPath, base64, 'Unggah video ZonaPasTV: ' + videoPath);
+        }
+        let poster = '';
+        const posterFile = $('v-poster').files && $('v-poster').files[0];
+        if (posterFile) {
+          const posterName = 'poster-' + slugDasar + '-' + stamp + '.jpg';
+          const dataUrl = await resizeImage(posterFile);
+          const posterB64 = dataUrl.split(',')[1];
+          if (token) {
+            await gh('/contents/public/images/' + encodeURIComponent(posterName), {
+              method: 'PUT',
+              body: JSON.stringify({ message: 'Unggah poster ZonaPasTV: ' + posterName, content: posterB64, branch: 'main' }),
+            });
+          } else {
+            await githubTulis('public/images/' + posterName, posterB64, 'Unggah poster ZonaPasTV: ' + posterName);
+          }
+          poster = '/images/' + posterName;
+        }
+        const tanggal = new Date().toISOString().slice(0, 10);
+        const md = buildVideoMarkdown({
+          title: judul,
+          description: deskripsi,
+          video: '/videos/video-' + slugDasar + '-' + stamp + '.' + ext,
+          poster,
+          publishDate: tanggal,
+          author: (identitas && identitas.nama) || 'Rezie',
+        });
+        // Tulis data video; slug bentrok (422) -> coba slug-2, slug-3.
+        let finalSlug = slugDasar;
+        let percobaan = 0;
+        while (true) {
+          try {
+            const isi = b64encodeUnicode(md);
+            if (token) {
+              await gh('/contents/src/content/video/' + encodeURIComponent(finalSlug) + '.md', {
+                method: 'PUT',
+                body: JSON.stringify({ message: 'Tambah video ZonaPasTV: ' + judul, content: isi, branch: 'main' }),
+              });
+            } else {
+              await githubTulis('src/content/video/' + finalSlug + '.md', isi, 'Tambah video ZonaPasTV: ' + judul);
+            }
+            break;
+          } catch (err) {
+            if (err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slugDasar + '-' + (percobaan + 1); continue; }
+            throw err;
+          }
+        }
+        showStatus('Video "' + judul + '" terunggah. Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
+        $('form-video').reset();
+        await muatVideo();
+      } catch (err) {
+        showStatus('Gagal mengunggah video: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Unggah Video';
+      }
     });
 
     // ---------- Pulihkan sesi: cookie dulu, lalu token GitHub ----------
