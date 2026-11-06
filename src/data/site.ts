@@ -16,6 +16,7 @@ export const CATEGORIES: Category[] = [
   { name: 'Pengembangan Kompetensi', slug: 'pengembangan-kompetensi', color: '#0F766E', description: 'Pengembangan kompetensi pegawai dan warga binaan: pelatihan, bimbingan teknis, dan peningkatan kapasitas.' },
   { name: 'Edukasi', slug: 'edukasi', color: '#BE185D', description: 'Edukasi dan penyuluhan pemasyarakatan bagi masyarakat, pegawai, dan warga binaan.' },
   { name: 'Pembimbingan', slug: 'pembimbingan', color: '#4338CA', description: 'Pembimbingan warga binaan dan pegawai: pendampingan, konseling, dan pembinaan berkelanjutan.' },
+  { name: 'Umum', slug: 'umum', color: '#64748B', description: 'Berita umum pemasyarakatan yang tidak masuk kategori khusus.' },
 ];
 
 export function categoryByName(name: string): Category | undefined {
