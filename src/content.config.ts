@@ -27,9 +27,10 @@ const berita = defineCollection({
   }),
 });
 
-// ZonaPasTV: video hasil unggahan redaksi (dikelola lewat Kelola Berita,
-// cadangan lewat Decap). File video di public/videos/*.mp4 (maks. ~20 MB
-// karena batas file Cloudflare Pages 25 MB); poster opsional.
+// ZonaPasTV: video YouTube redaksi (dikelola lewat Kelola Berita,
+// cadangan lewat Decap). `video` berisi tautan YouTube (watch / youtu.be /
+// Shorts); video tetap tersimpan di YouTube, situs hanya menanamkannya.
+// Poster opsional — bila kosong, sampul memakai gambar mini YouTube.
 const video = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/video' }),
   schema: z.object({

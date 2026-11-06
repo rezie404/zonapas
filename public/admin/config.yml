@@ -76,8 +76,8 @@ collections:
       - { name: source, label: Sumber Artikel, widget: hidden, default: "zonapas" }
       - { name: body, label: Isi Berita, widget: markdown }
 
-  # ZonaPasTV: video hasil unggahan redaksi (tayang di beranda).
-  # File video disimpan di public/videos (maks. ~20 MB, batas Pages 25 MB).
+  # ZonaPasTV: video YouTube redaksi (tayang di beranda).
+  # Video disimpan di YouTube — isi dengan tautan video (watch / youtu.be / Shorts).
   - name: video
     label: Video ZonaPasTV
     label_singular: Video ZonaPasTV
@@ -90,7 +90,7 @@ collections:
     fields:
       - { name: title, label: Judul Video, widget: string }
       - { name: description, label: Deskripsi, widget: text, required: false }
-      - { name: video, label: File Video, widget: file, media_folder: public/videos }
+      - { name: video, label: Tautan YouTube, widget: string, hint: "Tempel tautan video YouTube (watch, youtu.be, atau Shorts)" }
       - { name: poster, label: Poster / Sampul Video, widget: image, required: false }
       - { name: publishDate, label: Tanggal Tayang, widget: datetime, date_format: YYYY-MM-DD, time_format: false, default: "" }
       - { name: author, label: Pengunggah, widget: string, default: "Rezie" }
