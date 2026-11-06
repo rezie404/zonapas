@@ -25,13 +25,28 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
           <span class="hidden md:inline">Cari berita…</span>
         </a>
         {!isMasukPage && (
-          <a
-            href="/masuk/"
-            data-header-masuk
-            class="flex h-10 items-center rounded-full bg-[#0A2540] px-4 text-sm font-bold text-white hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540] dark:hover:bg-slate-200"
-          >
-            Masuk
-          </a>
+          <div class="relative" data-menu-profil-wadah>
+            <a
+              href="/masuk/"
+              data-header-masuk
+              class="flex h-10 items-center rounded-full bg-[#0A2540] px-4 text-sm font-bold text-white hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540] dark:hover:bg-slate-200"
+            >
+              Masuk
+            </a>
+            <div
+              data-menu-profil
+              class="absolute right-0 top-full z-50 mt-2 hidden w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+              role="menu"
+              aria-label="Menu profil"
+            >
+              <div class="border-b border-slate-200 px-4 py-2 dark:border-slate-700">
+                <p data-menu-nama class="truncate text-sm font-bold text-slate-800 dark:text-slate-100"></p>
+                <p data-menu-email class="truncate text-xs text-slate-500 dark:text-slate-400"></p>
+              </div>
+              <a data-menu-kelola href="/kelola-berita/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Kelola Berita</a>
+              <button type="button" data-menu-keluar class="block w-full px-4 py-2 text-left text-sm font-bold text-[#D9232E] hover:bg-slate-100 dark:hover:bg-slate-800" role="menuitem">Keluar</button>
+            </div>
+          </div>
         )}
         <button
           type="button"
@@ -120,6 +135,53 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
         el.setAttribute('href', tujuan);
       });
     }
+    // Keluar manual dari menu profil — langkahnya sama persis dengan tombol
+    // Keluar di Kelola Berita (POST /redaksi/logout, hapus token + kunci
+    // aktivitas, kembali ke /masuk/).
+    async function keluarManual(e) {
+      if (e) e.preventDefault();
+      try { await fetch('/redaksi/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+      try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (err) {}
+      try { localStorage.removeItem(KUNCI); } catch (err) {}
+      window.location.href = '/masuk/';
+    }
+    // Menu profil: ketuk nama di header → muncul nama + email akun, tautan
+    // Kelola Berita (hanya Redaksi), dan tombol Keluar.
+    function pasangMenuProfil(user) {
+      var wadah = document.querySelector('[data-menu-profil-wadah]');
+      if (!wadah) return;
+      var tombol = wadah.querySelector('[data-header-masuk]');
+      var menu = wadah.querySelector('[data-menu-profil]');
+      if (!tombol || !menu) return;
+      var nama = menu.querySelector('[data-menu-nama]');
+      var email = menu.querySelector('[data-menu-email]');
+      if (nama) nama.textContent = user.name || user.email || 'Akun';
+      if (email) email.textContent = user.email || '';
+      if (user.role === 'pembaca') {
+        var kelola = menu.querySelector('[data-menu-kelola]');
+        if (kelola) kelola.style.display = 'none';
+      }
+      var terbuka = false;
+      function aturMenu(buka) {
+        terbuka = buka;
+        menu.classList.toggle('hidden', !buka);
+        tombol.setAttribute('aria-expanded', buka ? 'true' : 'false');
+      }
+      tombol.setAttribute('aria-haspopup', 'true');
+      tombol.setAttribute('aria-expanded', 'false');
+      tombol.addEventListener('click', function (e) {
+        e.preventDefault();
+        aturMenu(!terbuka);
+      });
+      var btnKeluar = menu.querySelector('[data-menu-keluar]');
+      if (btnKeluar) btnKeluar.addEventListener('click', keluarManual);
+      document.addEventListener('click', function (e) {
+        if (terbuka && !wadah.contains(e.target)) aturMenu(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && terbuka) aturMenu(false);
+      });
+    }
     function catatAktivitas() {
       if (!sedangMasuk) return;
       try { localStorage.setItem(KUNCI, String(Date.now())); } catch (e) {}
@@ -161,7 +223,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       .then(function (d) {
         if (d && d.ok && d.user) {
           sedangMasuk = true;
-          if (!diKelola) perbaruiHeader(d.user);
+          if (!diKelola) { perbaruiHeader(d.user); pasangMenuProfil(d.user); }
           catatAktivitas();
           cekIdle();
         }
