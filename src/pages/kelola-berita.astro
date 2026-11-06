@@ -986,7 +986,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             const role = u.role || 'penulis';
             const aktif = u.status ? (u.status !== 'nonaktif' && u.active !== false) : (u.active !== false);
             const utama = !!(u.is_main_admin || u.main_admin || u.is_main);
-            const opsi = ['admin', 'penyunting', 'penulis', 'pembaca'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
+            const opsi = ['admin', 'penyunting', 'penulis'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
             return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
               '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(nama) + '</span>' +
               '<span class="block text-xs text-slate-500">' + esc(email) + (aktif ? '' : ' · Nonaktif') + '</span></span>' +
