@@ -47,3 +47,16 @@ jobs:
           GITHUB_EVENT_BEFORE: ${{ github.event.before }}
           GITHUB_EVENT_AFTER: ${{ github.event.after }}
         run: node scripts/jurnalpas-sync.mjs
+
+      # Kirim notifikasi email artikel baru ke pelanggan ZonaPas (Resend).
+      # Hanya berjalan bila langkah sync berhasil; daftar artikel baru dibaca
+      # dari .github/notify-created.json yang ditulis skrip sync. Langkah ini
+      # tidak boleh menggagalkan workflow: skrip dirancang selalu exit 0
+      # bila notifikasi yang gagal, dan continue-on-error adalah sabuk
+      # pengaman lapis kedua.
+      - name: Kirim notifikasi email pelanggan
+        continue-on-error: true
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LANGGANAN_SYNC_TOKEN: ${{ secrets.LANGGANAN_SYNC_TOKEN }}
+        run: node scripts/kirim-notifikasi.mjs
