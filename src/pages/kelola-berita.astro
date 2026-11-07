@@ -154,11 +154,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <p id="yt-progress-teks" class="mt-1 text-xs text-slate-500"></p>
           </div>
           <div>
-            <label for="v-poster" class="mb-1 block text-sm font-bold">Poster / Sampul Video (opsional)</label>
-            <input id="v-poster" type="file" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Bila kosong, sampul otomatis memakai gambar mini dari YouTube.</p>
-          </div>
-          <div>
             <button type="submit" id="btn-tv-simpan" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Unggah ke YouTube</button>
           </div>
         </form>
@@ -1176,7 +1171,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         'description: ' + q(d.description),
         'video: ' + q(d.video),
       ];
-      if (d.poster) lines.push('poster: ' + q(d.poster));
       lines.push('publishDate: ' + d.publishDate, 'author: ' + q(d.author), '---', '');
       return lines.join('\n');
     }
@@ -1218,11 +1212,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       el.innerHTML = videos.map((v) => {
         const d = v.data;
         const idYt = idYoutube(d.video);
-        const thumb = d.poster
-          ? '<img src="' + esc(imageUrl(d.poster)) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" onerror="this.onerror=null;this.src=\'/images/cover-default.svg\'" />'
-          : (idYt
-            ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
-            : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>');
+        const thumb = idYt
+          ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
+          : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
         return '<article class="flex gap-3 py-4">' + thumb +
           '<div class="min-w-0 flex-1">' +
           '<span class="block text-sm font-bold leading-snug">' + esc(d.title || '(tanpa judul)') + '</span>' +
@@ -2850,8 +2842,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
       }
       // Hapus video ZonaPasTV (khusus Administrator, login GitHub):
-      // hapus data .md dan posternya bila masih ada. Video di YouTube
-      // TIDAK ikut terhapus.
+      // hapus data .md saja. Video di YouTube TIDAK ikut terhapus.
       const delVideoBtn = e.target.closest('[data-video-hapus]');
       if (delVideoBtn) {
         if (peran !== 'admin') return;
@@ -2863,19 +2854,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             method: 'DELETE',
             body: JSON.stringify({ message: 'Hapus video ZonaPasTV: ' + (v.data.title || v.slug), sha: v.sha, branch: 'main' }),
           });
-          const hapusFileRepo = async (rel) => {
-            try {
-              const f = await gh('/contents/public/' + rel + '?ref=main');
-              if (f && f.sha) {
-                await gh('/contents/public/' + rel, {
-                  method: 'DELETE',
-                  body: JSON.stringify({ message: 'Hapus file ZonaPasTV: ' + rel, sha: f.sha, branch: 'main' }),
-                });
-              }
-            } catch (e) { console.warn('File ZonaPasTV tidak terhapus: ' + rel, e); }
-          };
-          const posterRel = String(v.data.poster || '').replace(/^\//, '');
-          if (posterRel.startsWith('images/poster-')) await hapusFileRepo(posterRel);
           showStatus('Video "' + (v.data.title || v.slug) + '" dihapus. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
           await muatVideo();
         } catch (err) {
@@ -3095,28 +3073,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         btn.textContent = 'Mengunggah…';
         aturProgres(0, fileUnggah.size, 'Memulai unggahan…');
         const hasil = await unggahKeYoutube(fileUnggah, judul, deskripsi, (tk, total) => aturProgres(tk, total, 'Mengunggah ke YouTube…'));
-        let poster = '';
-        const posterFile = $('v-poster').files && $('v-poster').files[0];
-        if (posterFile) {
-          const posterName = 'poster-' + slugDasar + '-' + stamp + '.jpg';
-          const dataUrl = await resizeImage(posterFile);
-          const posterB64 = dataUrl.split(',')[1];
-          if (token) {
-            await gh('/contents/public/images/' + encodeURIComponent(posterName), {
-              method: 'PUT',
-              body: JSON.stringify({ message: 'Unggah poster ZonaPasTV: ' + posterName, content: posterB64, branch: 'main' }),
-            });
-          } else {
-            await githubTulis('public/images/' + posterName, posterB64, 'Unggah poster ZonaPasTV: ' + posterName);
-          }
-          poster = '/images/' + posterName;
-        }
         const tanggal = new Date().toISOString().slice(0, 10);
         const md = buildVideoMarkdown({
           title: judul,
           description: deskripsi,
           video: 'https://www.youtube.com/watch?v=' + hasil.id,
-          poster,
           publishDate: tanggal,
           author: (identitas && identitas.nama) || 'Rezie',
         });
