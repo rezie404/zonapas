@@ -3,8 +3,15 @@
 // Dipakai oleh Kelola Berita; dimuat dinamis hanya saat ada file video yang dipilih.
 // Bila olahan gagal (memori HP tidak cukup, wasm gagal dimuat, dsb), pemanggil
 // mengunggah file asli apa adanya — jadi kegagalan olahan tidak pernah menggagalkan unggah.
-const CDN_FFMPEG = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js";
-const CDN_UTIL = "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js";
+//
+// PENTING (pelajaran uji live 07 Nov 2026): skrip @ffmpeg/ffmpeg TIDAK BOLEH
+// dimuat dari CDN — Worker browser wajib same-origin, dan muat worker.js dari
+// jsDelivr ditolak ("cannot be accessed from origin"). Karena itu paket ESM
+// @ffmpeg/ffmpeg di-self-host di /ffmpeg/ (public/ffmpeg/*, file teks kecil).
+// Yang tetap dari CDN hanya ffmpeg-core (.js + .wasm 30 MB — melebihi batas
+// file 25 MiB Cloudflare Pages, jadi tidak bisa di-self-host); inti itu
+// dimuat dari dalam worker lewat import() yang memang mengizinkan lintas origin.
+const FFMPEG_LOKAL = "/ffmpeg/index.js";
 const CORE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js";
 const WASM_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm";
 
@@ -20,13 +27,25 @@ let ffmpeg = null;
 let janjiMuat = null;
 let logTerkumpul = [];
 
+// fetchFile ala @ffmpeg/util (tanpa dependensi): File/Blob/URL -> Uint8Array.
+async function fetchFileLokal(masukan) {
+  let buf;
+  if (typeof masukan === "string") {
+    buf = await (await fetch(masukan)).arrayBuffer();
+  } else if (masukan instanceof Blob) {
+    buf = await masukan.arrayBuffer();
+  } else {
+    buf = masukan;
+  }
+  return new Uint8Array(buf);
+}
+
 // Muat ffmpeg.wasm sekali; dipakai ulang untuk unggahan berikutnya.
 async function muatFFmpeg(onProgress) {
   if (ffmpeg) return ffmpeg;
   if (!janjiMuat) {
     janjiMuat = (async () => {
-      const { FFmpeg } = await import(CDN_FFMPEG);
-      const { fetchFile } = await import(CDN_UTIL);
+      const { FFmpeg } = await import(FFMPEG_LOKAL);
       const ff = new FFmpeg();
       ff.on("log", ({ message }) => { logTerkumpul.push(message); });
       ff.on("progress", ({ progress }) => {
@@ -34,7 +53,7 @@ async function muatFFmpeg(onProgress) {
       });
       await ff.load({ coreURL: CORE_URL, wasmURL: WASM_URL });
       ffmpeg = ff;
-      ffmpeg.__fetchFile = fetchFile;
+      ffmpeg.__fetchFile = fetchFileLokal;
       return ff;
     })();
   }
