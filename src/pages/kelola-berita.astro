@@ -219,6 +219,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div id="admin-email-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
       </section>
 
+      <!-- Permohonan Penulis (hanya Administrator) -->
+      <section id="permohonan-section" class="hidden pt-8" aria-label="Permohonan Penulis">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Permohonan Penulis <span data-badge-permohonan class="ml-1 hidden rounded-full bg-[#D9232E] px-2 py-0.5 align-middle text-xs font-bold normal-case text-white">0</span></h2>
+        </div>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Pembaca yang mengajukan diri menjadi Penulis lewat halaman Ajukan Jadi Penulis. Menyetujui permohonan mengubah peran pemohon menjadi Penulis.</p>
+        <div id="permohonan-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
       <!-- Formulir tulis/ubah berita -->
       <section id="form-section" class="hidden pt-8" aria-label="Formulir berita">
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
@@ -713,6 +722,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (bisaModerasi) muatModerasi();
       const penggunaSection = $('pengguna-section');
       if (penggunaSection) penggunaSection.classList.toggle('hidden', peran !== 'admin');
+      // Permohonan Penulis: hanya Administrator yang meninjau.
+      const permohonanSection = $('permohonan-section');
+      if (permohonanSection) permohonanSection.classList.toggle('hidden', peran !== 'admin');
+      if (peran === 'admin') muatPermohonan();
       // ZonaPasTV: unggah & hapus video hanya Administrator.
       const tvSection = $('zonapastv-section');
       if (tvSection) tvSection.classList.toggle('hidden', peran !== 'admin');
@@ -1068,6 +1081,50 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const el = $('pengguna-list');
         if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat pengguna: ' + esc(err.message) + '</p>';
       }
+    }
+
+    // ---------- Permohonan Penulis (admin) ----------
+    function fmtTanggalMs(ms) {
+      try { return new Date(ms).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; }
+    }
+
+    async function muatPermohonan() {
+      if (peran !== 'admin') return;
+      try {
+        const res = await workerGet('/redaksi/api/permohonan');
+        renderPermohonan((res && res.permohonan) || []);
+      } catch (err) {
+        const el = $('permohonan-list');
+        if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat permohonan: ' + esc(err.message) + '</p>';
+      }
+    }
+
+    function renderPermohonan(list) {
+      const el = $('permohonan-list');
+      if (!el) return;
+      const badge = document.querySelector('[data-badge-permohonan]');
+      if (badge) {
+        const n = list.filter((p) => p.status === 'menunggu').length;
+        badge.textContent = String(n);
+        badge.classList.toggle('hidden', n === 0);
+      }
+      if (!list.length) { el.innerHTML = '<p class="text-sm text-slate-500">Belum ada permohonan.</p>'; return; }
+      el.innerHTML = list.map((p) => {
+        const label = p.status === 'menunggu' ? 'Menunggu' : p.status === 'disetujui' ? 'Disetujui' : 'Ditolak';
+        const cls = p.status === 'menunggu' ? 'bg-[#FACC15] text-[#0A2540]' : p.status === 'disetujui' ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100' : 'bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100';
+        let h = '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-800">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="text-base font-bold leading-snug">' + esc(p.nama || '(tanpa nama)') + '</h3>' +
+          '<span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ' + cls + '">' + esc(label) + '</span></div>' +
+          '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc(p.email || '') + ' · ' + esc(fmtTanggalMs(p.created_at)) + '</p>';
+        if (p.alasan) h += '<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">' + esc(p.alasan) + '</p>';
+        if (p.status === 'menunggu') {
+          h += '<div class="mt-3 flex flex-wrap gap-2">' +
+            '<button type="button" data-permohonan-setujui="' + esc(p.id) + '" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Setujui Jadi Penulis</button>' +
+            '<button type="button" data-permohonan-tolak="' + esc(p.id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Tolak</button></div>';
+        }
+        h += '</article>';
+        return h;
+      }).join('');
     }
 
     function renderPengguna(data) {
@@ -2752,6 +2809,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const baru = statusBtn.getAttribute('data-status-baru');
         try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/status', { status: baru, active: baru === 'aktif' }); showStatus('Status pengguna diubah.', true); await muatPengguna(); }
         catch (err) { showStatus('Gagal mengubah status: ' + err.message, false); }
+        return;
+      }
+      const setujuiP = e.target.closest('[data-permohonan-setujui]');
+      const tolakP = e.target.closest('[data-permohonan-tolak]');
+      if (setujuiP) {
+        const id = setujuiP.getAttribute('data-permohonan-setujui');
+        if (!confirm('Setujui permohonan ini? Pemohon akan menjadi Penulis dan bisa mengirim berita.')) return;
+        try { await workerPost('/redaksi/api/permohonan/' + encodeURIComponent(id) + '/setujui', {}); showStatus('Permohonan disetujui. Pemohon kini menjadi Penulis.', true); await muatPermohonan(); await muatPengguna(); }
+        catch (err) { showStatus('Gagal menyetujui permohonan: ' + err.message, false); }
+        return;
+      }
+      if (tolakP) {
+        const id = tolakP.getAttribute('data-permohonan-tolak');
+        if (!confirm('Tolak permohonan ini? Pemohon masih bisa mengajukan lagi.')) return;
+        try { await workerPost('/redaksi/api/permohonan/' + encodeURIComponent(id) + '/tolak', {}); showStatus('Permohonan ditolak.', true); await muatPermohonan(); }
+        catch (err) { showStatus('Gagal menolak permohonan: ' + err.message, false); }
         return;
       }
     });

@@ -44,6 +44,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
                 <p data-menu-email class="truncate text-xs text-slate-500 dark:text-slate-400"></p>
               </div>
               <a data-menu-kelola href="/kelola-berita/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Kelola Berita</a>
+              <a data-menu-ajukan href="/ajukan-penulis/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Ajukan Jadi Penulis</a>
               <button type="button" data-menu-keluar class="block w-full px-4 py-2 text-left text-sm font-bold text-[#D9232E] hover:bg-slate-100 dark:hover:bg-slate-800" role="menuitem">Keluar</button>
             </div>
           </div>
@@ -168,6 +169,10 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       if (user.role === 'pembaca') {
         var kelola = menu.querySelector('[data-menu-kelola]');
         if (kelola) kelola.style.display = 'none';
+      } else {
+        // Tautan ajukan hanya untuk Pembaca; Redaksi sudah punya peran.
+        var ajukan = menu.querySelector('[data-menu-ajukan]');
+        if (ajukan) ajukan.style.display = 'none';
       }
       var terbuka = false;
       function aturMenu(buka) {
