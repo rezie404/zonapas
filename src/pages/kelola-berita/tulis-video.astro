@@ -138,6 +138,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <script is:inline src="/kelola-umum.js"></script>
   <script>
 
+    // Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js).
+    window.__kelolaSetelahLogin = () => { muatStatusYoutube(); muatVideo(); };
+
     async function muatStatusYoutube() {
       const el = $('yt-status');
       if (!el) return;

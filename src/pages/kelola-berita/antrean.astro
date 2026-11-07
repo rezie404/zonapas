@@ -137,6 +137,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
 
+    // Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js).
+    window.__kelolaSetelahLogin = () => { muatAntrean(); muatModerasi(); };
+    // Diekspos untuk simpanAntrean di kelola-umum.js (fungsi modul bukan global).
+    window.__kelolaMuatAntrean = muatAntrean;
+
     async function muatAntrean() {
       if (!peran) return;
       try {

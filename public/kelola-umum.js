@@ -350,17 +350,19 @@
       const moderasiSection = $('moderasi-section');
       const bisaModerasi = peran === 'admin' || peran === 'penyunting';
       if (moderasiSection) moderasiSection.classList.toggle('hidden', !bisaModerasi);
-      if (bisaModerasi && typeof muatModerasi === 'function') muatModerasi();
       const penggunaSection = $('pengguna-section');
       if (penggunaSection) penggunaSection.classList.toggle('hidden', peran !== 'admin');
       // Permohonan Penulis: hanya Administrator yang meninjau.
       const permohonanSection = $('permohonan-section');
       if (permohonanSection) permohonanSection.classList.toggle('hidden', peran !== 'admin');
-      if (peran === 'admin' && typeof muatPermohonan === 'function') muatPermohonan();
       // ZonaPasTV: unggah & hapus video hanya Administrator.
       const tvSection = $('zonapastv-section');
       if (tvSection) tvSection.classList.toggle('hidden', peran !== 'admin');
-      if (peran === 'admin' && typeof muatVideo === 'function') { muatVideo(); if (typeof muatStatusYoutube === 'function') muatStatusYoutube(); }
+      // CATATAN (Nov 2026): daftar antrean/moderasi/pengguna/permohonan/
+      // video TIDAK dimuat dari sini — fungsi-fungsi itu hidup di script
+      // modul tiap halaman (bukan global) sehingga typeof di sini selalu
+      // 'undefined'. Masing-masing halaman memuat daftarnya lewat hook
+      // window.__kelolaSetelahLogin (lihat setLoggedIn).
       renderLists();
       terapkanPenulis();
       // Hub & halaman tulis: kartu/tombol yang tampil mengikuti peran.
@@ -519,11 +521,13 @@
         await workerPost('/redaksi/api/berita/' + encodeURIComponent(articleId) + '/kirim', {});
       }
       showStatus(kirim ? 'Terkirim ke antrean — menunggu persetujuan.' : 'Berita tersimpan di antrean sebagai draf.', true);
-      if (typeof hapusDraf === 'function') hapusDraf();
-      if (typeof resetForm === 'function') resetForm();
+      // hapusDraf/resetForm hidup di modul tulis-artikel, muatAntrean di
+      // modul antrean — dipanggil lewat properti window (lihat hook).
+      if (typeof window.__kelolaHapusDraf === 'function') window.__kelolaHapusDraf();
+      if (typeof window.__kelolaResetForm === 'function') window.__kelolaResetForm();
       const fs = $('form-section');
       if (fs) fs.classList.add('hidden');
-      if (typeof muatAntrean === 'function') await muatAntrean();
+      if (typeof window.__kelolaMuatAntrean === 'function') await window.__kelolaMuatAntrean();
     }
 
 
@@ -729,7 +733,12 @@
       const pathHalaman = window.location.pathname.replace(/\/$/, '');
       if (pathHalaman === '/kelola-berita/antrean' && peran === 'penulis') { window.location.href = '/kelola-berita/'; return; }
       if ((pathHalaman === '/kelola-pengguna' || pathHalaman === '/kelola-berita/tulis-video') && peran !== 'admin') { window.location.href = '/kelola-berita/'; return; }
-      if (typeof window.__kelolaSetelahLogin === 'function') { try { window.__kelolaSetelahLogin(); } catch (e) { console.warn('Hook setelah login gagal.', e); } }
+      // Hook halaman (script modul) bisa belum jalan saat sesi cookie
+      // terverifikasi lebih dulu — tunda sampai DOMContentLoaded bila
+      // dokumen masih dimuat (script modul selalu jalan sebelum event itu).
+      const jalankanHook = () => { if (typeof window.__kelolaSetelahLogin === 'function') { try { window.__kelolaSetelahLogin(); } catch (e) { console.warn('Hook setelah login gagal.', e); } } };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jalankanHook, { once: true });
+      else jalankanHook();
       showStatus('Masuk sebagai ' + nama + '. Memuat daftar berita…', true);
       loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
       if (window.location.hash === '#antrean') {
@@ -781,8 +790,6 @@
           try { await workerPost('/redaksi/api/github-sesi', {}); } catch (e) {}
           const user = await ghApi('https://api.github.com/user');
           setLoggedIn(user);
-          if (typeof muatAntrean === 'function') await muatAntrean();
-          if (typeof muatPengguna === 'function') await muatPengguna();
         } catch (err) {
           if (err && err.status === 403) { tampilkanAksesDitolak(err.message); return; }
           showStatus('Login gagal: ' + err.message, false);
@@ -1230,8 +1237,6 @@
           let ghUser = null;
           if (token) { try { ghUser = await ghApi('https://api.github.com/user'); } catch (e) {} }
           setLoggedIn(ghUser || { login: me.user.name || me.user.email || 'Google' });
-          if (typeof muatAntrean === 'function') await muatAntrean();
-          if (typeof muatPengguna === 'function') await muatPengguna();
           return true;
         }
       } catch (err) {
@@ -1257,8 +1262,6 @@
           let ghUser = null;
           try { ghUser = await ghApi('https://api.github.com/user'); } catch (e) {}
           setLoggedIn(ghUser || { login: me.user.login || me.user.name || 'GitHub' });
-          if (typeof muatAntrean === 'function') await muatAntrean();
-          if (typeof muatPengguna === 'function') await muatPengguna();
         } catch (err) {
           if (err && err.status === 403) { tampilkanAksesDitolak(err.message); return; }
           if (err && err.status === 401) { setLoggedOut('Sesi GitHub sudah berakhir. Silakan masuk lagi.'); return; }
