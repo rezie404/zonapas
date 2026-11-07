@@ -76,7 +76,7 @@ const formatTanggalVideo = (d: Date) =>
         </section>
 
         <!-- ZonaPasTV -->
-        <section class="pt-8" aria-label="ZonaPasTV">
+        <section class="pt-8" id="zonapastv" aria-label="ZonaPasTV">
           <div class="mb-4 flex items-center gap-3 border-b-2 border-[#D9232E] pb-2">
             <img src="/images/logo-zonapastv.png" alt="ZonaPasTV" class="h-9 w-auto" />
             <h2 class="sr-only">ZonaPasTV</h2>
@@ -87,48 +87,25 @@ const formatTanggalVideo = (d: Date) =>
             </p>
           ) : (
             <>
-              <div id="zonapastv-pemutar" class="relative aspect-video overflow-hidden rounded-2xl bg-black">
-                <iframe id="zonapastv-video" src={embedYoutube(idYoutube(videoUtama.data.video))} title={videoUtama.data.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen class="h-full w-full border-0" />
+              <div class="relative aspect-video overflow-hidden rounded-2xl bg-black">
+                <iframe src={embedYoutube(idYoutube(videoUtama.data.video))} title={videoUtama.data.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen class="h-full w-full border-0" />
                 <div class="pointer-events-none absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1.5 shadow-lg">
                   <img src="/images/logo-zonapastv.png" alt="ZonaPasTV" class="h-6 w-auto" />
                 </div>
               </div>
-              <h3 id="zonapastv-judul" class="mt-3 text-lg font-black leading-snug">{videoUtama.data.title}</h3>
+              <h3 class="mt-3 text-lg font-black leading-snug"><a href={`/video/${videoUtama.id.replace(/\.md$/, '')}/`} class="hover:text-[#D9232E] hover:underline">{videoUtama.data.title}</a></h3>
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatTanggalVideo(videoUtama.data.publishDate)}{videoUtama.data.author ? ` · ${videoUtama.data.author}` : ''}</p>
-              <p id="zonapastv-deskripsi" class="mt-1 text-sm text-slate-600 dark:text-slate-300">{videoUtama.data.description}</p>
+              <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{videoUtama.data.description}</p>
               <div class="mt-4 grid gap-4 sm:grid-cols-3">
                 {videos.map((v) => (
-                  <button
-                    type="button"
-                    data-youtube={idYoutube(v.data.video)}
-                    data-judul={v.data.title}
-                    data-deskripsi={v.data.description}
-                    class={`zonapastv-item group overflow-hidden rounded-xl border text-left dark:border-slate-800 ${v.id === videoUtama.id ? 'border-[#D9232E] ring-2 ring-[#D9232E]' : 'border-slate-200'}`}
+                  <a
+                    href={`/video/${v.id.replace(/\.md$/, '')}/`}
+                    class="group overflow-hidden rounded-xl border border-slate-200 text-left dark:border-slate-800"
                   >
                     <span class="block p-3 text-sm font-bold leading-snug group-hover:text-[#D9232E]">{v.data.title}</span>
-                  </button>
+                  </a>
                 ))}
               </div>
-              <script>
-                const pemutar = document.getElementById('zonapastv-video') as HTMLIFrameElement | null;
-                const judulEl = document.getElementById('zonapastv-judul');
-                const deskripsiEl = document.getElementById('zonapastv-deskripsi');
-                const wadah = document.getElementById('zonapastv-pemutar');
-                document.querySelectorAll('.zonapastv-item').forEach((el) => {
-                  el.addEventListener('click', () => {
-                    if (!pemutar) return;
-                    const btn = el as HTMLElement;
-                    const id = btn.dataset.youtube || '';
-                    if (!id) return;
-                    pemutar.src = 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&autoplay=1';
-                    if (judulEl) judulEl.textContent = btn.dataset.judul || '';
-                    if (deskripsiEl) deskripsiEl.textContent = btn.dataset.deskripsi || '';
-                    document.querySelectorAll('.zonapastv-item').forEach((x) => x.classList.remove('ring-2', 'ring-[#D9232E]', 'border-[#D9232E]'));
-                    btn.classList.add('ring-2', 'ring-[#D9232E]', 'border-[#D9232E]');
-                    wadah?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                  });
-                });
-              </script>
             </>
           )}
         </section>
