@@ -12,6 +12,7 @@ breaking: true
 breakingSince: "2026-11-07T09:20:19.700Z"
 upt: "Lapas Kelas IIA Curup"
 source: "zonapas"
+jurnalpas_id: 241
 ---
 
 Curup – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, melaksanakan kegiatan penguatan Tugas dan Fungsi (Tusi) bagi seluruh jajaran Aparatur Sipil Negara (ASN) di Lapas Kelas IIA Curup. Kegiatan ini bertujuan untuk meningkatkan kedisiplinan, menyamakan persepsi, serta memastikan standar operasional prosedur berjalan optimal di lingkungan unit pelaksana teknis.
