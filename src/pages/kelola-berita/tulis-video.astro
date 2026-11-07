@@ -1,0 +1,529 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../../data/site';
+import { AUTHORS } from '../../data/authors';
+
+const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+// Peran/bio penulis untuk pratinjau tampilan terbit (modal mata).
+const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.name, { role: a.role, bio: a.bio }]));
+---
+
+<BaseLayout
+  title="Unggah Video ZonaPasTV"
+  description="Unggah video ke channel YouTube ZonaPasTV."
+>
+  <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
+       ekspresi {…} di dalam tag <script>, jadi penulisan {JSON.stringify(…)}
+       akan tercetak mentah dan JSON.parse di script utama akan gagal. -->
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
+
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">ZonaPasTV</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Video diunggah langsung ke channel YouTube ZonaPas — tidak memakai penyimpanan ZonaPas. Intro (3 dtk) dan outro (4 dtk) ZonaPasTV ditempel otomatis di awal dan akhir video.
+      </p>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Redaksi Anda.
+        Akses dan tombol yang tampil mengikuti peran akun Anda.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
+      <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
+           baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
+           dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
+      </p>
+    </section>
+
+
+    <!-- Akses ditolak (akun tanpa binding peran) -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
+    </section>
+
+
+    <!-- Aplikasi (setelah login) -->
+    <div id="app" class="hidden">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <span class="flex-1"></span>
+        <a href="/kelola-berita/tulis/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Tulis Berita Baru</a>
+        <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+      </div>
+      <!-- ZonaPasTV (khusus Administrator) -->
+      <section id="zonapastv-section" class="hidden pt-8" aria-label="ZonaPasTV">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#D9232E] pb-2">
+          <h2 class="flex items-center gap-2 text-xl font-black uppercase tracking-tight"><img src="/images/logo-zonapastv.png" alt="ZonaPasTV" class="h-8 w-auto" /> ZonaPasTV</h2>
+          <button id="btn-tv-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
+        </div>
+        <form id="form-video" class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <div id="yt-status" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">Memeriksa status YouTube…</div>
+          <div>
+            <label for="v-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
+            <input id="v-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </div>
+          <div>
+            <label for="v-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>
+            <textarea id="v-deskripsi" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </div>
+          <div>
+            <label for="v-file" class="mb-1 block text-sm font-bold">File Video *</label>
+            <input id="v-file" type="file" accept="video/*" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <p class="mt-1 text-xs text-slate-500">Video diunggah langsung ke channel YouTube ZonaPas — tidak memakai penyimpanan ZonaPas. Intro (3 dtk) dan outro (4 dtk) ZonaPasTV ditempel otomatis di awal dan akhir video. Video besar membutuhkan waktu; jangan tutup halaman selama mengunggah. Tayang di beranda setelah rebuild sekitar 1–2 menit.</p>
+          </div>
+          <div id="v-trim-wrap" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="mb-2 text-sm font-bold">Potong Video (Trim)</p>
+            <video id="v-trim-preview" controls playsinline preload="metadata" class="mb-2 max-h-64 w-full rounded-lg bg-black"></video>
+            <div class="grid gap-2">
+              <label class="text-xs">Awal: <span id="v-trim-awal-teks" class="font-bold">0:00.0</span>
+                <input id="v-trim-awal" type="range" min="0" max="100" step="0.1" value="0" class="w-full" />
+              </label>
+              <label class="text-xs">Akhir: <span id="v-trim-akhir-teks" class="font-bold">0:00.0</span>
+                <input id="v-trim-akhir" type="range" min="0" max="100" step="0.1" value="0" class="w-full" />
+              </label>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">Bagian yang diunggah: <span id="v-trim-info" class="font-bold"></span> (dari total <span id="v-trim-total"></span>). Bila olahan gagal (mis. memori HP tidak cukup), video asli diunggah apa adanya.</p>
+            <button id="v-trim-pratinjau" type="button" class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Putar Potongan</button>
+          </div>
+          <div id="yt-progress-wrap" class="hidden">
+            <progress id="yt-progress" max="100" value="0" class="w-full"></progress>
+            <p id="yt-progress-teks" class="mt-1 text-xs text-slate-500"></p>
+          </div>
+          <div>
+            <button type="submit" id="btn-tv-simpan" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Unggah ke YouTube</button>
+          </div>
+        </form>
+        <div id="video-list" class="mt-4 divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Olah video ZonaPasTV (public/olah-video.mjs) — trim + intro/outro via
+       ffmpeg.wasm; diekspos ke window.__olahVideo. -->
+  <script type="module" src="/olah-video.mjs"></script>
+  <script is:inline src="/kelola-umum.js"></script>
+  <script>
+
+    async function muatStatusYoutube() {
+      const el = $('yt-status');
+      if (!el) return;
+      // Baru kembali dari otorisasi Google: beri tahu lalu bersihkan URL.
+      if (new URLSearchParams(location.search).get('youtube') === 'terhubung') {
+        showStatus('YouTube berhasil terhubung. Silakan unggah video.', true);
+        history.replaceState(null, '', location.pathname);
+      }
+      try {
+        // Pakai workerGet (bukan fetch mentah): status harus ikut
+        // terotentikasi lewat header X-GitHub-Token saat sesi berjalan
+        // lewat token GitHub (tanpa cookie) — fetch mentah hanya membawa
+        // cookie, sehingga di HP yang sesinya sudah lewat token, Worker
+        // menolak (401) dan kotaknya keliru menampilkan "belum terhubung"
+        // padahal YouTube sudah terhubung (07 Nov 2026).
+        const d = await workerGet('/redaksi/api/youtube/status');
+        youtubeTerhubung = !!(d.ok && d.terhubung);
+        if (youtubeTerhubung) {
+          el.innerHTML = 'YouTube terhubung' + (d.channel_title ? ' — ' + esc(d.channel_title) : '') + '. Video yang diunggah tersimpan di channel YouTube.';
+        } else {
+          el.innerHTML = 'YouTube belum terhubung. <a href="/redaksi/auth/youtube" class="font-bold underline">Hubungkan channel YouTube</a> dulu sebelum mengunggah video.';
+        }
+      } catch (e) {
+        el.textContent = 'Tidak bisa memeriksa status YouTube. Coba muat ulang halaman.';
+      }
+    }
+
+
+    // Ambil ID video YouTube (11 karakter) dari berbagai bentuk tautan.
+    function idYoutube(tautan) {
+      const t = String(tautan || '').trim();
+      const m = t.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/) || t.match(/^([A-Za-z0-9_-]{11})$/);
+      return m ? m[1] : '';
+    }
+
+    function thumbYoutube(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
+
+
+    function buildVideoMarkdown(d) {
+      const q = (v) => JSON.stringify(String(v ?? ''));
+      const lines = [
+        '---',
+        'title: ' + q(d.title),
+        'description: ' + q(d.description),
+        'video: ' + q(d.video),
+      ];
+      lines.push('publishDate: ' + d.publishDate, 'author: ' + q(d.author), '---', '');
+      return lines.join('\n');
+    }
+
+
+    async function muatVideo() {
+      let list;
+      try {
+        list = await gh('/contents/src/content/video?ref=main');
+      } catch (e) {
+        // Folder belum ada (belum pernah ada video): anggap kosong.
+        if (e && e.status === 404) { videos = []; renderVideoList(); return; }
+        throw e;
+      }
+      const files = (Array.isArray(list) ? list : []).filter((f) => f.type === 'file' && f.name.endsWith('.md'));
+      const loaded = [];
+      for (const f of files) {
+        try {
+          const file = await gh('/contents/src/content/video/' + encodeURIComponent(f.name) + '?ref=main');
+          const text = b64decodeUnicode(file.content || '');
+          const parsed = parseFrontmatter(text);
+          const slug = f.name.replace(/\.md$/, '');
+          loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data });
+        } catch (e) {
+          console.warn('Gagal memuat video ' + f.name, e);
+        }
+      }
+      loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
+      videos = loaded;
+      renderVideoList();
+    }
+
+
+    function renderVideoList() {
+      const el = $('video-list');
+      if (!el) return;
+      if (!videos.length) {
+        el.innerHTML = '<p class="py-3 text-sm text-slate-500">Belum ada video di ZonaPasTV.</p>';
+        return;
+      }
+      el.innerHTML = videos.map((v) => {
+        const d = v.data;
+        const idYt = idYoutube(d.video);
+        const thumb = idYt
+          ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
+          : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
+        return '<article class="flex gap-3 py-4">' + thumb +
+          '<div class="min-w-0 flex-1">' +
+          '<span class="block text-sm font-bold leading-snug">' + esc(d.title || '(tanpa judul)') + '</span>' +
+          '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + ' · ' + esc(d.video || '') + '</span>' +
+          '<div class="mt-2 flex gap-2"><button type="button" data-video-hapus="' + esc(v.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>' +
+          '</div></article>';
+      }).join('');
+    }
+
+    on('btn-tv-refresh', 'click', () => {
+      showStatus('Memuat ulang daftar video…', true);
+      muatVideo().catch((err) => showStatus('Gagal memuat daftar video: ' + err.message, false));
+    });
+
+
+    // ---------- Unggah video ke YouTube (resumable upload) ----------
+    // Alur: minta access token (1 jam) ke Worker -> buka sesi resumable di
+    // YouTube -> unggah per potongan 8 MB dengan bilah progres -> YouTube
+    // mengembalikan ID video -> simpan .md seperti biasa. Token 401 di tengah
+    // jalan: minta token baru lalu lanjutkan dari byte terakhir yang sudah
+    // diterima YouTube (tanya posisi lewat PUT bytes */total).
+    const YT_CHUNK = 8 * 1024 * 1024;
+
+    async function mintaTokenYoutube() {
+      // Pakai workerPost (bukan fetch mentah): minta token harus ikut
+      // terotentikasi lewat header X-GitHub-Token saat sesi berjalan lewat
+      // token GitHub (tanpa cookie) — fetch mentah tanpa kredensial akan
+      // ditolak Worker (401) dan unggahan gagal (07 Nov 2026).
+      const d = await workerPost('/redaksi/api/youtube/token', {});
+      if (!d.ok || !d.access_token) throw new Error(d.error || 'Tidak bisa meminta token YouTube.');
+      return d.access_token;
+    }
+
+    function formatMB(n) { return (n / 1048576).toFixed(1) + ' MB'; }
+
+    function aturProgres(terkirim, total, label) {
+      const wrap = $('yt-progress-wrap');
+      const bar = $('yt-progress');
+      const teks = $('yt-progress-teks');
+      if (wrap) wrap.classList.remove('hidden');
+      if (bar) { bar.max = 100; bar.value = total ? Math.round((terkirim / total) * 100) : 0; }
+      if (teks) teks.textContent = (label || 'Mengunggah…') + (total ? ' ' + Math.round((terkirim / total) * 100) + '% (' + formatMB(terkirim) + ' dari ' + formatMB(total) + ')' : '');
+    }
+
+    function pesanYoutube(r, baku) {
+      return r.json().then((e) => {
+        if (e && e.error) {
+          const alasan = e.error.errors && e.error.errors[0] && e.error.errors[0].reason;
+          if (alasan === 'quotaExceeded') return 'Kuota harian YouTube habis (maks ~6 video/hari). Coba lagi besok.';
+          if (e.error.message) return e.error.message;
+        }
+        return baku;
+      }).catch(() => baku);
+    }
+
+    async function unggahKeYoutube(file, judul, deskripsi, onProgress) {
+      let token = await mintaTokenYoutube();
+      const meta = { snippet: { title: judul, description: deskripsi || '', categoryId: '25' }, status: { privacyStatus: 'public' } };
+      const bukaSesi = async (tk) => {
+        const r = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json', 'X-Upload-Content-Type': file.type || 'video/mp4', 'X-Upload-Content-Length': String(file.size) },
+          body: JSON.stringify(meta),
+        });
+        if (r.status === 401) return null;
+        if (!r.ok) throw new Error(await pesanYoutube(r, 'YouTube menolak pembuatan sesi unggah (' + r.status + ').'));
+        return r.headers.get('Location');
+      };
+      let sesi = await bukaSesi(token);
+      if (!sesi) { token = await mintaTokenYoutube(); sesi = await bukaSesi(token); }
+      if (!sesi) throw new Error('Token YouTube kedaluwarsa. Coba lagi.');
+      const posisiTerkirim = async (tk) => {
+        const r = await fetch(sesi, { method: 'PUT', headers: { Authorization: 'Bearer ' + tk, 'Content-Range': 'bytes */' + file.size } });
+        if (r.status === 308) {
+          const m = (r.headers.get('Range') || '').match(/bytes=0-(\d+)/);
+          return m ? Number(m[1]) + 1 : 0;
+        }
+        if (r.status === 200 || r.status === 201) { const d = await r.json(); return { selesai: true, id: d.id, privasi: (d.status && d.status.privacyStatus) || '' }; }
+        if (r.status === 401) return null;
+        return 0;
+      };
+      let terkirim = 0;
+      let hasil = null;
+      let gantiToken = 0;
+      while (terkirim < file.size) {
+        const akhir = Math.min(terkirim + YT_CHUNK, file.size);
+        let r;
+        try {
+          r = await fetch(sesi, { method: 'PUT', headers: { Authorization: 'Bearer ' + token, 'Content-Type': file.type || 'video/mp4', 'Content-Range': 'bytes ' + terkirim + '-' + (akhir - 1) + '/' + file.size }, body: file.slice(terkirim, akhir) });
+        } catch (e) {
+          const pos = await posisiTerkirim(token);
+          if (pos && pos.selesai) { hasil = pos; break; }
+          if (pos === null) { token = await mintaTokenYoutube(); continue; }
+          terkirim = pos || terkirim;
+          onProgress(terkirim, file.size);
+          continue;
+        }
+        if (r.status === 308) { terkirim = akhir; onProgress(terkirim, file.size); continue; }
+        if (r.status === 200 || r.status === 201) {
+          const d = await r.json();
+          hasil = { selesai: true, id: d.id, privasi: (d.status && d.status.privacyStatus) || '' };
+          terkirim = file.size;
+          onProgress(terkirim, file.size);
+          break;
+        }
+        if (r.status === 401 && gantiToken < 1) {
+          gantiToken++;
+          token = await mintaTokenYoutube();
+          const pos = await posisiTerkirim(token);
+          if (pos && pos.selesai) { hasil = pos; break; }
+          if (pos !== null) terkirim = pos || terkirim;
+          onProgress(terkirim, file.size);
+          continue;
+        }
+        throw new Error(await pesanYoutube(r, 'YouTube menolak unggahan (' + r.status + ').'));
+      }
+      if (!hasil || !hasil.id) throw new Error('Unggahan tidak selesai. Coba lagi.');
+      return hasil;
+    }
+
+
+    // ---------- Trim video ZonaPasTV ----------
+    // Pratinjau + geser awal/akhir sebelum unggah; olahan (trim + intro/outro)
+    // dikerjakan modul /olah-video.mjs (ffmpeg.wasm) saat tombol ditekan.
+    let trimDurasi = 0;
+
+    let trimAwal = 0;
+
+    let trimAkhir = 0;
+
+    let trimUrl = null;
+
+    function fmtTrim(d) {
+      const m = Math.floor(d / 60);
+      const s = d - m * 60;
+      return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+    }
+
+    function perbaruiTrim() {
+      const elAwal = $('v-trim-awal');
+      const elAkhir = $('v-trim-akhir');
+      if (elAwal) elAwal.value = String(trimAwal);
+      if (elAkhir) elAkhir.value = String(trimAkhir);
+      const tAwal = $('v-trim-awal-teks'); if (tAwal) tAwal.textContent = fmtTrim(trimAwal);
+      const tAkhir = $('v-trim-akhir-teks'); if (tAkhir) tAkhir.textContent = fmtTrim(trimAkhir);
+      const info = $('v-trim-info'); if (info) info.textContent = fmtTrim(trimAwal) + ' – ' + fmtTrim(trimAkhir) + ' (' + (trimAkhir - trimAwal).toFixed(1) + ' dtk)';
+      const total = $('v-trim-total'); if (total) total.textContent = fmtTrim(trimDurasi);
+    }
+
+    function resetTrim() {
+      const wrap = $('v-trim-wrap'); if (wrap) wrap.classList.add('hidden');
+      const vid = $('v-trim-preview'); if (vid) { vid.removeAttribute('src'); vid.load(); }
+      if (trimUrl) { URL.revokeObjectURL(trimUrl); trimUrl = null; }
+      trimDurasi = 0; trimAwal = 0; trimAkhir = 0;
+    }
+
+    on('v-file', 'change', () => {
+      const f = $('v-file').files && $('v-file').files[0];
+      resetTrim();
+      if (!f) return;
+      trimUrl = URL.createObjectURL(f);
+      const vid = $('v-trim-preview');
+      const wrap = $('v-trim-wrap');
+      if (vid) {
+        vid.src = trimUrl;
+        vid.onloadedmetadata = () => {
+          trimDurasi = isFinite(vid.duration) ? vid.duration : 0;
+          trimAwal = 0;
+          trimAkhir = trimDurasi;
+          const elAwal = $('v-trim-awal'); if (elAwal) { elAwal.max = String(trimDurasi); elAwal.value = '0'; }
+          const elAkhir = $('v-trim-akhir'); if (elAkhir) { elAkhir.max = String(trimDurasi); elAkhir.value = String(trimDurasi); }
+          perbaruiTrim();
+          if (wrap) wrap.classList.remove('hidden');
+        };
+        vid.ontimeupdate = () => {
+          if (!vid.paused && trimAkhir > 0 && vid.currentTime >= trimAkhir) { vid.pause(); vid.currentTime = trimAwal; }
+        };
+      }
+    });
+
+    on('v-trim-awal', 'input', () => {
+      const v = Number($('v-trim-awal').value || 0);
+      trimAwal = Math.max(0, Math.min(v, trimAkhir - 0.1));
+      perbaruiTrim();
+    });
+
+    on('v-trim-akhir', 'input', () => {
+      const v = Number($('v-trim-akhir').value || 0);
+      trimAkhir = Math.min(trimDurasi, Math.max(v, trimAwal + 0.1));
+      perbaruiTrim();
+    });
+
+    on('v-trim-pratinjau', 'click', () => {
+      const vid = $('v-trim-preview');
+      if (!vid || !trimDurasi) return;
+      vid.currentTime = trimAwal;
+      vid.play().catch(() => {});
+    });
+
+
+    on('form-video', 'submit', async (e) => {
+      e.preventDefault();
+      if (peran !== 'admin') return;
+      const btn = $('btn-tv-simpan');
+      const judul = ($('v-judul').value || '').trim();
+      const deskripsi = ($('v-deskripsi').value || '').trim();
+      const file = $('v-file').files && $('v-file').files[0];
+      if (!judul) { showStatus('Judul video wajib diisi.', false); return; }
+      if (!file) { showStatus('Pilih file video dulu.', false); return; }
+      if (!youtubeTerhubung) { showStatus('YouTube belum terhubung. Hubungkan channel YouTube dulu lewat tombol di atas formulir.', false); return; }
+      btn.disabled = true;
+      btn.textContent = 'Mengolah video…';
+      try {
+        const slugDasar = slugify(judul);
+        const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+        // Olah dulu: potong sesuai trim + tempel intro/outro ZonaPasTV.
+        // Bila olahan gagal (mis. memori HP tidak cukup), unggah file asli
+        // apa adanya — kegagalan olahan tidak menggagalkan unggahan.
+        let fileUnggah = file;
+        let catatanOlahan = '';
+        try {
+          const olah = window.__olahVideo;
+          if (!olah || typeof olah.olahVideo !== 'function') throw new Error('modul olah video belum termuat');
+          const awal = trimDurasi > 0 ? trimAwal : 0;
+          const akhir = trimDurasi > 0 ? trimAkhir : null;
+          fileUnggah = await olah.olahVideo({ file, awal, akhir, onProgress: (p) => aturProgres(Math.round(p * 100), 100, 'Mengolah video (trim + intro/outro)…') });
+        } catch (errOlah) {
+          catatanOlahan = ' Catatan: olahan trim/intro/outro gagal (' + (errOlah && errOlah.message ? errOlah.message : 'galat') + ') — video asli diunggah tanpa olahan.';
+        }
+        btn.textContent = 'Mengunggah…';
+        aturProgres(0, fileUnggah.size, 'Memulai unggahan…');
+        const hasil = await unggahKeYoutube(fileUnggah, judul, deskripsi, (tk, total) => aturProgres(tk, total, 'Mengunggah ke YouTube…'));
+        const tanggal = new Date().toISOString().slice(0, 10);
+        const md = buildVideoMarkdown({
+          title: judul,
+          description: deskripsi,
+          video: 'https://www.youtube.com/watch?v=' + hasil.id,
+          publishDate: tanggal,
+          author: (identitas && identitas.nama) || 'Rezie',
+        });
+        // Tulis data video; slug bentrok (422) -> coba slug-2, slug-3.
+        let finalSlug = slugDasar;
+        let percobaan = 0;
+        while (true) {
+          try {
+            const isi = b64encodeUnicode(md);
+            if (token) {
+              await gh('/contents/src/content/video/' + encodeURIComponent(finalSlug) + '.md', {
+                method: 'PUT',
+                body: JSON.stringify({ message: 'Tambah video ZonaPasTV: ' + judul, content: isi, branch: 'main' }),
+              });
+            } else {
+              await githubTulis('src/content/video/' + finalSlug + '.md', isi, 'Tambah video ZonaPasTV: ' + judul);
+            }
+            break;
+          } catch (err) {
+            if (err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slugDasar + '-' + (percobaan + 1); continue; }
+            throw err;
+          }
+        }
+        const privasi = hasil.privasi && hasil.privasi !== 'public' ? ' (YouTube menyimpannya sebagai ' + hasil.privasi + ' — periksa pengaturan channel bila seharusnya publik.)' : '';
+        showStatus('Video "' + judul + '" terunggah ke YouTube dan ditambahkan ke ZonaPasTV' + privasi + '.' + catatanOlahan + ' Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
+        $('form-video').reset();
+        resetTrim();
+        const wrap = $('yt-progress-wrap'); if (wrap) wrap.classList.add('hidden');
+        await muatVideo();
+      } catch (err) {
+        showStatus('Gagal mengunggah video: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Unggah ke YouTube';
+      }
+    });
+
+    document.addEventListener('click', async (e) => {
+// Hapus video ZonaPasTV (khusus Administrator, login GitHub):
+      // hapus data .md saja. Video di YouTube TIDAK ikut terhapus.
+            const delVideoBtn = e.target.closest('[data-video-hapus]');
+if (delVideoBtn) {
+        if (peran !== 'admin') return;
+        const v = videos.find((x) => x.slug === delVideoBtn.getAttribute('data-video-hapus'));
+        if (!v) return;
+        if (!confirm('Hapus video "' + (v.data.title || v.slug) + '" dari ZonaPasTV? Video di YouTube tidak ikut terhapus. Tindakan ini tidak bisa dibatalkan.')) return;
+        try {
+          await gh('/contents/' + v.path, {
+            method: 'DELETE',
+            body: JSON.stringify({ message: 'Hapus video ZonaPasTV: ' + (v.data.title || v.slug), sha: v.sha, branch: 'main' }),
+          });
+          showStatus('Video "' + (v.data.title || v.slug) + '" dihapus. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
+          await muatVideo();
+        } catch (err) {
+          showStatus('Gagal menghapus video: ' + err.message, false);
+        }
+      }
+    });
+  </script>
+</BaseLayout>

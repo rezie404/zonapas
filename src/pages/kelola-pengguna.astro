@@ -1,0 +1,345 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../data/site';
+import { AUTHORS } from '../data/authors';
+
+const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+// Peran/bio penulis untuk pratinjau tampilan terbit (modal mata).
+const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.name, { role: a.role, bio: a.bio }]));
+---
+
+<BaseLayout
+  title="Kelola Pengguna"
+  description="Daftar pengguna Redaksi ZonaPas dan permohonan menjadi Penulis."
+>
+  <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
+       ekspresi {…} di dalam tag <script>, jadi penulisan {JSON.stringify(…)}
+       akan tercetak mentah dan JSON.parse di script utama akan gagal. -->
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
+
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Kelola Pengguna</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Daftar Penulis, Penyunting, dan Administrator ZonaPas. Administrator mengelola peran, undangan, email cadangan, dan permohonan menjadi Penulis.
+      </p>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Redaksi Anda.
+        Akses dan tombol yang tampil mengikuti peran akun Anda.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
+      <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
+           baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
+           dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
+      </p>
+    </section>
+
+
+    <!-- Akses ditolak (akun tanpa binding peran) -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
+    </section>
+
+
+    <!-- Aplikasi (setelah login) -->
+    <div id="app" class="hidden">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <span class="flex-1"></span>
+        <a href="/kelola-berita/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Kelola Berita</a>
+        <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+      </div>
+      <!-- Pengguna (hanya Administrator) -->
+      <section id="pengguna-section" class="hidden pt-8" aria-label="Pengguna">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Pengguna</h2>
+        </div>
+        <h3 class="mt-2 text-base font-black">Pengguna Redaksi</h3>
+        <div id="pengguna-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+        <h3 class="mt-6 text-base font-black">Buat Undangan</h3>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <input id="u-invite-email" type="email" placeholder="alamat@gmail.com" class="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <select id="u-invite-peran" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+            <option value="penyunting">Penyunting</option>
+            <option value="penulis">Penulis</option>
+          </select>
+          <button id="btn-invite-buat" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Buat Undangan</button>
+        </div>
+        <p id="invite-hasil" class="mt-2 hidden break-all rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></p>
+        <h3 class="mt-6 text-base font-black">Undangan yang Masih Berlaku</h3>
+        <div id="undangan-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+        <h3 class="mt-6 text-base font-black">Email Administrator Cadangan</h3>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Alamat Gmail cadangan milik Administrator — otomatis menjadi Administrator saat pertama login dengan Gmail itu. Tambahkan tanpa mengubah kode.</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <input id="u-admin-email" type="email" placeholder="alamat@gmail.com" class="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <button id="btn-admin-email-tambah" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah</button>
+        </div>
+        <div id="admin-email-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Permohonan Penulis (hanya Administrator) -->
+      <section id="permohonan-section" class="hidden pt-8" aria-label="Permohonan Penulis">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Permohonan Penulis <span data-badge-permohonan class="ml-1 hidden rounded-full bg-[#D9232E] px-2 py-0.5 align-middle text-xs font-bold normal-case text-white">0</span></h2>
+        </div>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Pembaca yang mengajukan diri menjadi Penulis lewat halaman Ajukan Jadi Penulis. Menyetujui permohonan mengubah peran pemohon menjadi Penulis.</p>
+        <div id="permohonan-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+    </div>
+  </div>
+
+  <script is:inline src="/kelola-umum.js"></script>
+  <script>
+
+
+    // ---------- Pengguna (admin) ----------
+    async function muatPengguna() {
+      if (peran !== 'admin') return;
+      try {
+        const res = await workerGet('/redaksi/api/pengguna');
+        renderPengguna(res || {});
+      } catch (err) {
+        const el = $('pengguna-list');
+        if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat pengguna: ' + esc(err.message) + '</p>';
+      }
+    }
+
+
+    async function muatPermohonan() {
+      if (peran !== 'admin') return;
+      try {
+        const res = await workerGet('/redaksi/api/permohonan');
+        renderPermohonan((res && res.permohonan) || []);
+      } catch (err) {
+        const el = $('permohonan-list');
+        if (el) el.innerHTML = '<p class="text-sm text-red-600">Gagal memuat permohonan: ' + esc(err.message) + '</p>';
+      }
+    }
+
+
+    function renderPermohonan(list) {
+      const el = $('permohonan-list');
+      if (!el) return;
+      const badge = document.querySelector('[data-badge-permohonan]');
+      if (badge) {
+        const n = list.filter((p) => p.status === 'menunggu').length;
+        badge.textContent = String(n);
+        badge.classList.toggle('hidden', n === 0);
+      }
+      if (!list.length) { el.innerHTML = '<p class="text-sm text-slate-500">Belum ada permohonan.</p>'; return; }
+      el.innerHTML = list.map((p) => {
+        const label = p.status === 'menunggu' ? 'Menunggu' : p.status === 'disetujui' ? 'Disetujui' : 'Ditolak';
+        const cls = p.status === 'menunggu' ? 'bg-[#FACC15] text-[#0A2540]' : p.status === 'disetujui' ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100' : 'bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100';
+        let h = '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-800">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="text-base font-bold leading-snug">' + esc(p.nama || '(tanpa nama)') + '</h3>' +
+          '<span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ' + cls + '">' + esc(label) + '</span></div>' +
+          '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc(p.email || '') + (p.no_hp ? ' · <a href="tel:' + esc(String(p.no_hp).replace(/[^0-9+]/g, '')) + '" class="font-bold text-[#0A2540] hover:underline dark:text-white">' + esc(p.no_hp) + '</a>' : '') + ' · ' + esc(fmtTanggalMs(p.created_at)) + '</p>';
+        if (p.alasan) h += '<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">' + esc(p.alasan) + '</p>';
+        if (p.status === 'menunggu') {
+          h += '<div class="mt-3 flex flex-wrap gap-2">' +
+            '<button type="button" data-permohonan-setujui="' + esc(p.id) + '" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Setujui Jadi Penulis</button>' +
+            '<button type="button" data-permohonan-tolak="' + esc(p.id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Tolak</button></div>';
+        }
+        h += '</article>';
+        return h;
+      }).join('');
+    }
+
+
+    function renderPengguna(data) {
+      const users = data.users || [];
+      const invs = data.invitations || [];
+      const adminEmails = data.admin_emails || [];
+      const ul = $('pengguna-list');
+      if (ul) {
+        if (!users.length) { ul.innerHTML = '<p class="text-sm text-slate-500">Belum ada pengguna.</p>'; }
+        else {
+          ul.innerHTML = users.map((u) => {
+            const id = u.id || u.email || '';
+            const nama = u.name || u.email || id;
+            const email = u.email || '';
+            const role = u.role || 'penulis';
+            const aktif = u.status ? (u.status !== 'nonaktif' && u.active !== false) : (u.active !== false);
+            const utama = !!(u.is_main_admin || u.main_admin || u.is_main);
+            const opsi = ['admin', 'penyunting', 'penulis'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
+            return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+              '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(nama) + '</span>' +
+              '<span class="block text-xs text-slate-500">' + esc(email) + (aktif ? '' : ' · Nonaktif') + '</span></span>' +
+              '<select data-peran-user="' + esc(id) + '" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900">' + opsi + '</select>' +
+              (utama ? '<span class="text-xs font-bold text-slate-500">Admin utama</span>' : '<button type="button" data-status-user="' + esc(id) + '" data-status-baru="' + (aktif ? 'nonaktif' : 'aktif') + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">' + (aktif ? 'Nonaktifkan' : 'Aktifkan') + '</button>') +
+              '</div>';
+          }).join('');
+        }
+      }
+      const il = $('undangan-list');
+      if (il) {
+        il.innerHTML = !invs.length ? '<p class="text-sm text-slate-500">Tidak ada undangan yang masih berlaku.</p>' : invs.map((v) => {
+          const id = v.id || '';
+          const link = v.link || v.url || '';
+          return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(v.email || '') + '</span>' +
+            '<span class="block text-xs text-slate-500">' + esc(labelPeran(v.role)) + (v.expires_at ? ' · berlaku sampai ' + esc(String(v.expires_at).slice(0, 10)) : '') + '</span></span>' +
+            (link ? '<button type="button" data-undangan-salin="' + esc(link) + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Salin tautan</button>' : '') +
+            '<button type="button" data-undangan-cabut="' + esc(id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Cabut</button></div>';
+        }).join('');
+      }
+      // Email Administrator Cadangan: baris tetap admin utama + daftar
+      // cadangan dari Worker (admin_emails), tiap baris bisa dihapus.
+      // API mengembalikan tiap entri sebagai OBJEK { email, created_by,
+      // created_at } — ambil field email-nya (tetap tahan bila API suatu
+      // saat mengembalikan string biasa). Sebelumnya objek diinterpolasi
+      // langsung sehingga tampil "[object Object]" dan tombol Hapus
+      // mengirim alamat itu (gagal 404).
+      const alamatEmail = (e) => (typeof e === 'string' ? e : (e && e.email) || '');
+      const al = $('admin-email-list');
+      if (al) {
+        const utama = '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+          '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">rezienovian@gmail.com</span>' +
+          '<span class="block text-xs text-slate-500">Administrator utama</span></span></div>';
+        const cadangan = adminEmails.map(alamatEmail).filter((a) => a && a.toLowerCase() !== 'rezienovian@gmail.com').map((email) => {
+          return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(email) + '</span>' +
+            '<span class="block text-xs text-slate-500">Administrator cadangan</span></span>' +
+            '<button type="button" data-admin-email-hapus="' + esc(email) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>';
+        }).join('');
+        al.innerHTML = utama + (cadangan || '<p class="text-sm text-slate-500">Belum ada email cadangan.</p>');
+      }
+    }
+
+
+    // ---------- Aksi pengguna (admin, delegation) ----------
+    document.addEventListener('click', async (e) => {
+      const cabut = e.target.closest('[data-undangan-cabut]');
+      const salin = e.target.closest('[data-undangan-salin]');
+      const adminEmailHapus = e.target.closest('[data-admin-email-hapus]');
+      const statusBtn = e.target.closest('[data-status-user]');
+      if (salin) {
+        const link = salin.getAttribute('data-undangan-salin');
+        try { await navigator.clipboard.writeText(link); showStatus('Tautan undangan disalin.', true); }
+        catch (err) { showStatus('Tautan undangan: ' + link, true); }
+        return;
+      }
+      if (cabut) {
+        const id = cabut.getAttribute('data-undangan-cabut');
+        if (!confirm('Cabut undangan ini?')) return;
+        try { await workerPost('/redaksi/api/undangan/' + encodeURIComponent(id) + '/cabut', {}); showStatus('Undangan dicabut.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal mencabut undangan: ' + err.message, false); }
+        return;
+      }
+      if (adminEmailHapus) {
+        const email = adminEmailHapus.getAttribute('data-admin-email-hapus');
+        const sayaSendiri = !!(identitas && identitas.email && identitas.email.toLowerCase() === email.toLowerCase());
+        const pesan = 'Hapus email Administrator cadangan "' + email + '"?\n\n' +
+          'Menghapus email ini JUGA MENONAKTIFKAN akun admin yang terdaftar dengan email tersebut, sehingga akun itu tidak bisa masuk lagi ke Kelola Berita.' +
+          (sayaSendiri ? '\n\nPERINGATAN: ini adalah email akun Anda sendiri yang sedang login — Anda akan menonaktifkan akun Anda sendiri dan tidak bisa masuk lagi setelah ini.' : '') +
+          '\n\nTindakan ini tidak bisa dibatalkan.';
+        if (!confirm(pesan)) return;
+        try {
+          const hasil = await workerPost('/redaksi/api/admin-email/hapus', { email });
+          showStatus(hasil && hasil.pengguna_dinonaktifkan
+            ? 'Email Administrator cadangan dihapus. Akun admin dengan email itu ikut dinonaktifkan dan tidak bisa masuk lagi.'
+            : 'Email Administrator cadangan dihapus.', true);
+          await muatPengguna();
+        }
+        catch (err) { showStatus('Gagal menghapus email: ' + err.message, false); }
+        return;
+      }
+      if (statusBtn) {
+        const id = statusBtn.getAttribute('data-status-user');
+        const baru = statusBtn.getAttribute('data-status-baru');
+        try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/status', { status: baru, active: baru === 'aktif' }); showStatus('Status pengguna diubah.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal mengubah status: ' + err.message, false); }
+        return;
+      }
+      const setujuiP = e.target.closest('[data-permohonan-setujui]');
+      const tolakP = e.target.closest('[data-permohonan-tolak]');
+      if (setujuiP) {
+        const id = setujuiP.getAttribute('data-permohonan-setujui');
+        if (!confirm('Setujui permohonan ini? Pemohon akan menjadi Penulis dan bisa mengirim berita.')) return;
+        try { await workerPost('/redaksi/api/permohonan/' + encodeURIComponent(id) + '/setujui', {}); showStatus('Permohonan disetujui. Pemohon kini menjadi Penulis.', true); await muatPermohonan(); await muatPengguna(); }
+        catch (err) { showStatus('Gagal menyetujui permohonan: ' + err.message, false); }
+        return;
+      }
+      if (tolakP) {
+        const id = tolakP.getAttribute('data-permohonan-tolak');
+        if (!confirm('Tolak permohonan ini? Pemohon masih bisa mengajukan lagi.')) return;
+        try { await workerPost('/redaksi/api/permohonan/' + encodeURIComponent(id) + '/tolak', {}); showStatus('Permohonan ditolak.', true); await muatPermohonan(); }
+        catch (err) { showStatus('Gagal menolak permohonan: ' + err.message, false); }
+        return;
+      }
+    });
+
+    document.addEventListener('change', async (e) => {
+      const sel = e.target && e.target.closest ? e.target.closest('[data-peran-user]') : null;
+      if (!sel) return;
+      const id = sel.getAttribute('data-peran-user');
+      try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/peran', { role: sel.value }); showStatus('Peran pengguna diubah.', true); }
+      catch (err) { showStatus('Gagal mengubah peran: ' + err.message, false); await muatPengguna(); }
+    });
+
+
+    on('btn-invite-buat', 'click', async () => {
+      const email = ($('u-invite-email').value || '').trim();
+      const role = $('u-invite-peran').value;
+      if (!email) { showStatus('Isi Gmail yang diundang.', false); return; }
+      try {
+        const res = await workerPost('/redaksi/api/undangan', { email, role });
+        const link = (res && (res.link || res.url || (res.invitation && res.invitation.link))) || '';
+        const hasil = $('invite-hasil');
+        if (hasil) {
+          hasil.textContent = link ? ('Tautan undangan: ' + link) : 'Undangan dibuat.';
+          hasil.classList.remove('hidden');
+        }
+        showStatus('Undangan dibuat.', true);
+        await muatPengguna();
+      } catch (err) { showStatus('Gagal membuat undangan: ' + err.message, false); }
+    });
+
+
+    on('btn-admin-email-tambah', 'click', async () => {
+      const email = ($('u-admin-email').value || '').trim();
+      if (!email) { showStatus('Isi alamat Gmail cadangan.', false); return; }
+      try {
+        await workerPost('/redaksi/api/admin-email', { email });
+        showStatus('Email Administrator cadangan ditambahkan.', true);
+        $('u-admin-email').value = '';
+        await muatPengguna();
+      } catch (err) { showStatus('Gagal menambah email: ' + err.message, false); }
+    });
+  </script>
+</BaseLayout>
