@@ -94,8 +94,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <div id="yt-status" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">Memeriksa status YouTube…</div>
           <div>
             <label for="v-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
-            <input id="v-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua) — sama seperti judul artikel.</p>
+            <input id="v-judul" required maxlength="100" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua) — sama seperti judul artikel. Maksimal 100 karakter (batas YouTube). <span id="v-judul-hitung" class="font-bold">0/100 karakter</span></p>
           </div>
           <div>
             <label for="v-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>
@@ -434,6 +434,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     });
 
 
+    // Penghitung karakter judul (batas YouTube 100 karakter).
+    on('v-judul', 'input', () => { const el = $('v-judul-hitung'); if (el) el.textContent = String(($('v-judul').value || '').length) + '/100 karakter'; });
+
     on('form-video', 'submit', async (e) => {
       e.preventDefault();
       if (peran !== 'admin') return;
@@ -441,6 +444,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Judul video memakai aturan yang sama seperti judul artikel:
       // kapital tiap kata, singkatan resmi tetap kapital semua.
       const judul = normalisasiJudul($('v-judul').value);
+      // YouTube menolak judul di atas 100 karakter ("invalid or empty
+      // video title") — cegah sebelum unggah dimulai.
+      if (judul.length > 100) { showStatus('Judul video maksimal 100 karakter untuk YouTube. Judul saat ini ' + judul.length + ' karakter — persingkat dulu.', false); return; }
       const deskripsi = ($('v-deskripsi').value || '').trim();
       const file = $('v-file').files && $('v-file').files[0];
       if (!judul) { showStatus('Judul video wajib diisi.', false); return; }
