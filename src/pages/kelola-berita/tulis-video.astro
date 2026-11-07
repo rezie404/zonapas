@@ -95,6 +95,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <div>
             <label for="v-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
             <input id="v-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua) — sama seperti judul artikel.</p>
           </div>
           <div>
             <label for="v-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>
@@ -437,7 +438,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       e.preventDefault();
       if (peran !== 'admin') return;
       const btn = $('btn-tv-simpan');
-      const judul = ($('v-judul').value || '').trim();
+      // Judul video memakai aturan yang sama seperti judul artikel:
+      // kapital tiap kata, singkatan resmi tetap kapital semua.
+      const judul = normalisasiJudul($('v-judul').value);
       const deskripsi = ($('v-deskripsi').value || '').trim();
       const file = $('v-file').files && $('v-file').files[0];
       if (!judul) { showStatus('Judul video wajib diisi.', false); return; }
