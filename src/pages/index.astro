@@ -102,16 +102,20 @@ const formatTanggalVideo = (d: Date) =>
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatTanggalVideo(videoUtama.data.publishDate)}{videoUtama.data.author ? ` · ${videoUtama.data.author}` : ''}</p>
               <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{videoUtama.data.description}</p>
               {videoLain.length > 0 && (
-              <div class="mt-4 grid gap-4 sm:grid-cols-3">
-                {videoLain.map((v) => (
-                  <a
-                    href={`/video/${v.id.replace(/\.md$/, '')}/`}
-                    class="group overflow-hidden rounded-xl border border-slate-200 text-left dark:border-slate-800"
-                  >
-                    <span class="block p-3 text-sm font-bold leading-snug group-hover:text-[#D9232E]">{v.data.title}</span>
-                  </a>
-                ))}
-              </div>
+              <>
+                <h3 class="mb-4 mt-8 border-b-2 border-[#D9232E] pb-2 text-xl font-black uppercase">Tonton Juga</h3>
+                <div class="grid gap-4 sm:grid-cols-3">
+                  {videoLain.map((v) => (
+                    <a
+                      href={`/video/${v.id.replace(/\.md$/, '')}/`}
+                      class="group overflow-hidden rounded-xl border border-slate-200 text-left dark:border-slate-800"
+                    >
+                      <img src={`https://i.ytimg.com/vi/${idYoutube(v.data.video)}/hqdefault.jpg`} alt="" loading="lazy" class="aspect-video w-full object-cover" />
+                      <span class="block p-3 text-sm font-bold leading-snug group-hover:text-[#D9232E]">{v.data.title}</span>
+                    </a>
+                  ))}
+                </div>
+              </>
               )}
             </>
           )}

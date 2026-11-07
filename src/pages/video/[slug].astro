@@ -25,8 +25,9 @@ const idYoutube = (tautan: string) => {
 const id = idYoutube(video);
 const thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 
-// Video lainnya: terbaru dulu, maksimal 6 (tanpa gambar sampul —
-// kartu video ZonaPasTV memang tanpa gambar sejak 07 Nov 2026).
+// Video lainnya: terbaru dulu, maksimal 6. Sejak 07 Nov 2026 kartunya
+// memakai thumbnail bawaan YouTube (bingkai video itu sendiri) dengan
+// judul seksi "Tonton Juga" — bukan sampul/cover buatan redaksi.
 const semua = await getCollection('video');
 const lainnya = semua
   .filter((v) => v.id !== entry.id)
@@ -100,14 +101,15 @@ const jsonLd = {
     </div>
 
     {lainnya.length > 0 && (
-      <section class="mx-auto mt-10 max-w-[1200px]" aria-label="Video lainnya">
-        <h2 class="mb-4 border-b-2 border-[#D9232E] pb-2 text-xl font-black uppercase">Video Lainnya</h2>
+      <section class="mx-auto mt-10 max-w-[1200px]" aria-label="Tonton juga">
+        <h2 class="mb-4 border-b-2 border-[#D9232E] pb-2 text-xl font-black uppercase">Tonton Juga</h2>
         <div class="grid gap-4 sm:grid-cols-3">
           {lainnya.map((v) => (
             <a
               href={`/video/${v.id.replace(/\.md$/, '')}/`}
               class="group overflow-hidden rounded-xl border border-slate-200 text-left dark:border-slate-800"
             >
+              <img src={`https://i.ytimg.com/vi/${idYoutube(v.data.video)}/hqdefault.jpg`} alt="" loading="lazy" class="aspect-video w-full object-cover" />
               <span class="block p-3 text-sm font-bold leading-snug group-hover:text-[#D9232E]">{v.data.title}</span>
               <span class="block px-3 pb-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(v.data.publishDate)}</span>
             </a>
