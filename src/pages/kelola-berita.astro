@@ -737,8 +737,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         history.replaceState(null, '', location.pathname);
       }
       try {
-        const r = await fetch('/redaksi/api/youtube/status', { credentials: 'same-origin' });
-        const d = await r.json();
+        // Pakai workerGet (bukan fetch mentah): status harus ikut
+        // terotentikasi lewat header X-GitHub-Token saat sesi berjalan
+        // lewat token GitHub (tanpa cookie) — fetch mentah hanya membawa
+        // cookie, sehingga di HP yang sesinya sudah lewat token, Worker
+        // menolak (401) dan kotaknya keliru menampilkan "belum terhubung"
+        // padahal YouTube sudah terhubung (07 Nov 2026).
+        const d = await workerGet('/redaksi/api/youtube/status');
         youtubeTerhubung = !!(d.ok && d.terhubung);
         if (youtubeTerhubung) {
           el.innerHTML = 'YouTube terhubung' + (d.channel_title ? ' — ' + esc(d.channel_title) : '') + '. Video yang diunggah tersimpan di channel YouTube.';
@@ -2898,8 +2903,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // diterima YouTube (tanya posisi lewat PUT bytes */total).
     const YT_CHUNK = 8 * 1024 * 1024;
     async function mintaTokenYoutube() {
-      const r = await fetch('/redaksi/api/youtube/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      const d = await r.json();
+      // Pakai workerPost (bukan fetch mentah): minta token harus ikut
+      // terotentikasi lewat header X-GitHub-Token saat sesi berjalan lewat
+      // token GitHub (tanpa cookie) — fetch mentah tanpa kredensial akan
+      // ditolak Worker (401) dan unggahan gagal (07 Nov 2026).
+      const d = await workerPost('/redaksi/api/youtube/token', {});
       if (!d.ok || !d.access_token) throw new Error(d.error || 'Tidak bisa meminta token YouTube.');
       return d.access_token;
     }
