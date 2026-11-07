@@ -123,7 +123,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js"></script>
+  <script is:inline src="/kelola-umum.js?v=2"></script>
   <script>
 
 
@@ -216,7 +216,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const link = v.link || v.url || '';
           return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
             '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(v.email || '') + '</span>' +
-            '<span class="block text-xs text-slate-500">' + esc(labelPeran(v.role)) + (v.expires_at ? ' · berlaku sampai ' + esc(String(v.expires_at).slice(0, 10)) : '') + '</span></span>' +
+            '<span class="block text-xs text-slate-500">' + esc(labelPeran(v.role)) + (v.expires_at ? ' · berlaku sampai ' + esc(fmtTanggalMs(v.expires_at)) : '') + '</span></span>' +
             (link ? '<button type="button" data-undangan-salin="' + esc(link) + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Salin tautan</button>' : '') +
             '<button type="button" data-undangan-cabut="' + esc(id) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Cabut</button></div>';
         }).join('');
