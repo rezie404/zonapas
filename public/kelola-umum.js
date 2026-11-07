@@ -740,7 +740,7 @@
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jalankanHook, { once: true });
       else jalankanHook();
       showStatus('Masuk sebagai ' + nama + '. Memuat daftar berita…', true);
-      loadArticles().catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
+      loadArticles().then(() => showStatus('Masuk sebagai ' + nama + '.', true)).catch((err) => showStatus('Gagal memuat daftar berita: ' + err.message, false));
       if (window.location.hash === '#antrean') {
         setTimeout(() => { const s = $('antrean-section'); if (s) s.scrollIntoView({ behavior: 'smooth' }); }, 600);
       }
