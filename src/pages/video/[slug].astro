@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import InteraksiArtikel from '../../components/InteraksiArtikel.astro';
 import { SITE, formatDate } from '../../data/site';
 
 export async function getStaticPaths() {
@@ -78,6 +79,10 @@ const jsonLd = {
         )}
       </div>
 
+      <div class="mt-4">
+        <InteraksiArtikel mode="bar" slug={slug} url={url} title={title} jenis="video" dengarkan={false} />
+      </div>
+
       <div class="relative mt-5 aspect-video overflow-hidden rounded-2xl bg-black">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${id}?rel=0`}
@@ -94,6 +99,8 @@ const jsonLd = {
       {description && (
         <p class="mt-5 whitespace-pre-line text-[17px] leading-relaxed text-slate-800 dark:text-slate-200">{description}</p>
       )}
+
+      <InteraksiArtikel mode="komentar" slug={slug} jenis="video" />
 
       <p class="mt-6">
         <a href="/" class="text-sm font-bold text-[#0A2540] hover:underline dark:text-white">&larr; Kembali ke Beranda</a>

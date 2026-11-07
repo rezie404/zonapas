@@ -22,7 +22,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Antrean Persetujuan</h1>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Berita yang menunggu persetujuan Penyunting/Administrator sebelum terbit, dan komentar pembaca yang menunggu tampil di artikel.
+        Berita yang menunggu persetujuan Penyunting/Administrator sebelum terbit, dan komentar pembaca yang menunggu tampil di artikel dan video.
       </p>
     </div>
 
@@ -214,9 +214,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     function kartuKomentar(k, aksi) {
       const waktu = k.created_at ? new Date(k.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      // Komentar video memakai kunci 'video-<slug>' — tautannya ke halaman
+      // video, bukan artikel.
+      const adalahVideo = (k.slug || '').indexOf('video-') === 0;
+      const tautanKomentar = adalahVideo ? '/video/' + esc(k.slug.slice(6)) + '/' : '/berita/' + esc(k.slug) + '/';
+      const labelTautan = adalahVideo ? 'Lihat video &rarr;' : 'Lihat artikel &rarr;';
       let h = '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-800">' +
         '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="text-base font-bold leading-snug">' + esc(k.name || 'Pembaca') + '</h3>' +
-        '<a href="/berita/' + esc(k.slug) + '/" target="_blank" rel="noopener" class="shrink-0 text-xs font-bold text-[#0A2540] hover:underline dark:text-white">Lihat artikel &rarr;</a></div>' +
+        '<a href="' + tautanKomentar + '" target="_blank" rel="noopener" class="shrink-0 text-xs font-bold text-[#0A2540] hover:underline dark:text-white">' + labelTautan + '</a></div>' +
         '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc(waktu) + '</p>' +
         '<p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-200">' + esc(k.body || '') + '</p>' +
         '<div class="mt-3 flex flex-wrap gap-2">';
