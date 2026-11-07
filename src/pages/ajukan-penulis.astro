@@ -37,6 +37,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <input id="a-nama" type="text" required maxlength="100" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
       </div>
       <div>
+        <label for="a-nohp" class="text-sm font-bold">No HP yang bisa dihubungi</label>
+        <input id="a-nohp" type="tel" inputmode="tel" required maxlength="20" placeholder="08xxxxxxxxxx" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+        <p class="mt-1 text-xs text-slate-500">Administrator menghubungi nomor ini bila permohonanmu disetujui atau perlu konfirmasi.</p>
+      </div>
+      <div>
         <label for="a-alasan" class="text-sm font-bold">Alasan mengajukan <span class="font-normal text-slate-500">(opsional)</span></label>
         <textarea id="a-alasan" rows="4" maxlength="500" placeholder="Contoh: Saya humas Lapas Bengkulu dan ingin menulis kegiatan UPT kami." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
         <p class="mt-1 text-xs text-slate-500">Maksimal 500 karakter. Alasan membantu Administrator menilai permohonanmu.</p>
@@ -109,6 +114,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       if (form) form.addEventListener('submit', async function (e) {
         e.preventDefault();
         var nama = $('a-nama').value.trim();
+        var noHp = $('a-nohp').value.trim();
         var alasan = $('a-alasan').value.trim();
         var pesan = $('ajukan-pesan');
         var btn = form.querySelector('button[type="submit"]');
@@ -117,9 +123,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           pesan.classList.remove('hidden'); pesan.style.color = '#B91C1C';
           return;
         }
+        if (!noHp) {
+          pesan.textContent = 'No HP yang bisa dihubungi wajib diisi.';
+          pesan.classList.remove('hidden'); pesan.style.color = '#B91C1C';
+          return;
+        }
         btn.disabled = true; btn.textContent = 'Mengirim…';
         try {
-          var r = await api('/redaksi/api/permohonan', 'POST', { nama: nama, alasan: alasan });
+          var r = await api('/redaksi/api/permohonan', 'POST', { nama: nama, no_hp: noHp, alasan: alasan });
           if (r.ok) muat();
         } catch (err) {
           pesan.textContent = 'Gagal mengajukan: ' + err.message;
