@@ -17,14 +17,19 @@ try {
   log('3. Membangun DOCX...');
   const blobDocx = await buildDocx(d);
   log('   DOCX: ' + blobDocx.size + ' byte, type=' + blobDocx.type);
-  log('4. Mengimpor docx-preview + html2pdf dari CDN...');
+  log('4. Memuat pustaka dari CDN (JSZip, docx-preview, html2pdf via <script>)...');
+  const muatScript = (src) => new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('gagal memuat ' + src));
+    document.head.appendChild(s);
+  });
   const t0 = Date.now();
-  const [{ renderAsync }, html2pdfMod] = await Promise.all([
-    import('https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/+esm'),
-    import('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/+esm'),
-  ]);
-  log('   CDN dimuat dalam ' + (Date.now() - t0) + ' ms. renderAsync=' + typeof renderAsync + ', html2pdfMod=' + typeof html2pdfMod + ', default=' + typeof html2pdfMod.default);
-  const html2pdf = html2pdfMod.default || html2pdfMod;
+  await muatScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+  await muatScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/dist/docx-preview.min.js');
+  await muatScript('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js');
+  log('   CDN dimuat dalam ' + (Date.now() - t0) + ' ms. JSZip=' + typeof window.JSZip + ', docx=' + typeof window.docx + ', renderAsync=' + typeof (window.docx && window.docx.renderAsync) + ', html2pdf=' + typeof window.html2pdf);
+  const renderAsync = window.docx.renderAsync;
+  const html2pdf = window.html2pdf;
   log('   html2pdf=' + typeof html2pdf);
   log('5. Merender DOCX ke HTML (docx-preview)...');
   const wadah = document.createElement('div');

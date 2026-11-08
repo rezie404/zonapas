@@ -28,10 +28,13 @@
 // seperti berkas terkirim.
 // PDF dibuat dengan mengonversi berkas DOCX (bukan digambar ulang oleh
 // builder terpisah), supaya tampilannya persis sama dengan Word. Alur:
-// buildDocx -> render DOCX ke HTML (docx-preview, CDN jsDelivr) -> HTML
-// ke PDF (html2pdf.js = html2canvas + jsPDF, CDN jsDelivr). Hasilnya
-// berupa gambar per halaman (teks tidak bisa dipilih), tetapi tampilannya
-// sama persis dengan Word. Bila konversi gagal (mis. CDN tidak terjangkau),
+// buildDocx -> render DOCX ke HTML (docx-preview) -> HTML ke PDF
+// (html2pdf.js = html2canvas + jsPDF). Pustaka dimuat lewat <script> (UMD)
+// dari CDN jsDelivr — JANGAN pakai import() ESM (+esm) karena versi ESM
+// html2pdf.js rusak (jspdf-plugin menyetel getPageSize pada undefined);
+// docx-preview UMD butuh JSZip global dimuat dulu. Hasil konversi berupa
+// gambar per halaman (teks tidak bisa dipilih), tetapi tampilannya sama
+// persis dengan Word. Bila konversi gagal (mis. CDN tidak terjangkau),
 // jatuh ke builder lama (buildPdfLegacy, tanpa dependensi) supaya PDF
 // tetap bisa diunduh/dikirim. Garis ganda di bawah kop dan penulisan nihil
 // sebaris mengikuti berkas PDF terkirim.
@@ -718,11 +721,21 @@ export async function buildPdf(data) {
 
 async function buildPdfDariDocx(data) {
   const blobDocx = await buildDocx(data);
-  const [{ renderAsync }, html2pdfMod] = await Promise.all([
-    import("https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/+esm"),
-    import("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/+esm"),
-  ]);
-  const html2pdf = html2pdfMod.default || html2pdfMod;
+  // Muat pustaka lewat <script> (UMD), BUKAN import() ESM: versi ESM
+  // jsDelivr (+esm) untuk html2pdf.js rusak (jspdf-plugin mencoba
+  // menyetel getPageSize pada objek undefined). docx-preview UMD juga
+  // butuh JSZip global dimuat dulu.
+  const muatScript = (src) => new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = resolve;
+    s.onerror = () => reject(new Error("gagal memuat " + src));
+    document.head.appendChild(s);
+  });
+  if (!window.JSZip) await muatScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
+  if (!window.docx) await muatScript("https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/dist/docx-preview.min.js");
+  if (!window.html2pdf) await muatScript("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js");
+  const renderAsync = window.docx.renderAsync;
+  const html2pdf = window.html2pdf;
   // Wadah tersembunyi selebar kertas A4 untuk me-render DOCX.
   const wadah = document.createElement("div");
   wadah.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;background:#fff;";
