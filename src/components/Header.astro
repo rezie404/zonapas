@@ -148,6 +148,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     }
     // Menu profil: ketuk nama di header → muncul nama + email akun, tautan
     // Kelola Berita (hanya Redaksi), dan tombol Keluar.
+    var menuTerpasang = false;
     function pasangMenuProfil(user) {
       var wadah = document.querySelector('[data-menu-profil-wadah]');
       if (!wadah) return;
@@ -166,14 +167,20 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       }
       if (nama) nama.textContent = namaTampil;
       if (email) email.textContent = emailTampil;
+      var kelola = menu.querySelector('[data-menu-kelola]');
+      var ajukan = menu.querySelector('[data-menu-ajukan]');
       if (user.role === 'pembaca') {
-        var kelola = menu.querySelector('[data-menu-kelola]');
         if (kelola) kelola.style.display = 'none';
+        if (ajukan) ajukan.style.display = '';
       } else {
         // Tautan ajukan hanya untuk Pembaca; Redaksi sudah punya peran.
-        var ajukan = menu.querySelector('[data-menu-ajukan]');
         if (ajukan) ajukan.style.display = 'none';
+        if (kelola) kelola.style.display = '';
       }
+      // Pasang listener sekali saja — pemanggilan ulang hanya menyegarkan
+      // nama/email dan visibilitas tautan di atas.
+      if (menuTerpasang) return;
+      menuTerpasang = true;
       var terbuka = false;
       function aturMenu(buka) {
         terbuka = buka;
@@ -231,16 +238,39 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     }, { passive: true });
     setInterval(cekIdle, 30000);
 
-    fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d && d.ok && d.user) {
-          sedangMasuk = true;
-          if (!diKelola) { perbaruiHeader(d.user); pasangMenuProfil(d.user); }
-          catatAktivitas();
-          cekIdle();
-        }
-      })
-      .catch(function () {});
+    // Cek login header dengan auth yang SAMA seperti kelola-umum.js: cookie
+    // + token GitHub dari sessionStorage bila ada. Tanpa token, sesi yang
+    // hanya hidup lewat token (cookie kedaluwarsa/belum ditukar) membuat
+    // header tetap "Masuk" padahal halaman sudah login.
+    function ambilTokenGithub() {
+      try { return sessionStorage.getItem('zonapas-kelola-token') || ''; } catch (e) { return ''; }
+    }
+    function cekLoginHeader() {
+      var token = ambilTokenGithub();
+      var headers = { 'Content-Type': 'application/json' };
+      var body = {};
+      if (token) { headers['X-GitHub-Token'] = token; body.github_token = token; }
+      return fetch('/redaksi/api/me', { method: 'POST', credentials: 'same-origin', headers: headers, body: JSON.stringify(body) })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok && d.user) {
+            sedangMasuk = true;
+            if (!diKelola) { perbaruiHeader(d.user); pasangMenuProfil(d.user); }
+            catatAktivitas();
+            cekIdle();
+            return true;
+          }
+          return false;
+        })
+        .catch(function () { return false; });
+    }
+    // Dipanggil kelola-umum.js setelah login berhasil di halaman Portal,
+    // supaya header ikut berubah tanpa menunggu muat ulang.
+    window.__segarkanHeaderLogin = function () { if (!diKelola) cekLoginHeader(); };
+    cekLoginHeader().then(function (ok) {
+      // Bila cookie belum ada saat header dicek (kelola-umum.js baru menukar
+      // token jadi cookie sesaat setelahnya), coba sekali lagi.
+      if (!ok) setTimeout(cekLoginHeader, 2000);
+    });
   })();
 </script>

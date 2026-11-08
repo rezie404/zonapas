@@ -725,6 +725,11 @@
       if (ditolak) ditolak.classList.add('hidden');
       appEl.classList.remove('hidden');
       terapkanTombolHeaderKeluar(true);
+      // Segarkan tombol header (nama + menu profil) seperti halaman lain —
+      // di sub-halaman Portal, header diurus Header.astro, bukan di sini.
+      // (Di hub /portal/ sendiri hook ini diam, karena tombolnya sengaja
+      // jadi "Keluar" lewat terapkanTombolHeaderKeluar di atas.)
+      if (typeof window.__segarkanHeaderLogin === 'function') { try { window.__segarkanHeaderLogin(); } catch (e) {} }
       const nama = (identitas && identitas.nama) || user.login || 'GitHub';
       $('user-name').textContent = 'Masuk sebagai ' + nama + (peran ? ' (' + labelPeran(peran) + ')' : '') + ' · ' + (sumberLogin === 'google' ? 'Google' : 'GitHub');
       // Sapaan nama depan di hero hub Portal (/portal/).
