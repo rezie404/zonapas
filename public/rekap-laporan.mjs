@@ -10,8 +10,9 @@
 //   https://api.whatsapp.com/send?text=<pesan berisi tautan unduh>
 // Tautan unduh: https://zonapas.web.id/redaksi/api/rekap/file?token=<token>
 //
-// DOCX memakai TEMPLATE kiriman Bos Besar (template_Laporan_8_November_2026,
-// WPS Office, 8 Nov 2026) yang dipecah jadi bagian-bagian di
+// DOCX memakai TEMPLATE berkas laporan terkirim 8 Nov 2026 (dibangun
+// generator resmi aplikasi Rekap Jarvis; Bos Besar minta dipakai sebagai
+// template ZonaPas 8 Nov 2026) yang dipecah jadi bagian-bagian di
 // public/template-laporan/. buildDocx TIDAK membangun XML dari nol: ia
 // memuat document.xml template lalu mengganti HANYA data-nya — tanggal
 // (Ruang Lingkup + tanda tangan), 3 angka rekapitulasi, sel angka tabel
@@ -19,10 +20,15 @@
 // lain, gaya, spasi, logo, dan struktur persis template. Template ini
 // sudah TIDAK mengandung placeholder "[Sebutkan Periode/Tahun]" (yang
 // ada di template lama -2 dan ikut tercetak di laporan 4-8 Nov 2026).
-// Tautan di template berupa field HYPERLINK Word (bukan relasi), jadi
-// tidak ada relasi hyperlink yang perlu dibuat ulang.
+// Tautan di template berupa RELASI hyperlink Word (<w:hyperlink r:id> +
+// entri di word/_rels/document.xml.rels), jadi setiap tautan baru perlu
+// relasi baru (dibuat buildDocx; rId lanjut dari yang terbesar di template).
+// UPT nihil ditulis SEBARIS di labelnya ("c. Judul Publikasi : Nihil",
+// "d. Tautan Publikasi : Nihil"), tanpa butir bernomor terpisah — sama
+// seperti berkas terkirim.
 // PDF dibangun dari nol (tanpa pustaka) dengan teks yang sama seperti
-// template; logo diambil dari berkas template yang sama.
+// template; logo diambil dari berkas template yang sama. Garis ganda di
+// bawah kop dan penulisan nihil sebaris mengikuti berkas PDF terkirim.
 // Modul ini dimuat MALAS (lazy) oleh halaman — hanya saat mengunduh
 // atau mengirim laporan — supaya halaman pertama terbuka cepat.
 // TIDAK ada CDN / dependensi runtime.
@@ -147,7 +153,7 @@ const TEKS_PENUTUP_2 = "Atas perhatian dan kerja sama seluruh pihak, disampaikan
 // Bagian teks dimuat sebagai teks, gambar sebagai biner; dimuat sekali
 // lalu di-cache (modul dimuat malas, jadi unduhan pertama yang memuatnya).
 const TEMPLATE_DASAR = "/template-laporan/";
-const TEMPLATE_BAGIAN_TEKS = ["Content_Types.xml", "_rels/.rels", "docProps/core.xml", "docProps/app.xml", "docProps/custom.xml", "word/document.xml", "word/_rels/document.xml.rels", "word/styles.xml", "word/numbering.xml", "word/fontTable.xml", "word/settings.xml", "word/theme/theme1.xml"];
+const TEMPLATE_BAGIAN_TEKS = ["Content_Types.xml", "_rels/.rels", "docProps/core.xml", "word/document.xml", "word/_rels/document.xml.rels"];
 const TEMPLATE_BAGIAN_BINER = ["word/media/image1.jpeg"];
 // Tanggal yang tertulis di template (8 Nov 2026) — dipakai untuk
 // memperbarui judul di docProps/core.xml.
@@ -246,18 +252,19 @@ function gantiDataDiTabel(xmlTabel, ctx) {
 
 // Bangun ulang daftar judul/tautan tiap UPT di bagian rincian.
 // segmenRincian: larik XML string di antara "2. Rincian..." dan "D. PENUTUP".
-function bangunRincian(segmenRincian, perUpt, perNama, contoh) {
+// rels: {berikut: nomor rId berikutnya, daftar: [{id, url}]} — setiap
+// tautan baru mendapat relasi hyperlink sendiri (template memakai relasi,
+// bukan field HYPERLINK). UPT nihil ditulis sebaris di label c./d.
+function bangunRincian(segmenRincian, perUpt, perNama, contoh, rels) {
   const buatButirJudul = (n, teksJudul) => gantiTeksTerakhir(gantiTeksPertama(tanpaParaId(contoh.judul), n + "."), teksJudul);
   const buatButirTautan = (n, url) => {
     let xml = tanpaParaId(contoh.tautan);
     xml = gantiTeksPertama(xml, n + ".");
-    xml = xml.replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/, (m0) => {
-      const buka = m0.slice(0, m0.indexOf(">") + 1);
-      return buka + " HYPERLINK &quot;" + escXml(url) + "&quot; " + "</w:instrText>";
-    });
+    const rid = "rId" + (rels.berikut++);
+    rels.daftar.push({ id: rid, url });
+    xml = xml.replace(/<w:hyperlink[^>]*r:id="[^"]*"/, (m0) => m0.replace(/r:id="[^"]*"/, `r:id="${rid}"`));
     return gantiTeksTerakhir(xml, url);
   };
-  const buatButirNihil = () => tanpaParaId(contoh.nihil);
   const keluar = [];
   let i = 0;
   while (i < segmenRincian.length) {
@@ -276,16 +283,18 @@ function bangunRincian(segmenRincian, perUpt, perNama, contoh) {
     if (i < segmenRincian.length && /^b\./.test(teksParagraf(segmenRincian[i]))) {
       keluar.push(gantiTeksTerakhir(segmenRincian[i], "b. Media Massa : " + u.massa + " publikasi")); i++;
     }
+    const nihilJudul = u.judul.length === 1 && u.judul[0] === "Nihil";
     if (i < segmenRincian.length && /^c\./.test(teksParagraf(segmenRincian[i]))) {
-      keluar.push(segmenRincian[i]); i++;
+      keluar.push(gantiTeksTerakhir(segmenRincian[i], nihilJudul ? "c. Judul Publikasi : Nihil" : "c. Judul Publikasi :")); i++;
     }
-    const judulBaru = u.judul.map((j, k) => (j === "Nihil" ? buatButirNihil() : buatButirJudul(k + 1, j)));
+    const judulBaru = nihilJudul ? [] : u.judul.map((j, k) => buatButirJudul(k + 1, j));
     while (i < segmenRincian.length && segmenRincian[i].includes("<w:p") && !/^d\./.test(teksParagraf(segmenRincian[i])) && !/^\d+\)\s/.test(teksParagraf(segmenRincian[i]))) i++;
     keluar.push(...judulBaru);
+    const nihilTautan = u.tautan.length === 1 && u.tautan[0] === "Nihil";
     if (i < segmenRincian.length && /^d\./.test(teksParagraf(segmenRincian[i]))) {
-      keluar.push(segmenRincian[i]); i++;
+      keluar.push(gantiTeksTerakhir(segmenRincian[i], nihilTautan ? "d. Tautan Publikasi : Nihil" : "d. Tautan Publikasi :")); i++;
     }
-    const tautanBaru = u.tautan.map((t2, k) => (t2 === "Nihil" ? buatButirNihil() : buatButirTautan(k + 1, t2)));
+    const tautanBaru = nihilTautan ? [] : u.tautan.map((t2, k) => buatButirTautan(k + 1, t2));
     while (i < segmenRincian.length && segmenRincian[i].includes("<w:p") && !/^\d+\)\s/.test(teksParagraf(segmenRincian[i]))) i++;
     keluar.push(...tautanBaru);
   }
@@ -294,7 +303,9 @@ function bangunRincian(segmenRincian, perUpt, perNama, contoh) {
 
 // Gabungkan data laporan ke document.xml template. Hanya data yang
 // berubah; semua teks, gaya, dan struktur lain dipertahankan byte demi byte.
-function gabungDocumentXml(xmlDokumen, hitung) {
+// Mengembalikan {xml, rels}: rels = relasi hyperlink baru yang harus
+// ditambahkan ke word/_rels/document.xml.rels (rId mulai dari ridAwal).
+function gabungDocumentXml(xmlDokumen, hitung, ridAwal) {
   const { perUpt, total, tanggal } = hitung;
   const ctx = { tglPanjang: tanggalIndonesia(tanggal), tglSingkat: tanggalIndonesiaTanpaHari(tanggal), total };
   const perNama = new Map(perUpt.map((u) => [namaLaporan(u.nama), u]));
@@ -323,26 +334,22 @@ function gabungDocumentXml(xmlDokumen, hitung) {
   });
 
   // Paragraf contoh untuk kloning butir daftar (dari bagian rincian).
-  let contohJudul = null, contohTautan = null, contohNihil = null;
+  // Tautan berupa <w:hyperlink r:id> (relasi), bukan field HYPERLINK.
+  let contohJudul = null, contohTautan = null;
   const awalContoh = idxRincian >= 0 ? idxRincian : 0;
   const akhirContoh = idxPenutup >= 0 ? idxPenutup : segmen.length;
   for (let i = awalContoh; i < akhirContoh; i++) {
     const s = segmen[i];
     if (s.jenis !== "paragraf") continue;
     const t = teksParagraf(s.xml);
-    if (!contohTautan && s.xml.includes("<w:fldChar")) contohTautan = s.xml;
-    if (!contohJudul && /^1\.\S/.test(t) && !s.xml.includes("<w:fldChar") && t !== "1.Nihil") contohJudul = s.xml;
-    if (!contohNihil && t === "1.Nihil") contohNihil = s.xml;
-    if (contohJudul && contohTautan && contohNihil) break;
+    if (!contohTautan && s.xml.includes("<w:hyperlink")) contohTautan = s.xml;
+    if (!contohJudul && /^1\.\S/.test(t) && !s.xml.includes("<w:hyperlink")) contohJudul = s.xml;
+    if (contohJudul && contohTautan) break;
   }
-  // Cadangan bila contoh tidak ketemu (template berubah): pakai yang ada.
-  contohJudul = contohJudul || contohNihil;
-  contohTautan = contohTautan || contohNihil;
-  contohNihil = contohNihil || contohJudul;
-  if (!contohJudul || !contohTautan || !contohNihil) {
+  if (!contohJudul || !contohTautan) {
     throw new Error("Template laporan tidak dikenali (butir daftar tidak ditemukan).");
   }
-  const contoh = { judul: contohJudul, tautan: contohTautan, nihil: contohNihil };
+  const contoh = { judul: contohJudul, tautan: contohTautan };
 
   // Fase 1: ganti data sederhana di semua segmen DI LUAR rincian.
   const hasil = segmen.map((s, i) => {
@@ -358,16 +365,30 @@ function gabungDocumentXml(xmlDokumen, hitung) {
   // Fase 2: bangun ulang daftar judul/tautan tiap UPT di bagian rincian.
   if (idxRincian >= 0 && idxPenutup > idxRincian) {
     const awal = idxRincian + 1, akhir = idxPenutup;
-    const bangun = bangunRincian(hasil.slice(awal, akhir), perUpt, perNama, contoh);
-    return hasil.slice(0, awal).join("") + bangun + hasil.slice(akhir).join("");
+    const rels = { berikut: ridAwal, daftar: [] };
+    const bangun = bangunRincian(hasil.slice(awal, akhir), perUpt, perNama, contoh, rels);
+    return { xml: hasil.slice(0, awal).join("") + bangun + hasil.slice(akhir).join(""), rels: rels.daftar };
   }
-  return hasil.join("");
+  return { xml: hasil.join(""), rels: [] };
 }
 
 export async function buildDocx(data) {
   const hitung = hitungRekap(data);
   const tpl = await muatTemplate();
-  const xmlBaru = gabungDocumentXml(tpl.teks["word/document.xml"], hitung);
+  // Relasi hyperlink LAMA dari template dibuang (menunjuk URL laporan 8 Nov
+  // yang tidak lagi dipakai); relasi baru dibuat untuk URL laporan ini.
+  // rId baru lanjut dari yang terbesar di antara relasi yang dipertahankan
+  // (template 8 Nov: hanya rId1 gambar) supaya tidak bertabrakan.
+  let relsTpl = tpl.teks["word/_rels/document.xml.rels"].replace(/<Relationship[^>]*relationships\/hyperlink[^>]*\/>/g, "");
+  let ridAwal = 1;
+  for (const m of relsTpl.matchAll(/rId(\d+)/g)) ridAwal = Math.max(ridAwal, Number(m[1]) + 1);
+  const { xml: xmlBaru, rels: relsBaru } = gabungDocumentXml(tpl.teks["word/document.xml"], hitung, ridAwal);
+  // Tambahkan relasi hyperlink baru ke rels.
+  let relsXml = relsTpl;
+  if (relsBaru.length) {
+    const tambahan = relsBaru.map((r) => `<Relationship Id="${r.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${escXml(r.url)}" TargetMode="External"/>`).join("");
+    relsXml = relsTpl.replace("</Relationships>", tambahan + "</Relationships>");
+  }
   const tglSingkat = tanggalIndonesiaTanpaHari(hitung.tanggal);
   const [y, m, d] = String(hitung.tanggal || "2026-01-01").split("-");
   const dibuat = `${y}-${m}-${d}T13:00:00Z`; // 20.00 WIB = 13.00 UTC
@@ -384,16 +405,9 @@ export async function buildDocx(data) {
     ["[Content_Types].xml", tpl.teks["Content_Types.xml"]],
     ["_rels/.rels", tpl.teks["_rels/.rels"]],
     ["docProps/core.xml", core],
-    ["docProps/app.xml", tpl.teks["docProps/app.xml"]],
-    ["docProps/custom.xml", tpl.teks["docProps/custom.xml"]],
     ["word/document.xml", xmlBaru],
-    ["word/_rels/document.xml.rels", tpl.teks["word/_rels/document.xml.rels"]],
+    ["word/_rels/document.xml.rels", relsXml],
     ["word/media/image1.jpeg", tpl.biner["word/media/image1.jpeg"]],
-    ["word/styles.xml", tpl.teks["word/styles.xml"]],
-    ["word/numbering.xml", tpl.teks["word/numbering.xml"]],
-    ["word/fontTable.xml", tpl.teks["word/fontTable.xml"]],
-    ["word/settings.xml", tpl.teks["word/settings.xml"]],
-    ["word/theme/theme1.xml", tpl.teks["word/theme/theme1.xml"]],
   ]);
   return new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
 }
@@ -403,7 +417,7 @@ export async function buildDocx(data) {
 // (pengganti metrik Arial; lihat catatan fidelity di kepala file).
 const PDF_W = 595.28, PDF_H = 841.89, PDF_M = 51, PDF_CW = PDF_W - PDF_M * 2;
 const PDF_LH = 13.8; // tinggi baris 276 twips
-const PDF_HITAM = [0, 0, 0], PDF_BIRU_TUA = [0.039, 0.122, 0.267], PDF_TAUTAN = [0.114, 0.306, 0.847], PDF_GARIS_TABEL = [0.541, 0.6, 0.702], PDF_ISI_TABEL = [0.902, 0.925, 0.961];
+const PDF_HITAM = [0, 0, 0], PDF_BIRU_TUA = [0.039, 0.122, 0.267], PDF_TAUTAN = [0.114, 0.306, 0.847], PDF_GARIS_TABEL = [0.541, 0.6, 0.702], PDF_ISI_TABEL = [0.902, 0.925, 0.961], PDF_GARIS_KOP = [0.086, 0.137, 0.239]; // #16233D, garis ganda bawah kop
 
 const LEBAR_HELVETICA = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584];
 const LEBAR_HELVETICA_B = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 722, 556, 556, 500, 334, 280, 334, 584];
@@ -708,6 +722,11 @@ export async function buildPdf(data) {
     kop.forEach(([t, tebal, warna], i) => {
       doc.gambarBaris([{ teks: t, tebal, warna }], xTeks, yAtas - 11 - i * PDF_LH, "center", lebarTeks2);
     });
+    // Garis ganda di bawah kop (border bawah ganda paragraf kosong di
+    // template DOCX, warna #16233D), di celah antara kop dan judul.
+    doc.hal.ops.push(`${rgb(PDF_GARIS_KOP)} 0.5 w`);
+    doc.hal.ops.push(`${PDF_M.toFixed(2)} ${(yAtas - 74).toFixed(2)} m ${(PDF_M + PDF_CW).toFixed(2)} ${(yAtas - 74).toFixed(2)} l S`);
+    doc.hal.ops.push(`${PDF_M.toFixed(2)} ${(yAtas - 76).toFixed(2)} m ${(PDF_M + PDF_CW).toFixed(2)} ${(yAtas - 76).toFixed(2)} l S`);
     doc.y = yAtas - 72 - PDF_LH;
   }
   // --- Judul laporan ---
@@ -755,18 +774,24 @@ export async function buildPdf(data) {
     doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sesudah: 0 });
     doc.paraTeks(`a. Media Sosial : ${u.sosial} publikasi`, { indentKiri: TW(360), sesudah: 0 });
     doc.paraTeks(`b. Media Massa : ${u.massa} publikasi`, { indentKiri: TW(360), sesudah: 0 });
-    doc.paraTeks("c. Judul Publikasi :", { indentKiri: TW(360), sesudah: 1 });
-    u.judul.forEach((j, k) => {
-      doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: j, tebal: false }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
-    });
-    doc.paraTeks("d. Tautan Publikasi :", { indentKiri: TW(360), sesudah: 1 });
-    u.tautan.forEach((t, k) => {
-      if (t === "Nihil") {
-        doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: "Nihil", tebal: false }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
-        return;
-      }
-      doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
-    });
+    // UPT nihil ditulis sebaris di labelnya (seperti berkas PDF terkirim),
+    // tanpa butir bernomor terpisah.
+    if (u.judul.length === 1 && u.judul[0] === "Nihil") {
+      doc.paraTeks("c. Judul Publikasi : Nihil", { indentKiri: TW(360), sesudah: 1 });
+    } else {
+      doc.paraTeks("c. Judul Publikasi :", { indentKiri: TW(360), sesudah: 1 });
+      u.judul.forEach((j, k) => {
+        doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: j, tebal: false }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
+      });
+    }
+    if (u.tautan.length === 1 && u.tautan[0] === "Nihil") {
+      doc.paraTeks("d. Tautan Publikasi : Nihil", { indentKiri: TW(360), sesudah: 1 });
+    } else {
+      doc.paraTeks("d. Tautan Publikasi :", { indentKiri: TW(360), sesudah: 1 });
+      u.tautan.forEach((t, k) => {
+        doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
+      });
+    }
   });
   // --- D. PENUTUP ---
   judulBagian("D. PENUTUP");
