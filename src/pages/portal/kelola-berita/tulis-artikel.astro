@@ -1,0 +1,1205 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../../../data/site';
+import { UPTS } from '../../../data/upt';
+import { AUTHORS } from '../../../data/authors';
+
+const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+// Peran/bio penulis untuk pratinjau tampilan terbit (modal mata).
+const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.name, { role: a.role, bio: a.bio }]));
+---
+
+<BaseLayout
+  title="Tulis Artikel"
+  description="Tulis atau ubah artikel berita ZonaPas."
+>
+  <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
+       ekspresi {…} di dalam tag <script>, jadi penulisan {JSON.stringify(…)}
+       akan tercetak mentah dan JSON.parse di script utama akan gagal. -->
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
+
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Tulis Artikel</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Tulis berita ZonaPas sesuai peran akun Anda. Administrator menerbitkan langsung; Penyunting dan Penulis mengirim berita lewat Antrean Persetujuan.
+      </p>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Redaksi Anda.
+        Akses dan tombol yang tampil mengikuti peran akun Anda.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
+      <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
+           baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
+           dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
+      </p>
+    </section>
+
+
+    <!-- Akses ditolak (akun tanpa binding peran) -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
+    </section>
+
+
+    <!-- Aplikasi (setelah login) -->
+    <div id="app" class="hidden">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <span class="flex-1"></span>
+        <a href="/portal/kelola-berita/tulis/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Tulis Berita Baru</a>
+        <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+      </div>
+      <!-- Formulir tulis/ubah berita -->
+      <section id="form-section" class="hidden pt-8" aria-label="Formulir berita">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 id="form-title" class="text-xl font-black uppercase tracking-tight">Tulis Berita Baru</h2>
+        </div>
+        <div id="draf-banner" class="mb-3 hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-700 dark:bg-amber-900/30">
+          <p class="font-bold">Ada draf tersimpan otomatis <span id="draf-banner-waktu" class="font-medium"></span></p>
+          <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Isi teks formulir tersimpan di perangkat ini. Foto sampul &amp; foto isi tidak ikut tersimpan — pilih ulang bila perlu.</p>
+          <div class="mt-2 flex gap-2">
+            <button id="btn-draf-pulihkan" type="button" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Pulihkan Draf</button>
+            <button id="btn-draf-buang" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Buang</button>
+          </div>
+        </div>
+        <p id="draf-status" class="mb-3 hidden text-xs text-slate-500 dark:text-slate-400" role="status"></p>
+        <form id="form-berita" class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="md:col-span-2">
+              <label for="f-judul" class="mb-1 block text-sm font-bold">Judul *</label>
+              <input id="f-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua.</p>
+            </div>
+            <div>
+              <label for="f-kategori" class="mb-1 block text-sm font-bold">Kategori *</label>
+              <select id="f-kategori" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                {CATEGORIES.map((c) => <option value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label for="f-tag" class="mb-1 block text-sm font-bold">Tag (pisahkan dengan koma)</label>
+              <input id="f-tag" placeholder="contoh: pembinaan, kanwil" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="f-penulis" class="mb-1 block text-sm font-bold">Penulis</label>
+              <input id="f-penulis" value="Rezie" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p id="f-penulis-hint" class="mt-1 hidden text-xs text-slate-500">Nama penulis mengikuti nama lengkap di profil Gmail Anda dan tidak bisa diubah.</p>
+            </div>
+            <div>
+              <label for="f-tanggal" class="mb-1 block text-sm font-bold">Tanggal Terbit *</label>
+              <input id="f-tanggal" type="date" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="f-upt" class="mb-1 block text-sm font-bold">UPT Terkait</label>
+              <select id="f-upt" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                <option value="">— Tanpa UPT —</option>
+                {UPTS.map((u) => <option value={u.name}>{u.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-bold">Foto Sampul *</label>
+              <input id="f-foto" type="file" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p id="f-foto-saat-ini" class="mt-1 hidden text-xs text-slate-500"></p>
+              <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, Anda bisa memotong dulu bagian yang dipakai. Foto diubah ukurannya di browser (maks. sisi terpanjang 1600px, hasil akhir maks. 2 MB). Foto otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+              <img id="f-foto-preview" src="" alt="Pratinjau foto sampul" class="mt-2 hidden max-h-48 rounded-lg border border-slate-200 object-cover dark:border-slate-800" />
+            </div>
+            <div class="md:col-span-2">
+              <label for="f-keterangan" class="mb-1 block text-sm font-bold">Keterangan Foto</label>
+              <input id="f-keterangan" value="Dokumentasi kegiatan. (ZonaPas)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div class="flex items-center gap-6 md:col-span-2">
+              <label class="flex items-center gap-2 text-sm font-bold"><input id="f-featured" type="checkbox" class="h-4 w-4" /> Tampilkan sebagai Headline (Pilihan Redaksi)</label>
+              <label class="flex items-center gap-2 text-sm font-bold"><input id="f-breaking" type="checkbox" class="h-4 w-4" checked /> Breaking News</label>
+            </div>
+            <div class="md:col-span-2">
+              <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <button id="btn-tambah-gambar" type="button" class="rounded-lg bg-[#FACC15] px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">📷 Tambah Gambar</button>
+                <button id="btn-pratinjau-terbit" type="button" class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#123a66]">👁 Lihat Tampilan Terbit</button>
+                <input id="f-isi-file" type="file" accept="image/jpeg,image/png" class="hidden" />
+              </div>
+              <p id="f-isi-status" class="mb-2 hidden text-xs font-medium text-slate-500 dark:text-slate-400" role="status"></p>
+              <div id="f-isi-foto" class="mb-2 hidden items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
+                <img id="f-isi-foto-img" src="" alt="Foto badan narasi" class="h-16 w-16 shrink-0 rounded object-cover" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-bold">Foto badan narasi</p>
+                  <p id="f-isi-foto-nama" class="truncate text-xs text-slate-500 dark:text-slate-400"></p>
+                </div>
+                <button id="btn-hapus-foto-isi" type="button" class="shrink-0 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950">Hapus foto</button>
+              </div>
+              <textarea id="f-isi" required rows="12" placeholder="Tulis narasi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+              <p class="mt-1 text-xs text-slate-500"><b>Kotak ini hanya untuk narasi berita</b> — alamat gambar tidak tampil di sini. Foto badan narasi dikelola lewat tombol Tambah Gambar di atas (maks. 1 foto) dan selalu tampil setelah narasi. Setelah memilih foto, potong dulu bagian yang dipakai. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+            </div>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <button type="submit" id="btn-save" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Simpan Berita</button>
+            <button type="button" id="btn-antrean" class="hidden rounded-lg bg-[#FACC15] px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">Kirim ke Antrean</button>
+            <button type="button" id="btn-cancel" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
+          </div>
+          <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Setelah disimpan, artikel tayang di situs setelah rebuild sekitar 1–2 menit.
+          </p>
+        </form>
+      </section>
+
+      <!-- Modal pratinjau tampilan terbit: artikel persis seperti saat sudah dipublish -->
+      <div id="modal-pratinjau" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Pratinjau tampilan terbit">
+        <div class="flex min-h-full items-start justify-center px-0 py-0 sm:px-4 sm:py-6">
+          <div id="modal-pratinjau-panel" class="relative w-full max-w-[1200px] bg-white shadow-2xl dark:bg-[#0F172A] sm:rounded-2xl">
+            <div class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-[#0F172A]/95">
+              <p class="text-sm font-bold">👁 Pratinjau Tampilan Terbit <span class="block text-xs font-medium text-slate-500 dark:text-slate-400 sm:inline">— seperti saat sudah dipublish (belum tersimpan)</span></p>
+              <button id="btn-tutup-pratinjau" type="button" class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✕ Tutup</button>
+            </div>
+            <div id="pratinjau-terbit-isi"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal cek typo: daftar kemungkinan salah ketik sebelum menyimpan -->
+      <div id="modal-typo" class="fixed inset-0 z-[70] hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Hasil pemeriksaan ejaan">
+        <div class="flex min-h-full items-start justify-center px-3 py-6">
+          <div id="modal-typo-panel" class="w-full max-w-[560px] rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+            <h3 class="text-lg font-black leading-snug">⚠️ Kemungkinan typo ditemukan (<span id="typo-jumlah">0</span>)</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Pemeriksaan ini berbasis kamus — nama baru atau istilah yang belum ada di kamus bisa ikut tertandai. Periksa dulu, lalu pilih:</p>
+            <ul id="typo-daftar" class="mt-3 grid gap-2"></ul>
+            <div class="mt-4 flex flex-wrap justify-end gap-2">
+              <button id="btn-typo-perbaiki" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Perbaiki dulu</button>
+              <button id="btn-typo-simpan" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tetap simpan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal potong foto (crop): muncul setelah foto dipilih, sebelum resize/unggah -->
+      <div id="modal-crop" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Potong foto">
+        <div class="flex min-h-full items-center justify-center px-3 py-6">
+          <div id="modal-crop-panel" class="w-full max-w-[640px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-900">
+            <p class="text-base font-bold">✂️ Potong Foto</p>
+            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Geser kotak dengan jari atau mouse, tarik sudut putih untuk mengubah ukuran, geser foto untuk menggeser gambar, atau atur zoom. Ketuk “Blur wajah” lalu seret di atas wajah untuk memburamkannya. Rasio bebas — foto tampil utuh mengikuti rasio aslinya.</p>
+            <div id="crop-stage" class="relative mt-3 h-[52vh] max-h-[460px] touch-none select-none overflow-hidden rounded-xl bg-slate-900">
+              <img id="crop-img" alt="Foto yang dipotong" class="absolute max-w-none" draggable="false" />
+              <div id="crop-box" class="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" style="touch-action:none">
+                <span data-sudut="nw" class="crop-handle -left-3 -top-3 cursor-nwse-resize"></span>
+                <span data-sudut="ne" class="crop-handle -right-3 -top-3 cursor-nesw-resize"></span>
+                <span data-sudut="sw" class="crop-handle -bottom-3 -left-3 cursor-nesw-resize"></span>
+                <span data-sudut="se" class="crop-handle -bottom-3 -right-3 cursor-nwse-resize"></span>
+              </div>
+              <div id="crop-blur-lapisan" class="pointer-events-none absolute inset-0"></div>
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button id="btn-crop-blur" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">🫥 Blur wajah</button>
+              <button id="btn-crop-blur-hapus" type="button" class="hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">✕ Hapus blur</button>
+              <p id="crop-blur-petunjuk" class="hidden text-xs text-slate-500 dark:text-slate-400">Mode blur aktif: seret di atas wajah untuk menandai area yang diburamkan.</p>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Rasio potongan">
+              <button type="button" data-rasio="0" class="crop-rasio crop-rasio-aktif rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">Bebas</button>
+              <button type="button" data-rasio="1" class="crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">1:1</button>
+              <button type="button" data-rasio="1.7778" class="crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">16:9</button>
+              <button type="button" data-rasio="1.3333" class="crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">4:3</button>
+            </div>
+            <div class="mt-3 flex items-center gap-3">
+              <label for="crop-zoom" class="text-xs font-bold">Zoom</label>
+              <input id="crop-zoom" type="range" min="1" max="3" step="0.05" value="1" class="flex-1" />
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <button id="btn-crop-pakai" type="button" class="rounded-lg bg-[#FACC15] px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">Potong &amp; Pakai</button>
+              <button id="btn-crop-batal" type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    #crop-stage { touch-action: none; }
+    #crop-box { touch-action: none; cursor: move; }
+    .crop-handle { position: absolute; width: 28px; height: 28px; background: #fff; border: 2px solid #0A2540; border-radius: 6px; touch-action: none; }
+    .crop-rasio-aktif { background: #0A2540 !important; color: #fff !important; border-color: #0A2540 !important; }
+    .crop-blur-daerah { position: absolute; border: 2px dashed #fff; border-radius: 6px; background: rgba(255,255,255,0.08); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .crop-blur-aktif { background: #0A2540 !important; color: #fff !important; border-color: #0A2540 !important; }
+  </style>
+
+  <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
+       supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
+  <script type="module" src="/cek-typo.mjs"></script>
+  <script is:inline src="/kelola-umum.js?v=4"></script>
+  <script>
+
+
+    async function editAntrean(id) {
+      try {
+        const res = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/detail', {});
+        const art = (res && res.article) || {};
+        resetForm();
+        editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '', author_picture: art.author_picture || '' };
+        $('f-judul').value = normalisasiJudul(art.title || '');
+        $('f-kategori').value = art.category || '';
+        $('f-tag').value = (art.tags || []).join(', ');
+        $('f-penulis').value = art.author || 'Rezie';
+        $('f-tanggal').value = String(art.publish_date || art.publishDate || '').slice(0, 10);
+        $('f-upt').value = art.upt || '';
+        $('f-keterangan').value = art.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
+        $('f-featured').checked = art.featured === true;
+        $('f-breaking').checked = art.breaking === true;
+        const isiAwal = pisahkanFotoIsi(art.body || '');
+        $('f-isi').value = isiAwal.narasi;
+        aturFotoIsi(isiAwal.foto[0] || '');
+        $('f-foto').value = '';
+        const prev = $('f-foto-preview');
+        if (res.cover && res.cover.base64) { prev.src = 'data:' + (res.cover.mime || 'image/jpeg') + ';base64,' + res.cover.base64; prev.classList.remove('hidden'); }
+        else if (art.image) { prev.src = imageUrl(art.image); prev.classList.remove('hidden'); }
+        else { prev.classList.add('hidden'); prev.src = ''; }
+        const cur = $('f-foto-saat-ini');
+        cur.textContent = art.image ? ('Foto saat ini: ' + art.image + ' (biarkan kosong bila tidak diganti)') : (res.cover ? 'Foto sampul sudah ada (biarkan kosong bila tidak diganti)' : '');
+        cur.classList.toggle('hidden', !(art.image || res.cover));
+        $('form-title').textContent = 'Edit Berita (Antrean)';
+        $('btn-save').textContent = 'Simpan Perubahan';
+        $('form-section').classList.remove('hidden');
+        $('form-section').scrollIntoView({ behavior: 'smooth' });
+        terapkanPenulis();
+        tawarkanDraf();
+      } catch (err) {
+        showStatus('Gagal memuat berita antrean: ' + err.message, false);
+      }
+    }
+
+
+    // ---------- Form ----------
+    function resetForm() {
+      editing = null;
+      editingAntrean = null;
+      pendingCover = null;
+      pendingGambarIsi = [];
+      aturFotoIsi('');
+      $('form-berita').reset();
+      $('f-penulis').value = 'Rezie';
+      $('f-keterangan').value = 'Dokumentasi kegiatan. (ZonaPas)';
+      $('f-tanggal').value = todayISO();
+      $('f-foto-preview').classList.add('hidden');
+      $('f-foto-preview').src = '';
+      $('f-foto-saat-ini').classList.add('hidden');
+      $('f-foto-saat-ini').textContent = '';
+      $('form-title').textContent = 'Tulis Berita Baru';
+      $('btn-save').textContent = 'Simpan Berita';
+      const ba = $('btn-antrean');
+      if (ba) ba.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
+      terapkanPenulis();
+    }
+
+
+    // ---------- Autosave draf (teks formulir, di perangkat ini) ----------
+    // Foto tidak bisa tersimpan otomatis (berkas tidak bisa diserialisasi),
+    // jadi hanya kolom teks yang dipulihkan; foto dipilih ulang bila perlu.
+    let drafTimer = null;
+
+    function kunciDraf() {
+      if (editingAntrean) return 'antrean:' + editingAntrean.id;
+      if (editing) return 'artikel:' + editing.slug;
+      return 'baru';
+    }
+
+    function kumpulkanDraf() {
+      return {
+        waktu: Date.now(),
+        judul: $('f-judul').value, kategori: $('f-kategori').value, tag: $('f-tag').value,
+        penulis: $('f-penulis').value, tanggal: $('f-tanggal').value, upt: $('f-upt').value,
+        keterangan: $('f-keterangan').value, featured: $('f-featured').checked,
+        breaking: $('f-breaking').checked, isi: $('f-isi').value,
+      };
+    }
+
+    function drafSamaDenganForm(d) {
+      const kini = kumpulkanDraf();
+      return ['judul', 'kategori', 'tag', 'penulis', 'tanggal', 'upt', 'keterangan', 'featured', 'breaking', 'isi'].every((k) => String(kini[k]) === String(d[k]));
+    }
+
+    function simpanDrafOtomatis() {
+      if ($('form-section').classList.contains('hidden')) return;
+      const d = kumpulkanDraf();
+      if (!d.judul.trim() && !d.isi.trim()) return;
+      try {
+        localStorage.setItem('zonapas-draf-' + kunciDraf(), JSON.stringify(d));
+        const st = $('draf-status');
+        if (st) { st.textContent = 'Draf tersimpan otomatis • ' + new Date(d.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); st.classList.remove('hidden'); }
+      } catch (e) {}
+    }
+
+    function jadwalkanDraf() {
+      if (drafTimer) clearTimeout(drafTimer);
+      drafTimer = setTimeout(simpanDrafOtomatis, 2000);
+      const b = $('draf-banner');
+      if (b) b.classList.add('hidden');
+    }
+
+    function tawarkanDraf() {
+      const b = $('draf-banner');
+      if (!b) return;
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem('zonapas-draf-' + kunciDraf()) || 'null'); } catch (e) {}
+      if (!d || drafSamaDenganForm(d)) { b.classList.add('hidden'); return; }
+      const w = $('draf-banner-waktu');
+      if (w) w.textContent = 'dari ' + new Date(d.waktu).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      b.classList.remove('hidden');
+    }
+
+    function hapusDraf() {
+      try { localStorage.removeItem('zonapas-draf-' + kunciDraf()); } catch (e) {}
+      const b = $('draf-banner');
+      if (b) b.classList.add('hidden');
+    }
+
+    function isiDariDraf() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem('zonapas-draf-' + kunciDraf()) || 'null'); } catch (e) {}
+      if (!d) return;
+      $('f-judul').value = d.judul || '';
+      $('f-kategori').value = d.kategori || '';
+      $('f-tag').value = d.tag || '';
+      $('f-penulis').value = d.penulis || '';
+      $('f-tanggal').value = d.tanggal || '';
+      $('f-upt').value = d.upt || '';
+      $('f-keterangan').value = d.keterangan || '';
+      $('f-featured').checked = !!d.featured;
+      $('f-breaking').checked = !!d.breaking;
+      $('f-isi').value = d.isi || '';
+      $('draf-banner').classList.add('hidden');
+      showStatus('Draf tersimpan dipulihkan. Foto sampul & foto isi tidak ikut tersimpan — pilih ulang bila perlu.', true);
+    }
+
+
+    on('btn-cancel', 'click', () => {
+      // Batal: kembali ke halaman asal (edit antrean -> antrean, edit
+      // artikel -> edit, baru -> tulis). Draf tidak dihapus — seperti dulu,
+      // spanduk "Ada draf tersimpan" menawarkannya lagi saat formulir dibuka.
+      const dariAntrean = !!editingAntrean;
+      const sedangEdit = !!editing;
+      resetForm();
+      window.location.href = dariAntrean ? '/portal/kelola-berita/antrean/' : (sedangEdit ? '/portal/kelola-berita/edit/' : '/portal/kelola-berita/tulis/');
+    });
+
+
+    // Autosave: tiap ketikan/perubahan di formulir dijadwalkan tersimpan.
+    $('form-berita').addEventListener('input', jadwalkanDraf);
+
+    $('form-berita').addEventListener('change', jadwalkanDraf);
+
+    on('btn-draf-pulihkan', 'click', isiDariDraf);
+
+    on('btn-draf-buang', 'click', hapusDraf);
+
+
+    on('f-foto', 'change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const preview = $('f-foto-preview');
+      if (!file) { pendingCover = null; preview.classList.add('hidden'); return; }
+      const coverLama = pendingCover;
+      const pratinjauLama = preview.src;
+      const pratinjauTampil = !preview.classList.contains('hidden');
+      try {
+        // Potong dulu sebelum resize/unggah; Batal = sampul lama tetap.
+        const terpotong = await bukaCrop(file);
+        if (!terpotong) {
+          e.target.value = '';
+          pendingCover = coverLama;
+          if (pratinjauTampil) { preview.src = pratinjauLama; preview.classList.remove('hidden'); }
+          else { preview.classList.add('hidden'); }
+          return;
+        }
+        const dataUrl = await resizeImage(terpotong);
+        pendingCover = { dataUrl };
+        preview.src = dataUrl;
+        preview.classList.remove('hidden');
+      } catch (err) {
+        pendingCover = null;
+        e.target.value = '';
+        showStatus(err.message, false);
+      }
+    });
+
+
+    function bukaPratinjauTerbit() {
+      const isiPratinjau = pisahkanFotoIsi($('f-isi').value || '');
+      const d = {
+        title: normalisasiJudul($('f-judul').value),
+        summary: ringkasanOtomatis(isiPratinjau.narasi),
+        category: $('f-kategori').value,
+        tags: $('f-tag').value.split(',').map((t) => t.trim()).filter(Boolean),
+        author: $('f-penulis').value.trim() || 'Rezie',
+        // Foto pratinjau: foto tersimpan artikel yang sedang diedit, atau
+        // foto profil Google pengguna saat ini bila masuk lewat Google
+        // (peran apa pun); masuk lewat GitHub -> tanpa foto.
+        authorImage: (editingAntrean && editingAntrean.author_picture) || (editing && editing.authorImage) || (sumberLogin === 'google' && identitas && identitas.picture ? identitas.picture : ''),
+        publishDate: $('f-tanggal').value,
+        upt: $('f-upt').value || '',
+        image: pendingCover ? pendingCover.dataUrl : (editing && editing.image ? imageUrl(editing.image) : ''),
+        imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
+        body: gabungkanFotoIsi(isiPratinjau.narasi, fotoIsi ? fotoIsi.baris : (isiPratinjau.foto[0] || '')),
+        kecualiSlug: editing ? editing.slug : '',
+      };
+      $('pratinjau-terbit-isi').innerHTML = bangunPratinjauTerbit(d);
+      const modal = $('modal-pratinjau');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      modal.scrollTop = 0;
+      const tutup = $('btn-tutup-pratinjau');
+      if (tutup) tutup.focus();
+    }
+
+
+    function tutupPratinjauTerbit() {
+      const modal = $('modal-pratinjau');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      const btn = $('btn-pratinjau-terbit');
+      if (btn) btn.focus();
+    }
+
+
+    on('btn-pratinjau-terbit', 'click', bukaPratinjauTerbit);
+
+    // Judul dinormalisasi saat kursor meninggalkan kolomnya, supaya penulis
+    // langsung melihat format akhirnya sebelum menyimpan.
+    on('f-judul', 'blur', () => { $('f-judul').value = normalisasiJudul($('f-judul').value); });
+
+    on('btn-tutup-pratinjau', 'click', tutupPratinjauTerbit);
+
+    on('modal-pratinjau', 'click', (e) => {
+      if (e.target && !e.target.closest('#modal-pratinjau-panel')) tutupPratinjauTerbit();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (cropState) { cropBatal(); return; }
+        const modal = $('modal-pratinjau');
+        if (modal && !modal.classList.contains('hidden')) tutupPratinjauTerbit();
+      }
+    });
+
+
+    on('btn-tambah-gambar', 'click', () => {
+      if (fotoIsi) {
+        isiStatus('Foto badan narasi hanya boleh 1 foto. Hapus foto yang ada dulu bila ingin menggantinya.', true);
+        return;
+      }
+      const input = $('f-isi-file');
+      if (input) input.click();
+    });
+
+
+    on('btn-hapus-foto-isi', 'click', () => {
+      if (!fotoIsi) return;
+      // Mode antrean: batalkan juga unggahan yang ditahan untuk foto ini.
+      if (fotoIsi.nama) pendingGambarIsi = pendingGambarIsi.filter((g) => '/images/' + g.filename !== fotoIsi.nama);
+      aturFotoIsi('');
+      isiStatus('Foto badan narasi dihapus.', false);
+    });
+
+
+    on('f-isi-file', 'change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const btn = $('btn-tambah-gambar');
+      if (!file) return;
+      if (fotoIsi) {
+        isiStatus('Foto badan narasi hanya boleh 1 foto. Hapus foto yang ada dulu bila ingin menggantinya.', true);
+        e.target.value = '';
+        return;
+      }
+      // Potong dulu sebelum resize/unggah; Batal = tidak ada yang diunggah/disisip.
+      let terpotong = null;
+      try {
+        terpotong = await bukaCrop(file);
+      } catch (err) {
+        isiStatus('Gagal memuat foto: ' + err.message, true);
+        e.target.value = '';
+        return;
+      }
+      if (!terpotong) { e.target.value = ''; return; }
+      btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = 'Mengunggah…';
+      isiStatus('Mengunggah gambar…', false);
+      try {
+        if (jalurAntreanAktif()) {
+          // Mode antrean: JANGAN unggah ke GitHub — tahan dataUrl, unggah
+          // via Worker saat simpan (pola pendingGambar Redaksi).
+          const dataUrl = await resizeImage(terpotong);
+          const slug = editingAntrean ? slugify($('f-judul').value.trim() || 'berita') : (editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita'));
+          const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
+          pendingGambarIsi.push({ filename, dataUrl });
+          previewImgMap['/images/' + filename] = dataUrl;
+          const alt = cleanAlt(file.name);
+          const safeAlt = alt.replace(/[\[\])]/g, '');
+          aturFotoIsi('![' + safeAlt + '](' + '/images/' + filename + ')', '/images/' + filename);
+          isiStatus('Foto badan narasi ditahan untuk antrean — akan diunggah saat disimpan: /images/' + filename, false);
+        } else {
+          const path = await uploadBodyImage(terpotong);
+          const alt = cleanAlt(file.name);
+          const safeAlt = alt.replace(/[\[\])]/g, '');
+          aturFotoIsi('![' + safeAlt + '](' + path + ')', path);
+          isiStatus('Foto badan narasi ditambahkan: ' + path, false);
+        }
+      } catch (err) {
+        isiStatus('Gagal mengunggah gambar: ' + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+        e.target.value = '';
+      }
+    });
+
+
+    // ---------- Potong foto (crop) ----------
+    // Modal crop mandiri (tanpa dependensi): foto ditampilkan di panggung,
+    // kotak potong digeser/diubah ukuran dengan jari (touch) atau mouse
+    // (Pointer Events), zoom lewat slider, lalu hasil potongan dikembalikan
+    // sebagai File JPEG yang melanjutkan alur lama (resize -> unggah ->
+    // sisip). Bila kotak tidak diubah (seluruh foto), file asli dipakai
+    // apa adanya tanpa re-encode. "Batal" = resolve(null), tidak ada yang
+    // diunggah/disisip.
+    //
+    // Geometri murni (tanpa DOM, bisa diuji Node): kotak & gambar dalam
+    // koordinat piksel panggung; cropKeAlami memetakan ke piksel asli foto.
+    function cropUkuranMuat(nw, nh, maxW, maxH) {
+      const s = Math.min(1, maxW / nw, maxH / nh);
+      return { w: Math.max(1, Math.round(nw * s)), h: Math.max(1, Math.round(nh * s)) };
+    }
+
+    function cropBatasiKotak(r, b, min) {
+      // Geser kotak agar masuk batas, lalu perkecil bila masih meluber.
+      let x = Math.max(b.x, Math.min(r.x, b.x + b.w - min));
+      let y = Math.max(b.y, Math.min(r.y, b.y + b.h - min));
+      let w = Math.min(r.w, b.x + b.w - x);
+      let h = Math.min(r.h, b.y + b.h - y);
+      w = Math.max(min, Math.min(w, b.w));
+      h = Math.max(min, Math.min(h, b.h));
+      x = Math.min(x, b.x + b.w - w);
+      y = Math.min(y, b.y + b.h - h);
+      return { x, y, w, h };
+    }
+
+    function cropTerapRasio(r, rasio) {
+      // rasio: 0 = bebas, atau angka w/h. Titik tengah kotak dipertahankan.
+      if (!rasio) return { x: r.x, y: r.y, w: r.w, h: r.h };
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      let w = r.w, h = r.w / rasio;
+      if (h > r.h) { h = r.h; w = h * rasio; }
+      return { x: cx - w / 2, y: cy - h / 2, w, h };
+    }
+
+    function cropUbahDenganRasio(k, sudut, rasio) {
+      // Sesuaikan kotak hasil drag sudut agar w/h = rasio; sudut yang
+      // berlawanan dari yang ditarik menjadi jangkar. Ukuran minimal 40.
+      if (!rasio) return { x: k.x, y: k.y, w: Math.max(40, k.w), h: Math.max(40, k.h) };
+      const dariLebar = k.w / rasio;
+      const dariTinggi = k.h * rasio;
+      let w = k.w, h = k.h;
+      if (Math.abs(dariLebar - k.h) <= Math.abs(dariTinggi - k.w)) h = dariLebar;
+      else w = dariTinggi;
+      if (w < 40 || h < 40) {
+        const s = Math.max(40 / w, 40 / h);
+        w *= s; h *= s;
+      }
+      let x = k.x, y = k.y;
+      if (sudut.indexOf('w') !== -1) x = k.x + k.w - w;
+      if (sudut.indexOf('n') !== -1) y = k.y + k.h - h;
+      return { x, y, w, h };
+    }
+
+    function cropKeAlami(kotak, gambar, alami) {
+      const s = gambar.w / alami.w;
+      const x = Math.max(0, Math.round((kotak.x - gambar.x) / s));
+      const y = Math.max(0, Math.round((kotak.y - gambar.y) / s));
+      const w = Math.min(alami.w - x, Math.round(kotak.w / s));
+      const h = Math.min(alami.h - y, Math.round(kotak.h / s));
+      return { x, y, w: Math.max(1, w), h: Math.max(1, h) };
+    }
+
+    function cropAdalahUtuh(kotak, alami, toleransi) {
+      const t = toleransi || 2;
+      return kotak.x <= t && kotak.y <= t && kotak.w >= alami.w - t && kotak.h >= alami.h - t;
+    }
+
+
+    let cropState = null;
+
+
+    function cropTampilkan() {
+      const st = cropState;
+      if (!st) return;
+      const img = $('crop-img');
+      img.style.left = st.gambar.x + 'px';
+      img.style.top = st.gambar.y + 'px';
+      img.style.width = st.gambar.w + 'px';
+      img.style.height = st.gambar.h + 'px';
+      const box = $('crop-box');
+      box.style.left = st.kotak.x + 'px';
+      box.style.top = st.kotak.y + 'px';
+      box.style.width = st.kotak.w + 'px';
+      box.style.height = st.kotak.h + 'px';
+      // Lapisan blur: daerah disimpan dalam koordinat alami foto, jadi tetap
+      // pas walau foto digeser/di-zoom atau kotak potong diubah.
+      const lapis = $('crop-blur-lapisan');
+      if (lapis) {
+        lapis.innerHTML = '';
+        const s = st.gambar.w / st.alami.w;
+        const gambarDaerah = (r) => {
+          const d = document.createElement('div');
+          d.className = 'crop-blur-daerah';
+          // Gaya ditulis sebaris, bukan lewat kelas CSS: Astro memberi
+          // atribut scoping pada aturan <style> halaman, dan elemen yang
+          // dibuat lewat createElement tidak mendapat atribut itu sehingga
+          // aturan kelasnya tidak pernah cocok.
+          d.style.position = 'absolute';
+          d.style.border = '2px dashed #fff';
+          d.style.borderRadius = '6px';
+          d.style.background = 'rgba(255,255,255,0.08)';
+          d.style.backdropFilter = 'blur(14px)';
+          d.style.webkitBackdropFilter = 'blur(14px)';
+          d.style.left = (st.gambar.x + r.x * s) + 'px';
+          d.style.top = (st.gambar.y + r.y * s) + 'px';
+          d.style.width = (r.w * s) + 'px';
+          d.style.height = (r.h * s) + 'px';
+          return d;
+        };
+        for (const r of (st.blur || [])) lapis.appendChild(gambarDaerah(r));
+        if (st.blurSementara) {
+          const t = st.blurSementara;
+          const p0 = cropPanggungKeAlami(st, t.x, t.y);
+          const p1 = cropPanggungKeAlami(st, t.x + t.w, t.y + t.h);
+          lapis.appendChild(gambarDaerah({
+            x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y),
+            w: Math.abs(p1.x - p0.x), h: Math.abs(p1.y - p0.y),
+          }));
+        }
+      }
+    }
+
+
+    // Koordinat panggung (px di dalam #crop-stage) -> koordinat alami foto.
+    function cropPanggungKeAlami(st, px, py) {
+      const s = st.gambar.w / st.alami.w;
+      return { x: Math.round((px - st.gambar.x) / s), y: Math.round((py - st.gambar.y) / s) };
+    }
+
+
+    function perbaruiTombolBlur() {
+      const st = cropState;
+      const aktif = !!(st && st.blurMode);
+      $('btn-crop-blur').classList.toggle('crop-blur-aktif', aktif);
+      $('crop-blur-petunjuk').classList.toggle('hidden', !aktif);
+      $('btn-crop-blur-hapus').classList.toggle('hidden', !(st && st.blur && st.blur.length));
+    }
+
+
+    function cropAturZoom(z) {
+      const st = cropState;
+      if (!st) return;
+      const stage = $('crop-stage');
+      const cx = stage.clientWidth / 2, cy = stage.clientHeight / 2;
+      const muat = cropUkuranMuat(st.alami.w, st.alami.h, stage.clientWidth, stage.clientHeight);
+      const oldW = st.gambar.w, oldH = st.gambar.h;
+      const newW = Math.max(1, Math.round(muat.w * z));
+      const newH = Math.max(1, Math.round(muat.h * z));
+      const fx = oldW ? (cx - st.gambar.x) / oldW : 0.5;
+      const fy = oldH ? (cy - st.gambar.y) / oldH : 0.5;
+      st.gambar.x = Math.round(cx - fx * newW);
+      st.gambar.y = Math.round(cy - fy * newH);
+      st.gambar.w = newW;
+      st.gambar.h = newH;
+      st.zoom = z;
+      const k = oldW ? newW / oldW : 1;
+      st.kotak = cropBatasiKotak({
+        x: cx + (st.kotak.x - cx) * k,
+        y: cy + (st.kotak.y - cy) * k,
+        w: st.kotak.w * k,
+        h: st.kotak.h * k,
+      }, st.gambar, 40);
+      cropTampilkan();
+    }
+
+
+    function tutupCrop() {
+      const st = cropState;
+      cropState = null;
+      const modal = $('modal-crop');
+      if (modal) modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      if (st && st.url) URL.revokeObjectURL(st.url);
+    }
+
+
+    function cropBatal() {
+      const st = cropState;
+      if (!st) return;
+      const resolve = st.resolve;
+      tutupCrop();
+      resolve(null);
+    }
+
+
+    function cropKonfirmasi() {
+      const st = cropState;
+      if (!st) return;
+      const alami = cropKeAlami(st.kotak, st.gambar, st.alami);
+      const resolve = st.resolve;
+      const fileAsli = st.file;
+      const srcImg = $('crop-img');
+      const adaBlur = st.blur && st.blur.length > 0;
+      tutupCrop();
+      if (!adaBlur && cropAdalahUtuh(alami, st.alami, 2)) { resolve(fileAsli); return; }
+      const c = document.createElement('canvas');
+      c.width = alami.w;
+      c.height = alami.h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(srcImg, alami.x, alami.y, alami.w, alami.h, 0, 0, alami.w, alami.h);
+      if (adaBlur) {
+        // Radius blur menyesuaikan ukuran foto supaya wajah benar-benar tak dikenali.
+        const radius = Math.max(12, Math.min(48, Math.round(Math.min(alami.w, alami.h) * 0.04)));
+        for (const r of st.blur) {
+          const cx0 = Math.max(0, r.x - alami.x);
+          const cy0 = Math.max(0, r.y - alami.y);
+          const cx1 = Math.min(alami.w, r.x + r.w - alami.x);
+          const cy1 = Math.min(alami.h, r.y + r.h - alami.y);
+          if (cx1 <= cx0 || cy1 <= cy0) continue;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(cx0, cy0, cx1 - cx0, cy1 - cy0);
+          ctx.clip();
+          ctx.filter = 'blur(' + radius + 'px)';
+          ctx.drawImage(srcImg, alami.x, alami.y, alami.w, alami.h, 0, 0, alami.w, alami.h);
+          ctx.restore();
+        }
+        ctx.filter = 'none';
+      }
+      c.toBlob((blob) => {
+        if (!blob) { resolve(fileAsli); return; }
+        resolve(new File([blob], fileAsli.name, { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.92);
+    }
+
+
+    function bukaCrop(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const stage = $('crop-stage');
+          const modal = $('modal-crop');
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          const imgEl = $('crop-img');
+          imgEl.src = url;
+          const muat = cropUkuranMuat(img.naturalWidth, img.naturalHeight, stage.clientWidth, stage.clientHeight);
+          const gx = Math.round((stage.clientWidth - muat.w) / 2);
+          const gy = Math.round((stage.clientHeight - muat.h) / 2);
+          cropState = {
+            file, url,
+            alami: { w: img.naturalWidth, h: img.naturalHeight },
+            gambar: { x: gx, y: gy, w: muat.w, h: muat.h },
+            kotak: { x: gx, y: gy, w: muat.w, h: muat.h },
+            zoom: 1, rasio: 0,
+            blur: [], blurMode: false, blurSementara: null,
+            resolve,
+          };
+          const zoom = $('crop-zoom');
+          if (zoom) zoom.value = '1';
+          document.querySelectorAll('[data-rasio]').forEach((b) => b.classList.toggle('crop-rasio-aktif', (parseFloat(b.getAttribute('data-rasio')) || 0) === 0));
+          perbaruiTombolBlur();
+          cropTampilkan();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('File foto tidak bisa dibaca.')); };
+        img.src = url;
+      });
+    }
+
+
+    // Gestur panggung crop: geser kotak (pindah), tarik sudut (ubah ukuran),
+    // geser area lain (geser foto). Pointer Events = mouse + sentuhan.
+    function cropPasangGestur() {
+      const stage = $('crop-stage');
+      const box = $('crop-box');
+      if (!stage || !box) return;
+      let mode = null;
+      let sudut = null;
+      let awal = null;
+      stage.addEventListener('pointerdown', (e) => {
+        if (!cropState) return;
+        e.preventDefault();
+        try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+        const r = stage.getBoundingClientRect();
+        // Mode blur wajah: seret di atas foto untuk menandai wajah, bukan menggeser kotak.
+        if (cropState.blurMode) {
+          mode = 'blur';
+          awal = {
+            px: e.clientX - r.left, py: e.clientY - r.top,
+            kotak: { ...cropState.kotak }, gambar: { ...cropState.gambar },
+          };
+          cropState.blurSementara = { x: awal.px, y: awal.py, w: 0, h: 0 };
+          return;
+        }
+        const handle = e.target && e.target.closest ? e.target.closest('[data-sudut]') : null;
+        if (handle) { mode = 'ubah'; sudut = handle.getAttribute('data-sudut'); }
+        else if (e.target === box || box.contains(e.target)) { mode = 'pindah'; }
+        else { mode = 'geser'; }
+        awal = {
+          px: e.clientX - r.left, py: e.clientY - r.top,
+          kotak: { ...cropState.kotak }, gambar: { ...cropState.gambar },
+        };
+      });
+      stage.addEventListener('pointermove', (e) => {
+        if (!cropState || !mode || !awal) return;
+        const r = stage.getBoundingClientRect();
+        const dx = (e.clientX - r.left) - awal.px;
+        const dy = (e.clientY - r.top) - awal.py;
+        const st = cropState;
+        if (mode === 'blur') {
+          const x1 = e.clientX - r.left, y1 = e.clientY - r.top;
+          st.blurSementara = { x: Math.min(awal.px, x1), y: Math.min(awal.py, y1), w: Math.abs(x1 - awal.px), h: Math.abs(y1 - awal.py) };
+          cropTampilkan();
+          return;
+        }
+        if (mode === 'pindah') {
+          st.kotak = cropBatasiKotak({ x: awal.kotak.x + dx, y: awal.kotak.y + dy, w: awal.kotak.w, h: awal.kotak.h }, st.gambar, 40);
+        } else if (mode === 'geser') {
+          const g = { x: awal.gambar.x + dx, y: awal.gambar.y + dy, w: awal.gambar.w, h: awal.gambar.h };
+          // Gambar minimal harus menutupi titik tengah panggung.
+          const cx = stage.clientWidth / 2, cy = stage.clientHeight / 2;
+          g.x = Math.min(Math.max(g.x, cx - g.w), cx);
+          g.y = Math.min(Math.max(g.y, cy - g.h), cy);
+          st.gambar = g;
+          st.kotak = cropBatasiKotak(st.kotak, st.gambar, 40);
+        } else if (mode === 'ubah') {
+          let k = { ...awal.kotak };
+          if (sudut.indexOf('e') !== -1) k.w = awal.kotak.w + dx;
+          if (sudut.indexOf('s') !== -1) k.h = awal.kotak.h + dy;
+          if (sudut.indexOf('w') !== -1) { k.x = awal.kotak.x + dx; k.w = awal.kotak.w - dx; }
+          if (sudut.indexOf('n') !== -1) { k.y = awal.kotak.y + dy; k.h = awal.kotak.h - dy; }
+          k.w = Math.max(40, k.w);
+          k.h = Math.max(40, k.h);
+          k = cropUbahDenganRasio(k, sudut, st.rasio);
+          st.kotak = cropBatasiKotak(k, st.gambar, 40);
+        }
+        cropTampilkan();
+      });
+      const selesai = () => {
+        if (mode === 'blur' && cropState && cropState.blurSementara) {
+          const st = cropState;
+          const t = st.blurSementara;
+          if (t.w >= 12 && t.h >= 12) {
+            const p0 = cropPanggungKeAlami(st, t.x, t.y);
+            const p1 = cropPanggungKeAlami(st, t.x + t.w, t.y + t.h);
+            const nr = {
+              x: Math.max(0, Math.min(p0.x, p1.x)),
+              y: Math.max(0, Math.min(p0.y, p1.y)),
+              w: Math.abs(p1.x - p0.x),
+              h: Math.abs(p1.y - p0.y),
+            };
+            nr.w = Math.min(st.alami.w - nr.x, nr.w);
+            nr.h = Math.min(st.alami.h - nr.y, nr.h);
+            if (nr.w > 0 && nr.h > 0) st.blur.push(nr);
+          }
+          st.blurSementara = null;
+          cropTampilkan();
+          perbaruiTombolBlur();
+        }
+        mode = null; sudut = null; awal = null;
+      };
+      stage.addEventListener('pointerup', selesai);
+      stage.addEventListener('pointercancel', selesai);
+    }
+
+
+    cropPasangGestur();
+
+    on('crop-zoom', 'input', (e) => cropAturZoom(parseFloat(e.target.value) || 1));
+
+    on('btn-crop-pakai', 'click', cropKonfirmasi);
+
+    on('btn-crop-batal', 'click', cropBatal);
+
+    on('btn-crop-blur', 'click', () => {
+      if (!cropState) return;
+      cropState.blurMode = !cropState.blurMode;
+      perbaruiTombolBlur();
+    });
+
+    on('btn-crop-blur-hapus', 'click', () => {
+      if (!cropState) return;
+      cropState.blur = [];
+      cropState.blurSementara = null;
+      cropTampilkan();
+      perbaruiTombolBlur();
+    });
+
+    on('modal-crop', 'click', (e) => {
+      if (e.target && !e.target.closest('#modal-crop-panel')) cropBatal();
+    });
+
+    document.querySelectorAll('[data-rasio]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (!cropState) return;
+        const r = parseFloat(btn.getAttribute('data-rasio')) || 0;
+        cropState.rasio = r;
+        document.querySelectorAll('[data-rasio]').forEach((b) => b.classList.toggle('crop-rasio-aktif', b === btn));
+        cropState.kotak = cropBatasiKotak(cropTerapRasio(cropState.kotak, r), cropState.gambar, 40);
+        cropTampilkan();
+      });
+    });
+
+
+    // ---------- Cek typo sebelum simpan (peringatan, bukan penghalang) ----------
+    // Kamus dimuat dari /kamus-id.json (~45 ribu kata). Bila modul atau
+    // kamus gagal dimuat, penyimpanan tetap jalan tanpa pemeriksaan.
+    function tanyaTypo(temuan) {
+      return new Promise((resolve) => {
+        const modal = $('modal-typo');
+        const daftar = $('typo-daftar');
+        if (!modal || !daftar) { resolve(true); return; }
+        $('typo-jumlah').textContent = String(temuan.length);
+        daftar.innerHTML = temuan.map((t) =>
+          '<li class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-900/30">' +
+          '<span class="font-bold text-amber-800 dark:text-amber-200">' + esc(t.kata) + '</span> <span class="text-slate-500">(' + esc(t.bagian) + ')</span><br>' +
+          '<span class="text-xs text-slate-600 dark:text-slate-300">' + esc(t.konteks) + '</span></li>'
+        ).join('');
+        const tutup = (hasil) => {
+          modal.classList.add('hidden');
+          $('btn-typo-perbaiki').onclick = null;
+          $('btn-typo-simpan').onclick = null;
+          modal.onclick = null;
+          resolve(hasil);
+        };
+        $('btn-typo-perbaiki').onclick = () => tutup(false);
+        $('btn-typo-simpan').onclick = () => tutup(true);
+        modal.onclick = (e) => { if (e.target === modal) tutup(false); };
+        modal.classList.remove('hidden');
+      });
+    }
+
+
+    async function cekTypoSebelumSimpan() {
+      const cek = window.__cekTypo;
+      if (!cek) return true;
+      let kamus;
+      try {
+        kamus = await cek.muatKamus();
+      } catch (err) {
+        return true;
+      }
+      const judul = ($('f-judul').value || '').trim();
+      const isi = ($('f-isi').value || '').trim();
+      const temuan = cek.cekTypoGabungan(judul, isi, kamus);
+      if (!temuan.length) {
+        showStatus('0 typo — tidak ada kesalahan penulisan. Menyimpan…', true);
+        await new Promise((r) => setTimeout(r, 900));
+        return true;
+      }
+      return await tanyaTypo(temuan);
+    }
+
+
+    on('form-berita', 'submit', async (e) => {
+      e.preventDefault();
+      const btn = $('btn-save');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan…';
+      try {
+        // Cek typo dulu; "Perbaiki dulu" membatalkan penyimpanan.
+        if (!(await cekTypoSebelumSimpan())) return;
+        // Mode edit antrean: simpan selalu lewat Worker, bukan GitHub langsung.
+        if (editingAntrean) {
+          await simpanAntrean(editingAntrean.id, false);
+          window.location.href = '/portal/kelola-berita/antrean/';
+          return;
+        }
+        // Peran tanpa hak terbit langsung (mis. Enter di formulir):
+        // alihkan ke antrean, jangan pernah PUT GitHub.
+        if (!bisaTerbitLangsung()) {
+          await simpanAntrean(null, true);
+          window.location.href = '/portal/kelola-berita/antrean/';
+          return;
+        }
+        const d = kumpulkanDataForm();
+        const title = d.title;
+        const slug = editing ? editing.slug : slugify(title);
+        let image = editing ? editing.image : '';
+        if (pendingCover) {
+          const uploaded = await uploadCover(slug);
+          if (uploaded) image = uploaded;
+        }
+        if (!image) throw new Error('Foto sampul wajib diunggah.');
+        const data = { ...d, image };
+        let finalSlug = slug;
+        let sha = editing ? editing.sha : undefined;
+        if (token && !editing) {
+          let n = 2;
+          while (true) {
+            try {
+              const existing = await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md?ref=main');
+              if (existing && existing.sha) { finalSlug = slug + '-' + n; n++; continue; }
+              break;
+            } catch (err) { break; }
+          }
+        }
+        const md = buildMarkdown(data);
+        const pesanSimpan = (editing ? 'Ubah berita: ' : 'Tambah berita: ') + title;
+        if (token) {
+          const payload = { message: pesanSimpan, content: b64encodeUnicode(md), branch: 'main' };
+          if (sha) payload.sha = sha;
+          await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md', { method: 'PUT', body: JSON.stringify(payload) });
+        } else {
+          // Masuk lewat Google: tulis lewat Worker. 422 = slug sudah
+          // dipakai (cek di atas dilewati tanpa token) — coba slug
+          // berikutnya, maks. 3 percobaan.
+          let percobaan = 0;
+          while (true) {
+            try {
+              await githubTulis('src/content/berita/' + finalSlug + '.md', b64encodeUnicode(md), pesanSimpan, sha);
+              break;
+            } catch (err) {
+              if (!editing && err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slug + '-' + (percobaan + 1); continue; }
+              throw err;
+            }
+          }
+        }
+        hapusDraf();
+        resetForm();
+        window.location.href = '/portal/kelola-berita/edit/';
+      } catch (err) {
+        // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
+        if (err && (err.status === 403 || err.status === 404)) {
+          showStatus('Akun GitHub Anda tidak punya akses tulis ke repo — kirim berita lewat Antrean untuk persetujuan.', false);
+          const ba = $('btn-antrean');
+          if (ba) ba.classList.remove('hidden');
+        } else {
+          showStatus('Gagal menyimpan: ' + err.message, false);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Simpan Berita';
+      }
+    });
+
+
+
+    // ---------- Tombol "Kirim ke Antrean" ----------
+    on('btn-antrean', 'click', async () => {
+      const btn = $('btn-antrean');
+      if (!btn) return;
+      btn.disabled = true;
+      const label = btn.textContent;
+      btn.textContent = 'Mengirim…';
+      try {
+        // Cek typo dulu; "Perbaiki dulu" membatalkan pengiriman.
+        if (!(await cekTypoSebelumSimpan())) return;
+        await simpanAntrean(editingAntrean ? editingAntrean.id : null, true);
+        window.location.href = '/portal/kelola-berita/antrean/';
+      } catch (err) {
+        showStatus('Gagal mengirim ke antrean: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
+    // Muat satu artikel dari GitHub untuk diedit (?edit=<slug>).
+    // Pengisian formulir sama persis dengan logika Ubah lama.
+    async function muatUntukEdit(slug) {
+      // Mengubah artikel yang sudah publish hanya untuk Administrator
+      // (tombol Ubah di daftar lama pun hanya tampil untuk admin).
+      if (!bisaTerbitLangsung()) {
+        showStatus('Hanya Administrator yang bisa mengubah berita yang sudah publish.', false);
+        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit/'; }, 2000);
+        return;
+      }
+      try {
+        const file = await gh('/contents/src/content/berita/' + encodeURIComponent(slug) + '.md?ref=main');
+        const text = b64decodeUnicode(file.content || '');
+        const parsed = parseFrontmatter(text);
+        const a = { slug, path: file.path, sha: file.sha, data: parsed.data, body: parsed.body };
+editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '', authorImage: a.data.authorImage || '' };
+        $('f-judul').value = normalisasiJudul(a.data.title || '');
+        $('f-kategori').value = a.data.category || '';
+        $('f-tag').value = (a.data.tags || []).join(', ');
+        $('f-penulis').value = a.data.author || 'Rezie';
+        $('f-tanggal').value = String(a.data.publishDate || '').slice(0, 10);
+        $('f-upt').value = a.data.upt || '';
+        $('f-keterangan').value = a.data.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
+        $('f-featured').checked = a.data.featured === true;
+        $('f-breaking').checked = a.data.breaking === true;
+        const isiAwal = pisahkanFotoIsi(a.body || '');
+        $('f-isi').value = isiAwal.narasi;
+        aturFotoIsi(isiAwal.foto[0] || '');
+        $('f-foto').value = '';
+        pendingCover = null;
+        const prev = $('f-foto-preview');
+        if (a.data.image) { prev.src = imageUrl(a.data.image); prev.classList.remove('hidden'); } else { prev.classList.add('hidden'); prev.src = ''; }
+        const cur = $('f-foto-saat-ini');
+        cur.textContent = a.data.image ? ('Foto saat ini: ' + a.data.image + ' (biarkan kosong bila tidak diganti)') : '';
+        cur.classList.toggle('hidden', !a.data.image);
+        $('form-title').textContent = 'Ubah Berita';
+        $('btn-save').textContent = 'Simpan Perubahan';
+        $('form-section').classList.remove('hidden');
+        $('form-section').scrollIntoView({ behavior: 'smooth' });
+        tawarkanDraf();
+      } catch (err) {
+        showStatus('Artikel tidak ditemukan: ' + err.message, false);
+        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit/'; }, 2000);
+      }
+    }
+
+    // Setelah login: tampilkan formulir; bila URL membawa ?edit=<slug>
+    // atau ?edit-antrean=<id>, muat artikelnya ke formulir.
+    window.__kelolaSetelahLogin = () => {
+      const fs = $('form-section');
+      if (fs) fs.classList.remove('hidden');
+      const params = new URLSearchParams(location.search);
+      const slugEdit = params.get('edit');
+      const idAntrean = params.get('edit-antrean');
+      if (idAntrean) { editAntrean(idAntrean); return; }
+      if (slugEdit) { muatUntukEdit(slugEdit); return; }
+      resetForm();
+      tawarkanDraf();
+    };
+    // Diekspos untuk simpanAntrean di kelola-umum.js (fungsi modul bukan global).
+    window.__kelolaHapusDraf = hapusDraf;
+    window.__kelolaResetForm = resetForm;
+  </script>
+</BaseLayout>

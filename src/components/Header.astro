@@ -43,7 +43,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
                 <p data-menu-nama class="truncate text-sm font-bold text-slate-800 dark:text-slate-100"></p>
                 <p data-menu-email class="truncate text-xs text-slate-500 dark:text-slate-400"></p>
               </div>
-              <a data-menu-kelola href="/kelola-berita/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Kelola Berita</a>
+              <a data-menu-kelola href="/portal/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Portal Redaksi</a>
               <a data-menu-ajukan href="/ajukan-penulis/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Ajukan Jadi Penulis</a>
               <button type="button" data-menu-keluar class="block w-full px-4 py-2 text-left text-sm font-bold text-[#D9232E] hover:bg-slate-100 dark:hover:bg-slate-800" role="menuitem">Keluar</button>
             </div>
@@ -109,7 +109,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
 <script is:inline>
   // Status login + logout paksa setelah 10 menit tanpa aktivitas.
   // - Tampilan: tombol "Masuk" di header berubah jadi nama depan pengguna
-  //   saat sudah login (kecuali di /kelola-berita/, yang diurus halaman
+  //   saat sudah login (kecuali di /portal/, yang diurus halaman
   //   itu sendiri: tombolnya jadi "Keluar").
   // - Idle: aktivitas terakhir dicatat di localStorage (dibagi semua tab)
   //   dan disentuh ke server max 1x/2 menit; bila 10 menit tidak ada
@@ -118,7 +118,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     var IDLE_MS = 10 * 60 * 1000;
     var TOUCH_MS = 2 * 60 * 1000;
     var KUNCI = 'zonapas-aktivitas-terakhir';
-    var diKelola = window.location.pathname.replace(/\/$/, '') === '/kelola-berita';
+    var diKelola = window.location.pathname.replace(/\/$/, '') === '/portal';
     var sedangMasuk = false;
     var terakhirSentuh = 0;
     var sudahKeluar = false;
@@ -130,7 +130,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     function perbaruiHeader(user) {
       var tautan = document.querySelectorAll('[data-header-masuk]');
       if (!tautan.length) return;
-      var tujuan = (user.role === 'pembaca') ? '/' : '/kelola-berita/';
+      var tujuan = (user.role === 'pembaca') ? '/' : '/portal/';
       tautan.forEach(function (el) {
         el.textContent = namaDepan(user.name || user.email);
         el.setAttribute('href', tujuan);

@@ -1,0 +1,703 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../../../data/site';
+import { AUTHORS } from '../../../data/authors';
+
+const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+// Peran/bio penulis untuk pratinjau tampilan terbit (modal mata).
+const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.name, { role: a.role, bio: a.bio }]));
+
+// 9 UPT — urutan baku (sama seperti aplikasi Rekap lama).
+const UPT = [
+  'Kanwil Ditjenpas Bengkulu',
+  'Lapas Kelas IIA Bengkulu',
+  'Lapas Kelas IIA Curup',
+  'Lapas Kelas IIB Arga Makmur',
+  'LPKA Kelas II Bengkulu',
+  'Lapas Perempuan Kelas IIB Bengkulu',
+  'Rutan Kelas IIB Bengkulu',
+  'Rutan Kelas IIB Manna',
+  'Bapas Kelas I Bengkulu',
+];
+
+// 9 nilai platform — 'Website / Media Online' dihitung media massa,
+// sisanya (termasuk LinkedIn) media sosial.
+const PLATFORM = [
+  'Website / Media Online',
+  'Instagram',
+  'Facebook',
+  'X/Twitter',
+  'TikTok',
+  'YouTube',
+  'Threads',
+  'LinkedIn',
+  'Lainnya',
+];
+---
+
+<BaseLayout
+  title="Rekap Laporan Publikasi Harian"
+  description="Impor laporan WA, checklist harian 9 UPT, dan unduh laporan PDF/Word — hanya untuk Administrator."
+>
+  <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
+       ekspresi {…} di dalam tag <script>. -->
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
+
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Rekap Laporan Publikasi Harian</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Impor laporan dari WA, checklist harian 9 UPT, dan unduh laporan PDF/Word. Halaman ini hanya untuk Administrator.
+      </p>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Sesi berakhir / bukan admin -->
+    <div id="sesi-error" class="mt-4 hidden rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+      Sesi Anda sudah berakhir atau akun ini bukan Administrator.
+      <a href="/masuk/" class="font-bold underline">Masuk lagi lewat /masuk/</a>
+    </div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk membuka Rekap Laporan Publikasi</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator Anda.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
+      <!-- Fallback bila popup diblokir: tautan ini membuka alur OAuth di tab
+           baru. Sengaja TANPA rel="noopener" supaya window.opener tetap ada
+           dan Worker OAuth bisa mengirim token kembali ke halaman ini. -->
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
+    </section>
+
+    <!-- Akses ditolak (bukan Administrator) -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Halaman ini hanya untuk Administrator</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Rekap Laporan Publikasi Harian hanya bisa dibuka oleh Administrator. Hubungi Administrator bila Anda merasa seharusnya punya akses.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
+    </section>
+
+    <!-- Aplikasi (setelah login sebagai Administrator) -->
+    <div id="app" class="hidden">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <span class="flex-1"></span>
+        <a href="/portal/aplikasi-pendukung/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Aplikasi Pendukung</a>
+        <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+      </div>
+
+      <!-- Pemilih tanggal -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Pilih tanggal">
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="min-w-0 flex-1">
+            <span class="block text-sm font-bold">Tanggal laporan</span>
+            <input id="rekap-tanggal" type="date" class="mt-1 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+          <button id="btn-muat-ulang" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Muat Ulang</button>
+        </div>
+        <p id="ringkasan-tanggal" class="mt-3 text-sm text-slate-600 dark:text-slate-400">Memuat…</p>
+      </section>
+
+      <!-- Checklist harian -->
+      <section class="mt-6" aria-label="Checklist harian">
+        <div class="mb-3 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Checklist Harian 9 UPT</h2>
+          <span id="checklist-count" class="text-sm font-bold text-slate-600 dark:text-slate-400"></span>
+        </div>
+        <div id="checklist-list" class="grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Impor -->
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Impor laporan">
+        <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Impor Laporan</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tempel teks chat/surat laporan UPT, atau pilih file .txt hasil export chat WA. Tautan duplikat dilewati otomatis; surat yang melaporkan 0 publikasi ditandai sebagai nihil.</p>
+        <label class="mt-3 block">
+          <span class="block text-sm font-bold">Teks chat / surat</span>
+          <textarea id="impor-teks" rows="6" placeholder="Tempel teks laporan UPT di sini…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+        </label>
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+            📄 Pilih file .txt
+            <input id="impor-file" type="file" accept=".txt,text/plain" class="hidden" />
+          </label>
+          <span id="impor-file-nama" class="text-xs text-slate-500 dark:text-slate-400"></span>
+          <span class="flex-1"></span>
+          <button id="btn-impor" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Impor</button>
+        </div>
+        <div id="impor-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
+      </section>
+
+      <!-- Daftar publikasi -->
+      <section class="mt-8" aria-label="Daftar publikasi">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Daftar Publikasi</h2>
+          <label class="flex items-center gap-2 text-sm font-bold">
+            Filter UPT
+            <select id="filter-upt" class="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900">
+              <option value="">Semua UPT</option>
+              {UPT.map((u) => (<option value={u}>{u}</option>))}
+            </select>
+          </label>
+        </div>
+        <p id="publikasi-count" class="mb-3 text-sm text-slate-600 dark:text-slate-400"></p>
+        <div id="publikasi-list" class="grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
+      </section>
+
+      <!-- Tambah manual -->
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Tambah publikasi manual">
+        <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Tambah Publikasi Manual</h2>
+        <form id="form-tambah" class="mt-3 grid gap-3 sm:grid-cols-2">
+          <label class="block">
+            <span class="block text-sm font-bold">UPT</span>
+            <select id="tambah-upt" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required>
+              {UPT.map((u) => (<option value={u}>{u}</option>))}
+            </select>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-bold">Platform</span>
+            <select id="tambah-platform" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required>
+              {PLATFORM.map((p) => (<option value={p}>{p}</option>))}
+            </select>
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="block text-sm font-bold">Judul publikasi</span>
+            <input id="tambah-judul" type="text" placeholder="Judul publikasi…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required />
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="block text-sm font-bold">Tautan (URL)</span>
+            <input id="tambah-url" type="url" placeholder="https://…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required />
+          </label>
+          <div class="sm:col-span-2">
+            <button type="submit" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah Publikasi</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Laporan -->
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Laporan">
+        <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Laporan</h2>
+        <div id="laporan-pratinjau" class="mt-3 text-sm"><p class="text-slate-500">Memuat…</p></div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button id="btn-pdf" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh PDF</button>
+          <button id="btn-docx" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh Word</button>
+          <button id="btn-wa" type="button" class="rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:bg-[#1DA851]">Kirim via WhatsApp</button>
+        </div>
+        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp mengunggah laporan Word lalu membuka WhatsApp dengan tautan unduhnya. Tautan unduh berlaku 7 hari.</p>
+        <div id="wa-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
+      </section>
+
+      <!-- Statistik -->
+      <section class="mt-8" aria-label="Statistik">
+        <div class="mb-3 border-b-2 border-[#0A2540] pb-2 dark:border-white">
+          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Statistik</h2>
+        </div>
+        <p id="statistik-total" class="text-sm text-slate-600 dark:text-slate-400">Memuat…</p>
+        <div id="statistik-tanggal" class="mt-3 flex flex-wrap gap-2"></div>
+      </section>
+
+      <!-- Modal pratinjau hapus massal -->
+      <div id="modal-hapus" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Pratinjau hapus data">
+        <div class="flex min-h-full items-start justify-center px-3 py-6">
+          <div class="w-full max-w-[640px] rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+            <h3 class="text-lg font-black leading-snug">Hapus Data UPT pada Tanggal Ini?</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindakan ini menghapus SEMUA publikasi UPT tersebut pada tanggal terpilih dan tidak bisa dibatalkan (data hanya bisa kembali dengan impor ulang).</p>
+            <div id="hapus-pratinjau" class="mt-3 text-sm"></div>
+            <label class="mt-4 flex cursor-pointer items-start gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold dark:border-slate-700">
+              <input id="hapus-yakin" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-[#D9232E]" />
+              <span>Saya yakin ingin menghapus data ini.</span>
+            </label>
+            <div class="mt-4 flex flex-wrap justify-end gap-2">
+              <button id="btn-hapus-batal" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
+              <button id="btn-hapus-ya" type="button" disabled class="rounded-lg bg-[#D9232E] px-4 py-2 text-sm font-bold text-white opacity-50 hover:bg-[#B91C1C] disabled:cursor-not-allowed">Hapus Data</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline src="/kelola-umum.js?v=4"></script>
+  <script type="module">
+    import { buildDocx, buildPdf, hitungRekap, namaFileLaporan, tanggalIndonesia } from '/rekap-laporan.mjs';
+
+    // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
+    // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
+    const UPT_BAKU = [
+      'Kanwil Ditjenpas Bengkulu',
+      'Lapas Kelas IIA Bengkulu',
+      'Lapas Kelas IIA Curup',
+      'Lapas Kelas IIB Arga Makmur',
+      'LPKA Kelas II Bengkulu',
+      'Lapas Perempuan Kelas IIB Bengkulu',
+      'Rutan Kelas IIB Bengkulu',
+      'Rutan Kelas IIB Manna',
+      'Bapas Kelas I Bengkulu',
+    ];
+
+    let rekapTanggal = todayISO();
+    let rekapChecklist = null; // { upt: [...], total: {...}, sudahLaporCount }
+    let rekapRows = []; // semua baris tanggal terpilih
+    let rekapFilterUpt = '';
+    let rekapHapusTarget = null; // { tanggal, upt }
+
+    function rekapTanggalDipilih() {
+      const el = $('rekap-tanggal');
+      return (el && el.value) || rekapTanggal;
+    }
+
+    // 401/403 -> pesan ramah + tautan masuk; galat lain -> pesan singkat
+    // tanpa membocorkan detail teknis mentah.
+    function rekapGalat(err, konteks) {
+      const sesi = $('sesi-error');
+      if (err && (err.status === 401 || err.status === 403)) {
+        if (sesi) sesi.classList.remove('hidden');
+        showStatus(konteks + ': sesi Anda sudah berakhir atau akun ini bukan Administrator. Silakan masuk lagi.', false);
+        return;
+      }
+      showStatus(konteks + ': ' + (err && err.message ? err.message : 'terjadi galat. Coba lagi.'), false);
+    }
+
+    function rekapDataLaporan() {
+      const nihil = (rekapChecklist && rekapChecklist.upt ? rekapChecklist.upt : [])
+        .filter((u) => u.nihil)
+        .map((u) => u.nama);
+      return { tanggal: rekapTanggalDipilih(), rows: rekapRows, nihil };
+    }
+
+    async function muatChecklist() {
+      const tgl = rekapTanggalDipilih();
+      const res = await workerGet('/redaksi/api/rekap/checklist?tanggal=' + encodeURIComponent(tgl));
+      rekapChecklist = res;
+      renderChecklist();
+      renderRingkasanTanggal();
+    }
+
+    function renderRingkasanTanggal() {
+      const el = $('ringkasan-tanggal');
+      if (!el || !rekapChecklist) return;
+      const t = rekapChecklist.total || { sosial: 0, massa: 0, jumlah: 0 };
+      el.textContent = tanggalIndonesia(rekapTanggalDipilih()) + ' — ' + (rekapChecklist.sudahLaporCount || 0) + '/9 UPT sudah lapor · ' +
+        t.jumlah + ' publikasi (' + t.sosial + ' media sosial, ' + t.massa + ' media massa)';
+      const c = $('checklist-count');
+      if (c) c.textContent = (rekapChecklist.sudahLaporCount || 0) + '/9 sudah lapor';
+    }
+
+    function renderChecklist() {
+      const el = $('checklist-list');
+      if (!el || !rekapChecklist) return;
+      const peta = {};
+      (rekapChecklist.upt || []).forEach((u) => { peta[u.nama] = u; });
+      el.innerHTML = UPT_BAKU.map((nama) => {
+        const u = peta[nama] || { nama, jumlah: 0, sosial: 0, massa: 0, nihil: false, sudahLapor: false };
+        let lencana;
+        let tombol = '';
+        if (u.nihil) {
+          lencana = '<span class="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-800 dark:bg-slate-700 dark:text-slate-100">sudah lapor (nihil)</span>';
+          tombol = '<button type="button" data-batal-nihil="' + esc(nama) + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batalkan</button>';
+        } else if (u.sudahLapor) {
+          lencana = '<span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">sudah lapor</span>';
+        } else {
+          lencana = '<span class="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">belum lapor</span>';
+          tombol = '<button type="button" data-lapor-nihil="' + esc(nama) + '" class="rounded-lg bg-[#FACC15] px-3 py-1.5 text-xs font-bold text-[#0A2540] hover:bg-[#EAB308]">Lapor Nihil</button>';
+        }
+        if ((u.jumlah || 0) > 0) {
+          tombol += '<button type="button" data-hapus-upt="' + esc(nama) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus Data</button>';
+        }
+        return '<article class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">' +
+          '<div class="min-w-0 flex-1"><h3 class="text-sm font-bold leading-snug sm:text-base">' + esc(nama) + '</h3>' +
+          '<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">' + (u.jumlah || 0) + ' publikasi · ' + (u.sosial || 0) + ' media sosial · ' + (u.massa || 0) + ' media massa</p></div>' +
+          lencana +
+          '<div class="flex flex-wrap gap-2">' + tombol + '</div></article>';
+      }).join('');
+    }
+
+    async function muatPublikasi() {
+      const tgl = rekapTanggalDipilih();
+      const semua = [];
+      let offset = 0;
+      let total = Infinity;
+      while (semua.length < total) {
+        const res = await workerGet('/redaksi/api/rekap/publikasi?tanggal=' + encodeURIComponent(tgl) + '&limit=1000&offset=' + offset);
+        const rows = (res && res.rows) || [];
+        total = (res && typeof res.total === 'number') ? res.total : rows.length;
+        semua.push(...rows);
+        offset += rows.length;
+        if (!rows.length) break;
+      }
+      rekapRows = semua;
+      renderPublikasi();
+      renderLaporanPratinjau();
+    }
+
+    function renderPublikasi() {
+      const el = $('publikasi-list');
+      if (!el) return;
+      const daftar = rekapFilterUpt ? rekapRows.filter((r) => r.upt === rekapFilterUpt) : rekapRows;
+      const c = $('publikasi-count');
+      if (c) c.textContent = daftar.length + ' dari ' + rekapRows.length + ' publikasi pada ' + tanggalIndonesia(rekapTanggalDipilih()) + (rekapFilterUpt ? ' — ' + rekapFilterUpt : '');
+      if (!daftar.length) {
+        el.innerHTML = '<p class="text-sm text-slate-500">Belum ada publikasi pada tanggal ini' + (rekapFilterUpt ? ' untuk UPT ini' : '') + '.</p>';
+        return;
+      }
+      el.innerHTML = daftar.map((r) => {
+        const massa = r.platform === 'Website / Media Online';
+        return '<article class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="min-w-0 flex-1 text-sm font-bold leading-snug sm:text-base">' + esc(r.judul || '(tanpa judul)') + '</h3>' +
+          '<span class="shrink-0 rounded-full ' + (massa ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200') + ' px-2.5 py-1 text-[11px] font-bold">' + esc(r.platform || '-') + '</span></div>' +
+          '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc(r.upt || '') + '</p>' +
+          (r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="mt-1 block truncate text-sm font-medium text-[#0A2540] underline hover:text-[#92400E] dark:text-white">' + esc(r.url) + '</a>' : '') +
+          '<div class="mt-2"><button type="button" data-hapus-publikasi="' + esc(String(r.id)) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div></article>';
+      }).join('');
+    }
+
+    function renderLaporanPratinjau() {
+      const el = $('laporan-pratinjau');
+      if (!el) return;
+      const hitung = hitungRekap(rekapDataLaporan());
+      const t = hitung.total;
+      let h = '<p><strong>' + esc(tanggalIndonesia(rekapTanggalDipilih())) + '</strong> — ' + t.jumlah + ' publikasi (' + t.sosial + ' media sosial, ' + t.massa + ' media massa)</p>';
+      h += '<div class="mt-3 overflow-x-auto"><table class="w-full min-w-[420px] border-collapse text-left text-sm">' +
+        '<thead><tr class="border-b-2 border-[#0A2540] dark:border-white"><th class="py-1.5 pr-2">UPT</th><th class="py-1.5 pr-2 text-right">Sosial</th><th class="py-1.5 pr-2 text-right">Massa</th><th class="py-1.5 text-right">Jumlah</th></tr></thead><tbody>';
+      h += hitung.perUpt.map((u) => '<tr class="border-b border-slate-200 dark:border-slate-800"><td class="py-1.5 pr-2">' + esc(u.nama) + (u.nihil ? ' <span class="text-xs font-bold text-slate-500">(nihil)</span>' : '') + '</td><td class="py-1.5 pr-2 text-right">' + u.sosial + '</td><td class="py-1.5 pr-2 text-right">' + u.massa + '</td><td class="py-1.5 text-right font-bold">' + u.jumlah + '</td></tr>').join('');
+      h += '<tr class="font-black"><td class="py-1.5 pr-2">JUMLAH</td><td class="py-1.5 pr-2 text-right">' + t.sosial + '</td><td class="py-1.5 pr-2 text-right">' + t.massa + '</td><td class="py-1.5 text-right">' + t.jumlah + '</td></tr>';
+      h += '</tbody></table></div>';
+      el.innerHTML = h;
+    }
+
+    async function muatStatistik() {
+      try {
+        const res = await workerGet('/redaksi/api/rekap/statistik');
+        const totalEl = $('statistik-total');
+        if (totalEl) totalEl.textContent = 'Total semua tanggal: ' + (res.totalSemua || 0) + ' publikasi.';
+        const wadah = $('statistik-tanggal');
+        const daftar = (res && res.perTanggal) || [];
+        if (!wadah) return;
+        if (!daftar.length) {
+          wadah.innerHTML = '<p class="text-sm text-slate-500">Belum ada data.</p>';
+          return;
+        }
+        wadah.innerHTML = daftar.map((d) => '<button type="button" data-lihat-tanggal="' + esc(d.tanggal) + '" class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">' + esc(tanggalIndonesia(d.tanggal)) + ' · ' + d.total + '</button>').join('');
+      } catch (err) {
+        const totalEl = $('statistik-total');
+        if (totalEl) totalEl.textContent = 'Statistik belum bisa dimuat.';
+      }
+    }
+
+    async function muatSemua() {
+      try {
+        await muatChecklist();
+        await muatPublikasi();
+      } catch (err) {
+        rekapGalat(err, 'Gagal memuat data rekap');
+      }
+    }
+
+    function unduhBlob(blob, namaFile) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = namaFile;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    function blobKeBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const hasil = String(reader.result || '');
+          resolve(hasil.indexOf(',') >= 0 ? hasil.slice(hasil.indexOf(',') + 1) : hasil);
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca berkas laporan.'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // ---------- Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js) ----------
+    window.__kelolaSetelahLogin = () => { muatSemua(); muatStatistik(); };
+
+    // Pengaman balapan: bila sesi sudah pulih sebelum script modul ini
+    // jalan (hook terlewat), muat langsung selama peran sudah admin dan
+    // panel aplikasi sudah tampil.
+    try {
+      const appSudahTampil = $('app') && !$('app').classList.contains('hidden');
+      if (appSudahTampil && typeof peran !== 'undefined' && peran === 'admin') { muatSemua(); muatStatistik(); }
+    } catch (e) { /* hook di atas yang akan memuat */ }
+
+    // Tanggal default: hari ini (WIB, zona waktu browser).
+    const inputTanggal = $('rekap-tanggal');
+    if (inputTanggal && !inputTanggal.value) inputTanggal.value = rekapTanggal;
+
+    on('rekap-tanggal', 'change', () => { rekapTanggal = rekapTanggalDipilih(); muatSemua(); });
+    on('btn-muat-ulang', 'click', () => { rekapTanggal = rekapTanggalDipilih(); muatSemua(); });
+    on('filter-upt', 'change', (e) => { rekapFilterUpt = e.target.value; renderPublikasi(); });
+
+    // ---------- Impor ----------
+    on('impor-file', 'change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      const namaEl = $('impor-file-nama');
+      if (!file) { if (namaEl) namaEl.textContent = ''; return; }
+      if (namaEl) namaEl.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = () => { $('impor-teks').value = String(reader.result || ''); };
+      reader.onerror = () => showStatus('Gagal membaca file .txt.', false);
+      reader.readAsText(file);
+    });
+
+    on('btn-impor', 'click', async () => {
+      const teks = ($('impor-teks').value || '').trim();
+      if (!teks) { showStatus('Tempel teks laporan atau pilih file .txt dulu.', false); return; }
+      const btn = $('btn-impor');
+      if (btn) { btn.disabled = true; btn.textContent = 'Mengimpor…'; }
+      try {
+        const res = await workerPost('/redaksi/api/rekap/impor', { teks });
+        const hasil = $('impor-hasil');
+        const nihilTxt = (res.nihilDitandai || []).map((n) => (n.tanggal || '') + ' ' + (n.upt || '')).join(', ');
+        const tglTxt = res.perTanggal ? Object.entries(res.perTanggal).map(([t, j]) => t + ': ' + j).join(', ') : '';
+        if (hasil) {
+          hasil.classList.remove('hidden');
+          hasil.textContent = 'Impor selesai — ' + (res.baru || 0) + ' baru, ' + (res.duplikat || 0) + ' duplikat dilewati' +
+            ((res.dilewati || 0) ? ', ' + res.dilewati + ' baris dilewati' : '') +
+            (nihilTxt ? '. Ditandai nihil: ' + nihilTxt : '') +
+            (tglTxt ? '. Per tanggal: ' + tglTxt : '') +
+            ((res.selisih || 0) ? '. Selisih: ' + res.selisih : '');
+        }
+        showStatus('Impor selesai — ' + (res.baru || 0) + ' publikasi baru ditambahkan.', true);
+        $('impor-teks').value = '';
+        const fi = $('impor-file'); if (fi) fi.value = '';
+        const fn = $('impor-file-nama'); if (fn) fn.textContent = '';
+        await muatSemua();
+        await muatStatistik();
+      } catch (err) {
+        rekapGalat(err, 'Gagal mengimpor');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Impor'; }
+      }
+    });
+
+    // ---------- Tambah manual ----------
+    on('form-tambah', 'submit', async (e) => {
+      e.preventDefault();
+      const upt = $('tambah-upt').value;
+      const judul = ($('tambah-judul').value || '').trim();
+      const platform = $('tambah-platform').value;
+      const url = ($('tambah-url').value || '').trim();
+      if (!upt || !judul || !platform || !url) { showStatus('UPT, judul, platform, dan tautan wajib diisi.', false); return; }
+      try {
+        await workerPost('/redaksi/api/rekap/tambah', { tanggal: rekapTanggalDipilih(), upt, judul, platform, url });
+        showStatus('Publikasi ditambahkan.', true);
+        $('tambah-judul').value = '';
+        $('tambah-url').value = '';
+        await muatSemua();
+      } catch (err) {
+        rekapGalat(err, 'Gagal menambah publikasi');
+      }
+    });
+
+    // ---------- Aksi daftar / checklist (delegation) ----------
+    document.addEventListener('click', async (e) => {
+      const lihatTgl = e.target.closest('[data-lihat-tanggal]');
+      if (lihatTgl) {
+        rekapTanggal = lihatTgl.getAttribute('data-lihat-tanggal');
+        const inp = $('rekap-tanggal'); if (inp) inp.value = rekapTanggal;
+        await muatSemua();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const nihilBtn = e.target.closest('[data-lapor-nihil]');
+      if (nihilBtn) {
+        const upt = nihilBtn.getAttribute('data-lapor-nihil');
+        try {
+          await workerPost('/redaksi/api/rekap/nihil', { tanggal: rekapTanggalDipilih(), upt });
+          showStatus(upt + ' ditandai sudah lapor (nihil).', true);
+          await muatSemua();
+        } catch (err) { rekapGalat(err, 'Gagal menandai nihil'); }
+        return;
+      }
+      const batalBtn = e.target.closest('[data-batal-nihil]');
+      if (batalBtn) {
+        const upt = batalBtn.getAttribute('data-batal-nihil');
+        try {
+          await workerPost('/redaksi/api/rekap/batal-nihil', { tanggal: rekapTanggalDipilih(), upt });
+          showStatus('Tanda nihil ' + upt + ' dibatalkan.', true);
+          await muatSemua();
+        } catch (err) { rekapGalat(err, 'Gagal membatalkan nihil'); }
+        return;
+      }
+      const hapusUptBtn = e.target.closest('[data-hapus-upt]');
+      if (hapusUptBtn) { bukaModalHapus(hapusUptBtn.getAttribute('data-hapus-upt')); return; }
+      const hapusBtn = e.target.closest('[data-hapus-publikasi]');
+      if (hapusBtn) {
+        // Konfirmasi dua ketuk (bukan confirm() bawaan browser): dialog
+        // bawaan tidak bisa dijawab otomasi dan sempat membuat tombol ini
+        // tampak mati saat verifikasi klik. Ketuk pertama mempersenjatai,
+        // ketuk kedua menghapus.
+        if (hapusBtn.getAttribute('data-hapus-arm') !== '1') {
+          hapusBtn.setAttribute('data-hapus-arm', '1');
+          hapusBtn.textContent = 'Ketuk lagi untuk hapus';
+          hapusBtn.classList.add('bg-[#D9232E]', 'text-white');
+          return;
+        }
+        const id = hapusBtn.getAttribute('data-hapus-publikasi');
+        try {
+          await workerApi('/redaksi/api/rekap/publikasi/' + encodeURIComponent(id), { method: 'DELETE' });
+          showStatus('Publikasi dihapus.', true);
+          await muatSemua();
+        } catch (err) { rekapGalat(err, 'Gagal menghapus publikasi'); }
+        return;
+      }
+    });
+
+    // ---------- Hapus massal satu UPT + satu tanggal ----------
+    async function bukaModalHapus(upt) {
+      rekapHapusTarget = { tanggal: rekapTanggalDipilih(), upt };
+      const modal = $('modal-hapus');
+      const wadah = $('hapus-pratinjau');
+      const yakin = $('hapus-yakin');
+      const btnYa = $('btn-hapus-ya');
+      if (yakin) yakin.checked = false;
+      if (btnYa) { btnYa.disabled = true; btnYa.classList.add('opacity-50'); }
+      if (wadah) wadah.innerHTML = '<p class="text-slate-500">Memuat pratinjau…</p>';
+      if (modal) { modal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+      try {
+        const res = await workerGet('/redaksi/api/rekap/pratinjau-hapus?tanggal=' + encodeURIComponent(rekapHapusTarget.tanggal) + '&upt=' + encodeURIComponent(upt));
+        if (!wadah) return;
+        const rows = (res && res.rows) || [];
+        let h = '<p class="font-bold">' + esc(upt) + ' — ' + esc(tanggalIndonesia(res.tanggal || rekapHapusTarget.tanggal)) + '</p>' +
+          '<p class="mt-1">' + (res.jumlah || 0) + ' publikasi akan dihapus (' + (res.sosial || 0) + ' media sosial, ' + (res.massa || 0) + ' media massa).</p>';
+        if (rows.length) {
+          h += '<ul class="mt-2 max-h-56 list-disc overflow-y-auto rounded-lg bg-slate-50 px-5 py-2 dark:bg-slate-800">' +
+            rows.map((r) => '<li class="py-0.5">' + esc(r.judul || '(tanpa judul)') + ' <span class="text-xs text-slate-500">(' + esc(r.platform || '-') + ')</span></li>').join('') + '</ul>';
+        } else {
+          h += '<p class="mt-2 text-slate-500">Tidak ada publikasi untuk dihapus.</p>';
+        }
+        wadah.innerHTML = h;
+      } catch (err) {
+        if (wadah) wadah.innerHTML = '<p class="text-red-600">Gagal memuat pratinjau. Tutup dialog ini dan coba lagi.</p>';
+      }
+    }
+
+    function tutupModalHapus() {
+      const modal = $('modal-hapus');
+      if (modal) modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      rekapHapusTarget = null;
+    }
+
+    on('hapus-yakin', 'change', (e) => {
+      const btnYa = $('btn-hapus-ya');
+      if (!btnYa) return;
+      btnYa.disabled = !e.target.checked;
+      btnYa.classList.toggle('opacity-50', !e.target.checked);
+    });
+    on('btn-hapus-batal', 'click', tutupModalHapus);
+    on('modal-hapus', 'click', (e) => {
+      if (e.target && !e.target.closest('.max-w-\\[640px\\]')) tutupModalHapus();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = $('modal-hapus');
+        if (modal && !modal.classList.contains('hidden')) tutupModalHapus();
+      }
+    });
+    on('btn-hapus-ya', 'click', async () => {
+      if (!rekapHapusTarget) return;
+      const yakin = $('hapus-yakin');
+      if (!yakin || !yakin.checked) { showStatus('Centang "Saya yakin" dulu untuk menghapus.', false); return; }
+      const btn = $('btn-hapus-ya');
+      if (btn) { btn.disabled = true; btn.textContent = 'Menghapus…'; }
+      try {
+        const res = await workerPost('/redaksi/api/rekap/hapus-upt-tanggal', { tanggal: rekapHapusTarget.tanggal, upt: rekapHapusTarget.upt });
+        tutupModalHapus();
+        showStatus('Data ' + rekapHapusTarget.upt + ' pada tanggal terpilih dihapus (' + (res.terhapus || 0) + ' publikasi).', true);
+        await muatSemua();
+      } catch (err) {
+        rekapGalat(err, 'Gagal menghapus data');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Hapus Data'; }
+      }
+    });
+
+    // ---------- Laporan: unduh PDF / Word ----------
+    async function unduhLaporan(ext) {
+      try {
+        const data = rekapDataLaporan();
+        const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
+        unduhBlob(blob, namaFileLaporan(data.tanggal, ext));
+        showStatus('Laporan ' + ext.toUpperCase() + ' tanggal ' + tanggalIndonesia(data.tanggal) + ' diunduh.', true);
+      } catch (err) {
+        rekapGalat(err, 'Gagal membuat laporan ' + ext.toUpperCase());
+      }
+    }
+    on('btn-pdf', 'click', () => unduhLaporan('pdf'));
+    on('btn-docx', 'click', () => unduhLaporan('docx'));
+
+    // ---------- Kirim via WhatsApp ----------
+    on('btn-wa', 'click', async () => {
+      const btn = $('btn-wa');
+      if (btn) { btn.disabled = true; btn.textContent = 'Mengunggah…'; }
+      try {
+        const data = rekapDataLaporan();
+        const hitung = hitungRekap(data);
+        const blob = await buildDocx(data);
+        const isi_base64 = await blobKeBase64(blob);
+        const namaFile = namaFileLaporan(data.tanggal, 'docx');
+        const res = await workerPost('/redaksi/api/rekap/file', { nama_file: namaFile, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', isi_base64 });
+        if (!res || !res.token) throw new Error('Server tidak mengembalikan tautan unduh.');
+        const tautan = 'https://zonapas.web.id/redaksi/api/rekap/file?token=' + res.token;
+        const pesan = 'Laporan Publikasi Harian Kanwil Ditjenpas Bengkulu — ' + tanggalIndonesia(data.tanggal) + '.\n' +
+          'Total ' + hitung.total.jumlah + ' publikasi (' + hitung.total.sosial + ' media sosial, ' + hitung.total.massa + ' media massa) dari ' + (rekapChecklist ? rekapChecklist.sudahLaporCount : 0) + '/9 UPT sudah lapor.\n' +
+          'Unduh laporan (Word): ' + tautan + '\n' +
+          'Tautan berlaku 7 hari.';
+        const hasil = $('wa-hasil');
+        if (hasil) {
+          hasil.classList.remove('hidden');
+          hasil.innerHTML = '';
+          const p = document.createElement('p');
+          p.textContent = 'Laporan diunggah. Tautan unduh (berlaku 7 hari): ';
+          const a = document.createElement('a');
+          a.href = tautan;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.className = 'font-bold underline';
+          a.textContent = tautan;
+          p.appendChild(a);
+          hasil.appendChild(p);
+        }
+        showStatus('Laporan diunggah — WhatsApp dibuka dengan tautan unduh (berlaku 7 hari).', true);
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(pesan), '_blank', 'noopener');
+      } catch (err) {
+        rekapGalat(err, 'Gagal mengirim via WhatsApp');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Kirim via WhatsApp'; }
+      }
+    });
+  </script>
+</BaseLayout>

@@ -2,14 +2,14 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Masuk" description="Masuk ke ZonaPas — dengan GitHub atau Google. Keduanya membawa Anda ke Kelola Berita.">
+<BaseLayout title="Masuk" description="Masuk ke ZonaPas — dengan GitHub atau Google. Keduanya membawa Anda ke Portal Redaksi.">
   <div class="mx-auto max-w-[900px] px-4 pt-6 pb-6">
     <a href="/" class="text-sm font-bold text-slate-500 hover:text-[#0A2540] dark:text-slate-400 dark:hover:text-white">&larr; Kembali ke Beranda</a>
     <div class="mt-6 text-center">
       <h1 class="text-3xl font-black text-[#0A2540] sm:text-4xl dark:text-white">Masuk</h1>
       <div class="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#FACC15]"></div>
       <p class="mx-auto mt-4 max-w-[560px] text-[17px] leading-relaxed text-slate-600 dark:text-slate-300">
-        Pilih cara masuk. Aksesnya mengikuti peran akun Anda — Redaksi masuk ke Kelola Berita, Pembaca kembali ke artikel yang sedang dibaca.
+        Pilih cara masuk. Aksesnya mengikuti peran akun Anda — Redaksi masuk ke Portal Redaksi, Pembaca kembali ke artikel yang sedang dibaca.
       </p>
     </div>
 
@@ -63,7 +63,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           Masuk dengan Google
         </a>
         <p id="catatan-google" class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-          Anda akan diarahkan ke Google, lalu kembali ke Kelola Berita.
+          Anda akan diarahkan ke Google, lalu kembali ke Portal Redaksi.
         </p>
       </div>
     </div>
@@ -98,8 +98,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     } catch (e) {}
 
     // Login GitHub dari /masuk/: popup OAuth yang sama seperti di
-    // /kelola-berita/. Dibuka dari klik (gesture) supaya tidak diblokir
-    // browser. Setelah sukses, token disimpan lalu pindah ke /kelola-berita/.
+    // /portal/. Dibuka dari klik (gesture) supaya tidak diblokir
+    // browser. Setelah sukses, token disimpan lalu pindah ke /portal/.
     const OAUTH_AUTH_URL = 'https://oauth.zonapas.web.id/auth';
     const OAUTH_ORIGIN = 'https://oauth.zonapas.web.id';
     let popup = null;
@@ -128,7 +128,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           try { sessionStorage.setItem('zonapas-kelola-token', payload.token); } catch (e) {}
           if (popupTimer) { clearInterval(popupTimer); popupTimer = null; }
           if (popup && !popup.closed) popup.close();
-          window.location.href = '/kelola-berita/';
+          window.location.href = '/portal/';
         } catch (err) {
           setStatusMasuk('Login gagal: ' + err.message, false);
         }
