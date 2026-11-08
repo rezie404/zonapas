@@ -243,7 +243,10 @@ const PLATFORM = [
 
   <script is:inline src="/kelola-umum.js?v=6"></script>
   <script type="module">
-    import { buildDocx, buildPdf, hitungRekap, namaFileLaporan, tanggalIndonesia } from '/rekap-laporan.mjs';
+    // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
+    // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
+    // saat mengunduh/mengirim laporan — lihat unduhLaporan() dan btn-wa.
+    import { hitungRekap, namaFileLaporan, tanggalIndonesia } from '/rekap-ringan.mjs';
 
     // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
     // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
@@ -409,9 +412,11 @@ const PLATFORM = [
     }
 
     async function muatSemua() {
+      // Muat PARALEL (dulu berurutan: checklist, lalu publikasi, lalu
+      // statistik — tiga perjalanan bolak-balik ke server). Statistik tidak
+      // pernah melempar galat (ditangani di dalamnya), jadi aman di sini.
       try {
-        await muatChecklist();
-        await muatPublikasi();
+        await Promise.all([muatChecklist(), muatPublikasi(), muatStatistik()]);
       } catch (err) {
         rekapGalat(err, 'Gagal memuat data rekap');
       }
@@ -441,14 +446,15 @@ const PLATFORM = [
     }
 
     // ---------- Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js) ----------
-    window.__kelolaSetelahLogin = () => { muatSemua(); muatStatistik(); };
+    // muatSemua() sudah memuat checklist + publikasi + statistik paralel.
+    window.__kelolaSetelahLogin = () => { muatSemua(); };
 
     // Pengaman balapan: bila sesi sudah pulih sebelum script modul ini
     // jalan (hook terlewat), muat langsung selama peran sudah admin dan
     // panel aplikasi sudah tampil.
     try {
       const appSudahTampil = $('app') && !$('app').classList.contains('hidden');
-      if (appSudahTampil && typeof peran !== 'undefined' && peran === 'admin') { muatSemua(); muatStatistik(); }
+      if (appSudahTampil && typeof peran !== 'undefined' && peran === 'admin') { muatSemua(); }
     } catch (e) { /* hook di atas yang akan memuat */ }
 
     // Tanggal default: hari ini (WIB, zona waktu browser).
@@ -494,7 +500,6 @@ const PLATFORM = [
         const fi = $('impor-file'); if (fi) fi.value = '';
         const fn = $('impor-file-nama'); if (fn) fn.textContent = '';
         await muatSemua();
-        await muatStatistik();
       } catch (err) {
         rekapGalat(err, 'Gagal mengimpor');
       } finally {
@@ -648,6 +653,10 @@ const PLATFORM = [
     // ---------- Laporan: unduh PDF / Word ----------
     async function unduhLaporan(ext) {
       try {
+        // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
+        // halaman) supaya halaman pertama terbuka cepat; modul di-cache
+        // browser setelah unduhan pertama.
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));
@@ -664,6 +673,7 @@ const PLATFORM = [
       const btn = $('btn-wa');
       if (btn) { btn.disabled = true; btn.textContent = 'Mengunggah…'; }
       try {
+        const { buildDocx } = await import('/rekap-laporan.mjs');
         const data = rekapDataLaporan();
         const hitung = hitungRekap(data);
         const blob = await buildDocx(data);
