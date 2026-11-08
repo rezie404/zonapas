@@ -152,53 +152,14 @@ const PLATFORM = [
         <div id="impor-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
       </section>
 
-      <!-- Gaya kertas pratinjau laporan (global: isi pratinjau disisipkan lewat innerHTML, jadi gaya scoped Astro tidak akan menjangkaunya). -->
-      <style is:global>
-        .pratinjau-dokumen { background: #fff; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.6; }
-        .pratinjau-dokumen .kop { display: flex; align-items: center; gap: 12px; border-bottom: 4px double #0f172a; padding-bottom: 10px; }
-        .pratinjau-dokumen .kop img { height: 76px; width: auto; flex-shrink: 0; }
-        .pratinjau-dokumen .kop .kop-teks { flex: 1; text-align: center; font-weight: 700; line-height: 1.35; }
-        .pratinjau-dokumen .kop .kop-teks p { margin: 0; text-align: center; }
-        .pratinjau-dokumen .kop .kop-teks .alamat { font-weight: 400; }
-        .pratinjau-dokumen .judul-laporan { text-align: center; font-weight: 700; margin: 34px 0 6px; line-height: 1.5; }
-        .pratinjau-dokumen .judul-laporan p { margin: 0; text-align: center; }
-        .pratinjau-dokumen h3 { font-weight: 700; margin: 18px 0 6px; font-size: 15px; }
-        .pratinjau-dokumen h4 { font-weight: 700; margin: 12px 0 4px; font-size: 15px; }
-        .pratinjau-dokumen h4.rapat { margin-top: 6px; }
-        .pratinjau-dokumen p { margin: 0 0 8px; text-align: justify; }
-        .pratinjau-dokumen p.isi { margin-left: 0.5cm; text-indent: 0.75cm; }
-        .pratinjau-dokumen p.isi-sub { margin-left: 1cm; text-indent: 0.75cm; }
-        .pratinjau-dokumen p.isi-tab { text-indent: 1cm; }
-        .pratinjau-dokumen p.isi-tab-kecil { text-indent: 0.5cm; }
-        .pratinjau-dokumen p.isi-tab-besar { text-indent: 1.25cm; }
-        .pratinjau-dokumen .ruang { margin-left: 1.2em; }
-        .pratinjau-dokumen ol.tujuan { margin: 0 0 8px 1.4em; padding: 0; }
-        .pratinjau-dokumen ol.tujuan li { margin-bottom: 4px; text-align: justify; }
-        .pratinjau-dokumen .gulir { overflow-x: auto; }
-        .pratinjau-dokumen table { width: 100%; min-width: 420px; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
-        .pratinjau-dokumen th, .pratinjau-dokumen td { border: 1px solid #94a3b8; padding: 5px 8px; text-align: left; }
-        .pratinjau-dokumen th { background: #e6ecf5; font-weight: 700; }
-        .pratinjau-dokumen td.angka, .pratinjau-dokumen th.angka { text-align: right; }
-        .pratinjau-dokumen tr.jumlah td { font-weight: 700; background: #e6ecf5; }
-        .pratinjau-dokumen ol.daftar { margin: 0 0 8px 1.6em; padding: 0; }
-        .pratinjau-dokumen ol.daftar li { margin-bottom: 3px; }
-        .pratinjau-dokumen a { color: #1d4ed8; text-decoration: underline; word-break: break-all; }
-        .pratinjau-dokumen .tanda-tangan { margin-top: 24px; text-align: right; }
-        .pratinjau-dokumen .tanda-tangan p { text-align: right; margin-bottom: 2px; }
-      </style>
-
       <!-- Laporan -->
       <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Laporan">
         <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Laporan</h2>
-        <div class="mt-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h3 class="text-lg font-black">Pratinjau laporan</h3>
-          <p id="laporan-tanggal" class="text-sm text-slate-500 dark:text-slate-400"></p>
-        </div>
+        <p id="laporan-tanggal" class="mt-1 text-sm text-slate-500 dark:text-slate-400"></p>
         <div class="mt-3 flex flex-wrap gap-2">
           <button id="btn-pdf" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh PDF</button>
           <button id="btn-docx" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh Word</button>
           <button id="btn-wa" type="button" class="rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:bg-[#1DA851]">Kirim via WhatsApp</button>
-          <button id="btn-pratinjau-toggle" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700" aria-expanded="true" aria-controls="laporan-pratinjau">Sembunyikan pratinjau</button>
         </div>
         <div id="wa-pilih" class="mt-3 hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
           <p class="text-sm font-bold">Kirim laporan via WhatsApp sebagai:</p>
@@ -211,7 +172,6 @@ const PLATFORM = [
         </div>
         <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp membagikan berkas laporan langsung dari WhatsApp Anda — pilih format (Word atau PDF), lalu pilih chat tujuan di WhatsApp. Di perangkat yang tidak mendukung berbagi berkas, laporan dikirim sebagai tautan unduh (berlaku 7 hari).</p>
         <div id="wa-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
-        <div id="laporan-pratinjau" class="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"><p class="text-sm text-slate-500">Memuat…</p></div>
       </section>
 
       <!-- Statistik -->
@@ -249,7 +209,7 @@ const PLATFORM = [
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
     // saat mengunduh/mengirim laporan — lihat unduhLaporan() dan btn-wa.
-    import { hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari, pratinjauLaporanHtml } from '/rekap-ringan.mjs?v=2';
+    import { hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=2';
 
     // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
     // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
@@ -356,16 +316,8 @@ const PLATFORM = [
         if (!rows.length) break;
       }
       rekapRows = semua;
-      renderLaporanPratinjau();
-    }
-
-    function renderLaporanPratinjau() {
-      const el = $('laporan-pratinjau');
-      if (!el) return;
-      const hitung = hitungRekap(rekapDataLaporan());
-      el.innerHTML = pratinjauLaporanHtml(hitung);
       const tglEl = $('laporan-tanggal');
-      if (tglEl) tglEl.textContent = tanggalIndonesiaTanpaHari(hitung.tanggal) + ' \u2022 20.00 WIB';
+      if (tglEl) tglEl.textContent = tanggalIndonesiaTanpaHari(tgl) + ' \u2022 20.00 WIB';
     }
 
     async function muatStatistik() {
@@ -610,20 +562,6 @@ const PLATFORM = [
     }
     on('btn-pdf', 'click', () => unduhLaporan('pdf'));
     on('btn-docx', 'click', () => unduhLaporan('docx'));
-
-    // Pratinjau bisa diminimalkan/ditutup supaya tidak perlu scroll jauh
-    // melewati dokumen saat mau mengunduh/mengirim atau melihat Statistik.
-    // Delegasi di document (bukan on() langsung) supaya tetap berfungsi
-    // walau tombol sempat tertutup elemen lain saat diklik.
-    document.addEventListener('click', (e) => {
-      const tombol = e.target && e.target.closest ? e.target.closest('#btn-pratinjau-toggle') : null;
-      if (!tombol) return;
-      const pratinjau = $('laporan-pratinjau');
-      if (!pratinjau) return;
-      const disembunyikan = pratinjau.classList.toggle('hidden');
-      tombol.textContent = disembunyikan ? 'Tampilkan pratinjau' : 'Sembunyikan pratinjau';
-      tombol.setAttribute('aria-expanded', String(!disembunyikan));
-    });
 
     // ---------- Kirim via WhatsApp ----------
     // Kirim sebagai BERKAS langsung (bukan tautan), dari WhatsApp pengguna

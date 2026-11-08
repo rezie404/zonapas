@@ -746,8 +746,13 @@ async function buildPdfDariDocx(data) {
   // ditambahkan di AKHIR body (di bawah viewport pengguna yang sedang
   // berada di seksi Laporan) lalu dihapus setelah selesai; opacity:0
   // TIDAK boleh dipakai (html2canvas menangkapnya transparan).
+  // pointer-events:none WAJIB: wadah berisi salinan penuh laporan dan
+  // bila ia (atau salinannya yang tertinggal) menerima ketukan, SEMUA
+  // tombol di halaman jadi tidak merespon — ketukan ditelan wadah
+  // (keyboard tetap jalan karena tidak memakai hit-test). pointer-events
+  // tidak memengaruhi gambar yang ditangkap html2canvas.
   const wadah = document.createElement("div");
-  wadah.style.cssText = "width:210mm;background:#fff;margin:0 auto;";
+  wadah.style.cssText = "width:210mm;background:#fff;margin:0 auto;pointer-events:none;";
   document.body.appendChild(wadah);
   try {
     await renderAsync(blobDocx, wadah, null, { breakPages: true });
