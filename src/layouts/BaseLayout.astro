@@ -69,11 +69,12 @@ const ld = jsonLd
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="alternate" type="application/rss+xml" title={`${SITE.name} RSS`} href="/rss.xml" />
-    <meta name="theme-color" content="#0A2540" />
+    <meta name="theme-color" content="#05152E" />
     <script is:inline>
       try {
         const saved = localStorage.getItem('zonapas-theme');
@@ -122,6 +123,14 @@ const ld = jsonLd
           kartuReveal.forEach((el) => pengamat.observe(el));
         }
       } catch (e) {}
+    </script>
+    <script is:inline>
+      // Daftarkan service worker (PWA/TWA). Gagal daftar = halaman tetap jalan normal.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
     </script>
   </body>
 </html>

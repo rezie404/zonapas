@@ -32,7 +32,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const IMG_DIR = path.join(ROOT, "dist", "images");
 const LOGO_FILE = "logo-zonapas-watermark.png"; // watermark = logo lingkaran abu transparan (05 Nov 2026)
 
-const SKIP_FILES = new Set(["logo-zonapas.png", "logo-zonapas-asli.jpg", "logo-zonapas-nama.png", "logo-zonapas-nama-v2.png", "logo-zonapas-watermark.png", "logo-zonapastv.png"]);
+const SKIP_FILES = new Set(["logo-zonapas.png", "logo-zonapas-asli.jpg", "logo-zonapas-nama.png", "logo-zonapas-nama-v2.png", "logo-zonapas-watermark.png", "logo-zonapastv.png", "icon-192.png"]); // icon-192.png = ikon PWA/aplikasi Android, jangan di-watermark.
 const SKIP_PREFIXES = ["jurnalpas-"];
 const LOGO_FRACTION = 0.15; // lebar logo = 15% lebar foto
 const LOGO_ALPHA = 0.6; // lebih transparan namun tetap terlihat

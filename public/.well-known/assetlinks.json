@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.use_as_origin"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "id.web.zonapas",
+      "sha256_cert_fingerprints": [
+        "84:3E:18:BC:7D:C8:F3:CD:E1:1D:C5:F8:98:11:EE:49:F6:69:AF:A9:EA:DF:38:DD:FA:45:07:32:1A:38:7A:F5"
+      ]
+    }
+  }
+]
