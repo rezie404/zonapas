@@ -660,7 +660,14 @@ const PLATFORM = [
         const berkas = ext === 'pdf' ? siap.pdf : siap.docx;
         const label = ext === 'pdf' ? 'PDF' : 'Word';
         const hasil = $('wa-hasil');
-        if (navigator.canShare && navigator.canShare({ files: [berkas] })) {
+        // JANGAN mengandalkan navigator.canShare sebagai gerbang: di
+        // Chrome Android canShare() sering mengembalikan false untuk
+        // tipe MIME Word (.docx) padahal navigator.share() sebenarnya
+        // bisa membagikannya — itulah kenapa kirim Word jatuh ke jalur
+        // tautan (api.whatsapp.com) sementara PDF (canShare true)
+        // terkirim sebagai berkas. Pola yang benar: langsung coba
+        // berbagi; hanya bila berbagi benar-benar gagal, jatuh ke tautan.
+        if (navigator.share) {
           try {
             await navigator.share({ files: [berkas], title: 'Laporan Publikasi Harian — ' + tanggalIndonesia(siap.tanggal), text: siap.ringkas });
           } catch (err) {

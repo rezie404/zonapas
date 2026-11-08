@@ -26,12 +26,17 @@
 // UPT nihil ditulis SEBARIS di labelnya ("c. Judul Publikasi : Nihil",
 // "d. Tautan Publikasi : Nihil"), tanpa butir bernomor terpisah — sama
 // seperti berkas terkirim.
-// PDF dibangun dari nol (tanpa pustaka) dengan teks yang sama seperti
-// template; logo diambil dari berkas template yang sama. Garis ganda di
-// bawah kop dan penulisan nihil sebaris mengikuti berkas PDF terkirim.
+// PDF dibuat dengan mengonversi berkas DOCX (bukan digambar ulang oleh
+// builder terpisah), supaya tampilannya persis sama dengan Word. Alur:
+// buildDocx -> render DOCX ke HTML (docx-preview, CDN jsDelivr) -> HTML
+// ke PDF (html2pdf.js = html2canvas + jsPDF, CDN jsDelivr). Hasilnya
+// berupa gambar per halaman (teks tidak bisa dipilih), tetapi tampilannya
+// sama persis dengan Word. Bila konversi gagal (mis. CDN tidak terjangkau),
+// jatuh ke builder lama (buildPdfLegacy, tanpa dependensi) supaya PDF
+// tetap bisa diunduh/dikirim. Garis ganda di bawah kop dan penulisan nihil
+// sebaris mengikuti berkas PDF terkirim.
 // Modul ini dimuat MALAS (lazy) oleh halaman — hanya saat mengunduh
 // atau mengirim laporan — supaya halaman pertama terbuka cepat.
-// TIDAK ada CDN / dependensi runtime.
 //
 // Catatan fidelity (jujur):
 //  - PDF memakai font inti Helvetica/Helvetica-Bold, bukan Arial: Arial
@@ -693,7 +698,52 @@ class PdfDokumen {
 }
 
 // ---------- Perakitan PDF ----------
+// PDF dibuat dengan mengonversi berkas DOCX (bukan digambar ulang oleh
+// builder terpisah), supaya tampilannya persis sama dengan Word — Word
+// rapi karena memakai template asli, sedangkan builder PDF lama menggambar
+// ulang tata letak dengan tangan sehingga selalu ada selisih. Alur:
+// buildDocx -> render DOCX ke HTML (docx-preview) -> HTML ke PDF
+// (html2pdf.js = html2canvas + jsPDF). Hasilnya berupa gambar per halaman
+// (teks tidak bisa dipilih), tetapi tampilannya sama persis dengan Word.
+// Bila konversi gagal (mis. CDN tidak terjangkau), jatuh ke builder lama
+// (buildPdfLegacy) supaya PDF tetap bisa diunduh/dikirim.
 export async function buildPdf(data) {
+  try {
+    return await buildPdfDariDocx(data);
+  } catch (err) {
+    console.warn("[rekap] konversi DOCX->PDF gagal, pakai builder lama:", err);
+    return buildPdfLegacy(data);
+  }
+}
+
+async function buildPdfDariDocx(data) {
+  const blobDocx = await buildDocx(data);
+  const [{ renderAsync }, html2pdfMod] = await Promise.all([
+    import("https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/+esm"),
+    import("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/+esm"),
+  ]);
+  const html2pdf = html2pdfMod.default || html2pdfMod;
+  // Wadah tersembunyi selebar kertas A4 untuk me-render DOCX.
+  const wadah = document.createElement("div");
+  wadah.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;background:#fff;";
+  document.body.appendChild(wadah);
+  try {
+    await renderAsync(blobDocx, wadah, null, { breakPages: true });
+    const pdf = await html2pdf().set({
+      margin: 0,
+      filename: "laporan.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"] },
+    }).from(wadah).outputPdf("blob");
+    return pdf;
+  } finally {
+    wadah.remove();
+  }
+}
+
+async function buildPdfLegacy(data) {
   const tpl = await muatTemplate();
   const hitung = hitungRekap(data);
   const tanggal = hitung.tanggal, total = hitung.total;
