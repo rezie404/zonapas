@@ -1,8 +1,9 @@
 ---
-// Widget chat PASman — asisten AI ZonaPas.
-// Muncul di semua halaman lewat BaseLayout. Gambar PASman statis 3D
-// digerakkan dengan animasi CSS saja (tanpa video): melayang halus,
-// denyut pendaran, dan kilatan petir halus. Hormati prefers-reduced-motion.
+// Widget chat PasBot — asisten AI ZonaPas (kini berwujud robot lucu).
+// Muncul di semua halaman lewat BaseLayout. Gambar robot 3D digerakkan
+// dengan animasi CSS saja (tanpa video): ikon mengambang melayang +
+// melambai (miring kiri-kanan), denyut pendaran, dan kilatan kuning
+// halus di kepala panel. Hormati prefers-reduced-motion.
 ---
 
 <div id="pasman-root" class="pasman-root" hidden>
@@ -11,12 +12,12 @@
     id="pasman-tombol"
     type="button"
     class="pasman-tombol"
-    aria-label="Buka chat dengan PASman, asisten ZonaPas"
+    aria-label="Buka chat dengan PasBot, asisten ZonaPas"
     aria-expanded="false"
     aria-controls="pasman-panel"
   >
     <img
-      src="/images/pasman-avatar.png"
+      src="/images/robot-zonapas-avatar.png"
       alt=""
       class="pasman-tombol-gambar"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
@@ -26,18 +27,18 @@
   </button>
 
   <!-- Panel chat -->
-  <section id="pasman-panel" class="pasman-panel" aria-label="Chat dengan PASman" hidden>
+  <section id="pasman-panel" class="pasman-panel" aria-label="Chat dengan PasBot" hidden>
     <header class="pasman-kepala">
       <div class="pasman-kepala-gambar">
         <img
-          src="/images/pasman.png"
-          alt="PASman, asisten AI ZonaPas"
+          src="/images/robot-zonapas.png"
+          alt="PasBot, asisten AI ZonaPas"
           class="pasman-kepala-foto"
           onerror="this.style.display='none';"
         />
         <div class="pasman-kilat" aria-hidden="true"></div>
         <div class="pasman-kepala-teks">
-          <strong>PASman</strong>
+          <strong>PasBot</strong>
           <span>Asisten ZonaPas</span>
         </div>
         <button id="pasman-tutup" type="button" class="pasman-tutup" aria-label="Tutup chat">✕</button>
@@ -54,7 +55,7 @@
     </div>
 
     <form id="pasman-form" class="pasman-form" autocomplete="off">
-      <label class="pasman-label" for="pasman-input">Tanya PASman</label>
+      <label class="pasman-label" for="pasman-input">Tanya PasBot</label>
       <input
         id="pasman-input"
         type="text"
@@ -64,7 +65,7 @@
       />
       <button id="pasman-kirim" type="submit" aria-label="Kirim pertanyaan">➤</button>
     </form>
-    <p class="pasman-catatan">PASman menjawab dari konten ZonaPas. Info resmi tetap mengacu ke kanal Kanwil Ditjenpas Bengkulu.</p>
+    <p class="pasman-catatan">PasBot menjawab dari konten ZonaPas. Info resmi tetap mengacu ke kanal Kanwil Ditjenpas Bengkulu.</p>
   </section>
 </div>
 
@@ -72,12 +73,13 @@
   .pasman-root { position: fixed; z-index: 70; right: 16px; bottom: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
   .pasman-root[hidden] { display: none; }
 
-  /* Tombol mengambang: melayang lembut + cincin pendaran */
+  /* Tombol mengambang: melayang + melambai (miring kiri-kanan seperti
+     melambaikan tangan) + cincin pendaran */
   .pasman-tombol {
     position: relative; width: 64px; height: 64px; border-radius: 9999px; border: 3px solid #ffcc00;
     padding: 0; cursor: pointer; overflow: visible; background: #05152e;
-    box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 0 0 rgba(56, 189, 248, 0.55);
-    animation: pasman-melayang 3.6s ease-in-out infinite, pasman-denyut 2.8s ease-in-out infinite;
+    box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 0 0 rgba(255, 204, 0, 0.55);
+    animation: pasman-melayang-lambai 3.6s ease-in-out infinite, pasman-denyut 2.8s ease-in-out infinite;
   }
   .pasman-tombol:active { transform: scale(0.96); }
   .pasman-tombol-gambar { width: 100%; height: 100%; border-radius: 9999px; object-fit: cover; object-position: 50% 18%; display: block; }
@@ -106,10 +108,11 @@
     width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%;
     animation: pasman-melayang-foto 5s ease-in-out infinite, pasman-pendar-foto 3.2s ease-in-out infinite;
   }
-  /* Kilatan petir halus: sekelebat cahaya biru-putih setiap beberapa detik */
+  /* Kilatan kuning halus: sekelebat cahaya kuning setiap beberapa detik
+     (pendar antena robot) */
   .pasman-kilat {
     position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse at 78% 18%, rgba(186, 230, 253, 0.9), rgba(56, 189, 248, 0.25) 42%, transparent 68%);
+    background: radial-gradient(ellipse at 78% 18%, rgba(254, 240, 138, 0.9), rgba(255, 204, 0, 0.25) 42%, transparent 68%);
     opacity: 0; animation: pasman-kilat 7s ease-in-out infinite;
   }
   .pasman-kepala-teks {
@@ -164,15 +167,20 @@
   .dark .pasman-form input { background: #1e293b; color: #f1f5f9; border-color: #334155; }
   .dark .pasman-catatan { color: #94a3b8; }
 
-  @keyframes pasman-melayang { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes pasman-melayang-lambai {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-5px) rotate(-5deg); }
+    50% { transform: translateY(-7px) rotate(4deg); }
+    75% { transform: translateY(-3px) rotate(-2deg); }
+  }
   @keyframes pasman-denyut {
-    0%, 100% { box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 0 0 rgba(56, 189, 248, 0.5); }
-    50% { box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 18px 4px rgba(56, 189, 248, 0.35); }
+    0%, 100% { box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 0 0 rgba(255, 204, 0, 0.5); }
+    50% { box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 18px 4px rgba(255, 204, 0, 0.4); }
   }
   @keyframes pasman-melayang-foto { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
   @keyframes pasman-pendar-foto {
-    0%, 100% { filter: drop-shadow(0 0 0 rgba(56, 189, 248, 0)); }
-    50% { filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.55)); }
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 204, 0, 0)); }
+    50% { filter: drop-shadow(0 0 14px rgba(255, 204, 0, 0.55)); }
   }
   @keyframes pasman-kilat { 0%, 88%, 100% { opacity: 0; } 90% { opacity: 0.55; } 93% { opacity: 0.08; } 95% { opacity: 0.35; } }
   @keyframes pasman-titik { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
@@ -220,7 +228,7 @@
       function sapa() {
         if (sudahDisapa) return;
         sudahDisapa = true;
-        tambahGelembung("Halo! Saya PASman, asisten AI ZonaPas. Saya bisa membantu menjawab seputar pemasyarakatan di Bengkulu dan cara memakai website ZonaPas. Ada yang bisa saya bantu?", "pasman");
+        tambahGelembung("Halo! Saya PasBot, asisten AI ZonaPas. Saya bisa membantu menjawab seputar pemasyarakatan di Bengkulu dan cara memakai website ZonaPas. Ada yang bisa saya bantu?", "pasman");
       }
       function bukaPanel() {
         panel.hidden = false;
@@ -270,11 +278,11 @@
           } else if (data && data.error) {
             tambahGelembung(String(data.error), "pasman");
           } else {
-            tambahGelembung("Maaf, PASman sedang tidak bisa menjawab sekarang. Coba lagi sebentar lagi.", "pasman");
+            tambahGelembung("Maaf, PasBot sedang tidak bisa menjawab sekarang. Coba lagi sebentar lagi.", "pasman");
           }
         } catch (e) {
           try { mengetik.remove(); } catch (err) {}
-          tambahGelembung("Maaf, koneksi ke PASman terputus. Periksa internet Anda lalu coba lagi.", "pasman");
+          tambahGelembung("Maaf, koneksi ke PasBot terputus. Periksa internet Anda lalu coba lagi.", "pasman");
         }
         sedangMenjawab = false;
         kirim.disabled = false;
