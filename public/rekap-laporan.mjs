@@ -736,14 +736,22 @@ async function buildPdfDariDocx(data) {
   if (!window.html2pdf) await muatScript("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js");
   const renderAsync = window.docx.renderAsync;
   const html2pdf = window.html2pdf;
-  // Wadah HARUS ter-render di layar agar html2canvas bisa menggambar
-  // isinya; wadah di luar layar (left:-10000px) menghasilkan halaman
-  // kosong. opacity:0 TIDAK boleh dipakai (html2canvas menangkapnya
-  // transparan); sebagai gantinya wadah ditaruh di belakang halaman
-  // (z-index:-1) sehingga tidak terlihat pengguna.
+  // Wadah HARUS ter-render TERLIHAT di layar agar html2canvas bisa
+  // menggambar isinya. Terbukti lewat uji: wadah di luar layar
+  // (left:-10000px) maupun di belakang halaman (z-index:-1) sama-sama
+  // menghasilkan PDF 1 halaman KOSONG (~9 KB); wadah di alur normal
+  // dokumen menghasilkan PDF 4 halaman berisi gambar (2,7 MB). Karena
+  // itu wadah ditaruh di alur normal (position:absolute, di atas latar
+  // body) dan DITUTUPI layar penutup penuh yang buram supaya pengguna
+  // tidak melihat dokumen berkedip selama konversi. opacity:0 TIDAK
+  // boleh dipakai (html2canvas menangkapnya transparan).
   const wadah = document.createElement("div");
-  wadah.style.cssText = "position:fixed;left:0;top:0;width:210mm;background:#fff;z-index:-1;pointer-events:none;";
+  wadah.style.cssText = "position:absolute;left:0;top:0;width:210mm;background:#fff;";
   document.body.appendChild(wadah);
+  const penutup = document.createElement("div");
+  penutup.style.cssText = "position:fixed;inset:0;background:#0A2540;color:#fff;display:flex;align-items:center;justify-content:center;z-index:99999;font:600 16px system-ui,sans-serif;";
+  penutup.textContent = "Menyiapkan PDF…";
+  document.body.appendChild(penutup);
   try {
     await renderAsync(blobDocx, wadah, null, { breakPages: true });
     const pdf = await html2pdf().set({
@@ -757,6 +765,7 @@ async function buildPdfDariDocx(data) {
     return pdf;
   } finally {
     wadah.remove();
+    penutup.remove();
   }
 }
 
