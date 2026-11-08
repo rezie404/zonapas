@@ -23,7 +23,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Tulis Artikel</h1>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Tulis berita ZonaPas sesuai peran akun Anda. Administrator menerbitkan langsung; Penyunting dan Penulis mengirim berita lewat Antrean Persetujuan.
+        Tulis berita ZonaPas sesuai peran akun Anda. Administrator dan Penyunting menerbitkan langsung; Penulis mengirim berita lewat Antrean Persetujuan.
       </p>
     </div>
 
@@ -259,7 +259,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=5"></script>
+  <script is:inline src="/kelola-umum.js?v=6"></script>
   <script>
 
 
@@ -1144,7 +1144,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     async function muatUntukEdit(slug) {
       // Mengubah artikel yang sudah publish hanya untuk Administrator
       // (tombol Ubah di daftar lama pun hanya tampil untuk admin).
-      if (!bisaTerbitLangsung()) {
+      // Penyunting boleh TERBIT langsung, tapi tidak mengubah artikel
+      // yang sudah publish — jadi cek ini memakai peran, bukan
+      // bisaTerbitLangsung().
+      if (peran !== 'admin') {
         showStatus('Hanya Administrator yang bisa mengubah berita yang sudah publish.', false);
         setTimeout(() => { window.location.href = '/portal/kelola-berita/edit/'; }, 2000);
         return;

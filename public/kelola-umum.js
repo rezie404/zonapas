@@ -320,18 +320,20 @@
     }
 
 
+    // Terbit langsung (tulis ke GitHub tanpa antrean): Administrator dan
+    // Penyunting. Penulis selalu lewat Antrean Persetujuan.
+    // Login GitHub SELALU admin (rezie404) — tidak ada peran lain via GitHub.
     function bisaTerbitLangsung() {
-      // Login GitHub SELALU admin (rezie404) — tidak ada peran lain via GitHub.
-      return peran === 'admin';
+      return peran === 'admin' || peran === 'penyunting';
     }
 
 
-    // Jalur antrean aktif: edit antrean, penulis, atau penyunting
-    // (penyunting hanya lewat Google).
+    // Jalur antrean aktif: edit antrean atau Penulis (selalu antrean).
+    // Penyunting menulis langsung (bukan antrean), kecuali saat mengedit
+    // artikel antrean — jadi tidak masuk di sini.
     function jalurAntreanAktif() {
       if (editingAntrean) return true;
       if (peran === 'penulis') return true;
-      if (peran === 'penyunting') return true;
       return false;
     }
 
@@ -341,10 +343,11 @@
       const btnAntrean = $('btn-antrean');
       if (btnSave) btnSave.classList.toggle('hidden', !bisaTerbitLangsung());
       if (btnAntrean) {
-        // admin: hanya "Simpan Berita"; penyunting + penulis: hanya antrean.
-        const tampilAntrean = peran === 'penulis' || peran === 'penyunting';
+        // admin + penyunting: hanya "Simpan Berita" (terbit langsung);
+        // penulis: hanya antrean.
+        const tampilAntrean = peran === 'penulis';
         btnAntrean.classList.toggle('hidden', !tampilAntrean);
-        btnAntrean.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
+        btnAntrean.textContent = 'Kirim untuk Persetujuan';
       }
       const antreanSection = $('antrean-section');
       if (antreanSection) antreanSection.classList.toggle('hidden', !(peran === 'admin' || peran === 'penyunting' || peran === 'penulis'));
