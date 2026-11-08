@@ -843,9 +843,11 @@ async function buildPdfLegacy(data) {
     butirBernomor(i + 1, [{ teks: t, tebal: false }], TW(567), TW(851), 8, "both");
   });
   subJudul("3. Ruang Lingkup");
-  tubuhSub(TEKS_RUANG_LINGKUP, 1);
-  doc.paraTeks(`• Hari/tanggal : ${tglPanjang}`, { indentKiri: TW(720), sesudah: 1 });
-  doc.paraTeks("• Pukul : 20.00 WIB", { indentKiri: TW(720), sesudah: 1 });
+  // Ruang Lingkup: spasi disamakan dengan paragraf isi (8) — sebelumnya
+  // paragraf 1 dan butir 1, sehingga tampak lebih rapat dari yang lain.
+  tubuhSub(TEKS_RUANG_LINGKUP, 8);
+  doc.paraTeks(`• Hari/tanggal : ${tglPanjang}`, { indentKiri: TW(720), sesudah: 8 });
+  doc.paraTeks("• Pukul : 20.00 WIB", { indentKiri: TW(720), sesudah: 8 });
   // --- B. KEGIATAN YANG DILAKSANAKAN ---
   judulBagian("B. KEGIATAN YANG DILAKSANAKAN");
   tubuh(TEKS_KEGIATAN_1);
@@ -853,18 +855,18 @@ async function buildPdfLegacy(data) {
   tubuh(TEKS_KEGIATAN_3);
   // --- C. HASIL YANG DICAPAI ---
   judulBagian("C. HASIL YANG DICAPAI");
-  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 3 }, true);
-  doc.paragraf([{ teks: "Jumlah publikasi pada hari pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 8 }, true);
+  doc.paragraf([{ teks: "Jumlah publikasi pada hari pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 8 });
   const garisHitung = (label, n) => {
-    doc.pastikan(PDF_LH + 1);
+    doc.pastikan(PDF_LH + 8);
     doc.gambarBaris([{ teks: label }], PDF_M + TW(567), doc.y, "left", 200);
     doc.gambarBaris([{ teks: `: ${n} publikasi` }], PDF_M + TW(1985), doc.y, "left", 200);
-    doc.y -= PDF_LH + 1;
+    doc.y -= PDF_LH + 8;
   };
   garisHitung("Media Sosial", total.sosial);
   garisHitung("Media Massa", total.massa);
   garisHitung("Jumlah", total.jumlah);
-  doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
+  doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 8 });
   doc.tabelRekap(perUpt, total);
   doc.y -= PDF_LH;
   // --- 2. Rincian Publikasi Per Satuan Kerja ---
