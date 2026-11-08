@@ -551,7 +551,7 @@ const PLATFORM = [
         // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
         // halaman) supaya halaman pertama terbuka cepat; modul di-cache
         // browser setelah unduhan pertama.
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=7');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=8');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));
@@ -587,7 +587,7 @@ const PLATFORM = [
     function siapkanBerkasWa() {
       if (janjiBerkasWa) return janjiBerkasWa;
       janjiBerkasWa = (async () => {
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=7');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=8');
         const data = rekapDataLaporan();
         const hitung = hitungRekap(data);
         const ringkas = 'Laporan Publikasi Harian Kanwil Ditjenpas Bengkulu — ' + tanggalIndonesia(data.tanggal) + '.\n' +

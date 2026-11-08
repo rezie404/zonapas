@@ -823,8 +823,24 @@ async function buildPdfLegacy(data) {
   tubuhSub(TEKS_UMUM);
   subJudul("2. Maksud dan Tujuan");
   tubuhSub(TEKS_MAKSUD);
+  // Butir bernomor seperti numbering otomatis Word: nomor digambar di
+  // kolom nomor, teks digambar sebagai paragraf di kolom teks — sehingga
+  // baris lanjutan sejajar dengan baris pertama (bukan mulai di bawah
+  // nomor). xNomor = posisi kiri kolom nomor, xTeks = posisi kiri kolom
+  // teks (tab stop di template DOCX). Jumlah baris dihitung dulu agar
+  // pastikan() jalan SEBELUM nomor digambar — bila pindah halaman,
+  // nomor dan teks tetap sebaris.
+  const butirBernomor = (nomor, runsTeks, xNomor, xTeks, sesudah = 8, rata = "left") => {
+    const nBaris = Math.max(1, doc.bagiBaris(runsTeks, PDF_CW - xTeks).length);
+    doc.pastikan(nBaris * PDF_LH + sesudah);
+    const yAwal = doc.y;
+    doc.gambarBaris([{ teks: `${nomor}.`, tebal: false }], PDF_M + xNomor, yAwal, "left", xTeks - xNomor);
+    doc.paragraf(runsTeks, { rata, indentKiri: xTeks, sesudah });
+  };
+  // Daftar tujuan: nomor di kolom 567, teks di kolom 851 (tab stop
+  // template); spasi antar butir disamakan dengan paragraf isi (8).
   TUJUAN.forEach((t, i) => {
-    doc.paragraf([{ teks: `${i + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: t, tebal: false }], { rata: "both", indentKiri: TW(851), indentBarisPertama: -TW(284), sesudah: 1 });
+    butirBernomor(i + 1, [{ teks: t, tebal: false }], TW(567), TW(851), 8, "both");
   });
   subJudul("3. Ruang Lingkup");
   tubuhSub(TEKS_RUANG_LINGKUP, 1);
@@ -865,7 +881,7 @@ async function buildPdfLegacy(data) {
     } else {
       doc.paraTeks("c. Judul Publikasi :", { indentKiri: TW(360), sesudah: 1 });
       u.judul.forEach((j, k) => {
-        doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: j, tebal: false }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
+        butirBernomor(k + 1, [{ teks: j, tebal: false }], TW(720), TW(1080), 1);
       });
     }
     if (u.tautan.length === 1 && u.tautan[0] === "Nihil") {
@@ -873,7 +889,7 @@ async function buildPdfLegacy(data) {
     } else {
       doc.paraTeks("d. Tautan Publikasi :", { indentKiri: TW(360), sesudah: 1 });
       u.tautan.forEach((t, k) => {
-        doc.paragraf([{ teks: `${k + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], { indentKiri: TW(1080), indentBarisPertama: -TW(360), sesudah: 1 });
+        butirBernomor(k + 1, [{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], TW(720), TW(1080), 1);
       });
     }
   });
