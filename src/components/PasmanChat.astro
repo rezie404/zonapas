@@ -1,0 +1,297 @@
+---
+// Widget chat PASman — asisten AI ZonaPas.
+// Muncul di semua halaman lewat BaseLayout. Gambar PASman statis 3D
+// digerakkan dengan animasi CSS saja (tanpa video): melayang halus,
+// denyut pendaran, dan kilatan petir halus. Hormati prefers-reduced-motion.
+---
+
+<div id="pasman-root" class="pasman-root" hidden>
+  <!-- Tombol mengambang -->
+  <button
+    id="pasman-tombol"
+    type="button"
+    class="pasman-tombol"
+    aria-label="Buka chat dengan PASman, asisten ZonaPas"
+    aria-expanded="false"
+    aria-controls="pasman-panel"
+  >
+    <img
+      src="/images/pasman-avatar.png"
+      alt=""
+      class="pasman-tombol-gambar"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+    />
+    <span class="pasman-tombol-huruf" style="display:none;" aria-hidden="true">P</span>
+    <span class="pasman-tombol-online" aria-hidden="true"></span>
+  </button>
+
+  <!-- Panel chat -->
+  <section id="pasman-panel" class="pasman-panel" aria-label="Chat dengan PASman" hidden>
+    <header class="pasman-kepala">
+      <div class="pasman-kepala-gambar">
+        <img
+          src="/images/pasman.png"
+          alt="PASman, asisten AI ZonaPas"
+          class="pasman-kepala-foto"
+          onerror="this.style.display='none';"
+        />
+        <div class="pasman-kilat" aria-hidden="true"></div>
+        <div class="pasman-kepala-teks">
+          <strong>PASman</strong>
+          <span>Asisten ZonaPas</span>
+        </div>
+        <button id="pasman-tutup" type="button" class="pasman-tutup" aria-label="Tutup chat">✕</button>
+      </div>
+    </header>
+
+    <div id="pasman-pesan" class="pasman-pesan" aria-live="polite"></div>
+
+    <div id="pasman-saran" class="pasman-saran">
+      <button type="button" data-pasman-tanya="Apa itu ZonaPas?">Apa itu ZonaPas?</button>
+      <button type="button" data-pasman-tanya="Bagaimana cara mengajukan diri jadi Penulis?">Bagaimana cara mengajukan diri jadi Penulis?</button>
+      <button type="button" data-pasman-tanya="UPT apa saja di Bengkulu?">UPT apa saja di Bengkulu?</button>
+      <button type="button" data-pasman-tanya="Bagaimana cara berkomentar?">Bagaimana cara berkomentar?</button>
+    </div>
+
+    <form id="pasman-form" class="pasman-form" autocomplete="off">
+      <label class="pasman-label" for="pasman-input">Tanya PASman</label>
+      <input
+        id="pasman-input"
+        type="text"
+        maxlength="500"
+        placeholder="Tulis pertanyaan Anda…"
+        aria-label="Tulis pertanyaan Anda"
+      />
+      <button id="pasman-kirim" type="submit" aria-label="Kirim pertanyaan">➤</button>
+    </form>
+    <p class="pasman-catatan">PASman menjawab dari konten ZonaPas. Info resmi tetap mengacu ke kanal Kanwil Ditjenpas Bengkulu.</p>
+  </section>
+</div>
+
+<style>
+  .pasman-root { position: fixed; z-index: 70; right: 16px; bottom: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .pasman-root[hidden] { display: none; }
+
+  /* Tombol mengambang: melayang lembut + cincin pendaran */
+  .pasman-tombol {
+    position: relative; width: 64px; height: 64px; border-radius: 9999px; border: 3px solid #ffcc00;
+    padding: 0; cursor: pointer; overflow: visible; background: #05152e;
+    box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 0 0 rgba(56, 189, 248, 0.55);
+    animation: pasman-melayang 3.6s ease-in-out infinite, pasman-denyut 2.8s ease-in-out infinite;
+  }
+  .pasman-tombol:active { transform: scale(0.96); }
+  .pasman-tombol-gambar { width: 100%; height: 100%; border-radius: 9999px; object-fit: cover; object-position: 50% 18%; display: block; }
+  .pasman-tombol-huruf {
+    width: 100%; height: 100%; border-radius: 9999px; align-items: center; justify-content: center;
+    background: #05152e; color: #ffcc00; font-weight: 800; font-size: 28px;
+  }
+  .pasman-tombol-online {
+    position: absolute; right: 0; bottom: 2px; width: 14px; height: 14px; border-radius: 9999px;
+    background: #22c55e; border: 2px solid #ffffff;
+  }
+
+  /* Panel chat */
+  .pasman-panel {
+    width: min(380px, calc(100vw - 32px)); height: min(600px, calc(100dvh - 130px)); min-height: 420px;
+    display: flex; flex-direction: column; overflow: hidden; border-radius: 18px;
+    background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;
+    box-shadow: 0 18px 48px rgba(5, 21, 46, 0.35);
+    animation: pasman-muncul 0.25s ease-out;
+  }
+  .pasman-panel[hidden] { display: none; }
+
+  .pasman-kepala { background: #05152e; color: #ffffff; flex: none; }
+  .pasman-kepala-gambar { position: relative; height: 132px; overflow: hidden; background: linear-gradient(160deg, #05152e, #0b2a52 70%, #123a6b); }
+  .pasman-kepala-foto {
+    width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%;
+    animation: pasman-melayang-foto 5s ease-in-out infinite, pasman-pendar-foto 3.2s ease-in-out infinite;
+  }
+  /* Kilatan petir halus: sekelebat cahaya biru-putih setiap beberapa detik */
+  .pasman-kilat {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 78% 18%, rgba(186, 230, 253, 0.9), rgba(56, 189, 248, 0.25) 42%, transparent 68%);
+    opacity: 0; animation: pasman-kilat 7s ease-in-out infinite;
+  }
+  .pasman-kepala-teks {
+    position: absolute; left: 14px; bottom: 10px; display: flex; flex-direction: column; line-height: 1.15;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+  }
+  .pasman-kepala-teks strong { font-size: 20px; font-weight: 800; letter-spacing: 0.01em; }
+  .pasman-kepala-teks span { font-size: 12px; color: #fde68a; }
+  .pasman-tutup {
+    position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 9999px; border: none;
+    background: rgba(5, 21, 46, 0.65); color: #ffffff; font-size: 15px; cursor: pointer;
+  }
+
+  .pasman-pesan { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
+  .pasman-gelembung { max-width: 86%; padding: 9px 12px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .pasman-gelembung-pengguna { align-self: flex-end; background: #05152e; color: #ffffff; border-bottom-right-radius: 4px; }
+  .pasman-gelembung-pasman { align-self: flex-start; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
+  .pasman-gelembung-pasman a { color: #0369a1; text-decoration: underline; }
+  .pasman-mengetik { display: inline-flex; gap: 5px; align-items: center; padding: 10px 12px; }
+  .pasman-mengetik i { width: 7px; height: 7px; border-radius: 9999px; background: #64748b; animation: pasman-titik 1.1s ease-in-out infinite; }
+  .pasman-mengetik i:nth-child(2) { animation-delay: 0.18s; }
+  .pasman-mengetik i:nth-child(3) { animation-delay: 0.36s; }
+
+  .pasman-saran { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 4px; background: #f8fafc; }
+  .pasman-saran button {
+    font-size: 12px; padding: 6px 10px; border-radius: 9999px; cursor: pointer;
+    border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a;
+  }
+  .pasman-saran button:hover { border-color: #ffcc00; background: #fffbeb; }
+
+  .pasman-form { display: flex; gap: 8px; padding: 10px 12px; background: #ffffff; border-top: 1px solid #e2e8f0; }
+  .pasman-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .pasman-form input {
+    flex: 1; min-width: 0; border: 1px solid #cbd5e1; border-radius: 9999px; padding: 9px 14px;
+    font-size: 14px; font-family: inherit; background: #ffffff; color: #0f172a; outline: none;
+  }
+  .pasman-form input:focus { border-color: #ffcc00; box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.35); }
+  .pasman-form button {
+    flex: none; width: 42px; height: 42px; border-radius: 9999px; border: none; cursor: pointer;
+    background: #ffcc00; color: #05152e; font-size: 17px; line-height: 1;
+  }
+  .pasman-form button:disabled { opacity: 0.5; cursor: wait; }
+  .pasman-catatan { margin: 0; padding: 0 14px 10px; font-size: 11px; line-height: 1.4; color: #64748b; background: #ffffff; }
+
+  /* Mode gelap mengikuti .dark di <html> */
+  .dark .pasman-panel { background: #0f172a; color: #f1f5f9; border-color: #1e293b; }
+  .dark .pasman-pesan, .dark .pasman-saran { background: #111c33; }
+  .dark .pasman-gelembung-pasman { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+  .dark .pasman-saran button { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+  .dark .pasman-saran button:hover { background: #3b2f04; }
+  .dark .pasman-form, .dark .pasman-catatan { background: #0f172a; border-color: #1e293b; }
+  .dark .pasman-form input { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+  .dark .pasman-catatan { color: #94a3b8; }
+
+  @keyframes pasman-melayang { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes pasman-denyut {
+    0%, 100% { box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 0 0 rgba(56, 189, 248, 0.5); }
+    50% { box-shadow: 0 8px 24px rgba(5, 21, 46, 0.45), 0 0 18px 4px rgba(56, 189, 248, 0.35); }
+  }
+  @keyframes pasman-melayang-foto { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes pasman-pendar-foto {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(56, 189, 248, 0)); }
+    50% { filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.55)); }
+  }
+  @keyframes pasman-kilat { 0%, 88%, 100% { opacity: 0; } 90% { opacity: 0.55; } 93% { opacity: 0.08; } 95% { opacity: 0.35; } }
+  @keyframes pasman-titik { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+  @keyframes pasman-muncul { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pasman-tombol, .pasman-kepala-foto, .pasman-kilat, .pasman-mengetik i, .pasman-panel { animation: none !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    function siap(fn) {
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+      else fn();
+    }
+    siap(function () {
+      var root = document.getElementById("pasman-root");
+      var tombol = document.getElementById("pasman-tombol");
+      var panel = document.getElementById("pasman-panel");
+      var tutup = document.getElementById("pasman-tutup");
+      var daftar = document.getElementById("pasman-pesan");
+      var form = document.getElementById("pasman-form");
+      var input = document.getElementById("pasman-input");
+      var kirim = document.getElementById("pasman-kirim");
+      var saran = document.getElementById("pasman-saran");
+      if (!root || !tombol || !panel || !daftar || !form || !input) return;
+      root.hidden = false;
+
+      var riwayat = [];
+      var sedangMenjawab = false;
+      var sudahDisapa = false;
+
+      function gulirBawah() {
+        try { daftar.scrollTop = daftar.scrollHeight; } catch (e) {}
+      }
+      function tambahGelembung(teks, siapa) {
+        var el = document.createElement("div");
+        el.className = "pasman-gelembung " + (siapa === "pengguna" ? "pasman-gelembung-pengguna" : "pasman-gelembung-pasman");
+        el.textContent = teks;
+        daftar.appendChild(el);
+        gulirBawah();
+        return el;
+      }
+      function sapa() {
+        if (sudahDisapa) return;
+        sudahDisapa = true;
+        tambahGelembung("Halo! Saya PASman, asisten AI ZonaPas. Saya bisa membantu menjawab seputar pemasyarakatan di Bengkulu dan cara memakai website ZonaPas. Ada yang bisa saya bantu?", "pasman");
+      }
+      function bukaPanel() {
+        panel.hidden = false;
+        tombol.setAttribute("aria-expanded", "true");
+        sapa();
+        try { input.focus(); } catch (e) {}
+      }
+      function tutupPanel() {
+        panel.hidden = true;
+        tombol.setAttribute("aria-expanded", "false");
+      }
+      tombol.addEventListener("click", function () {
+        if (panel.hidden) bukaPanel();
+        else tutupPanel();
+      });
+      tutup.addEventListener("click", tutupPanel);
+
+      function tampilkanMengetik() {
+        var el = document.createElement("div");
+        el.className = "pasman-gelembung pasman-gelembung-pasman pasman-mengetik";
+        el.innerHTML = "<i></i><i></i><i></i>";
+        daftar.appendChild(el);
+        gulirBawah();
+        return el;
+      }
+
+      async function tanya(pertanyaan) {
+        pertanyaan = String(pertanyaan || "").trim();
+        if (!pertanyaan || sedangMenjawab) return;
+        sedangMenjawab = true;
+        kirim.disabled = true;
+        tambahGelembung(pertanyaan, "pengguna");
+        var mengetik = tampilkanMengetik();
+        try {
+          var res = await fetch("/redaksi/api/asisten", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pertanyaan: pertanyaan, riwayat: riwayat.slice(-4) }),
+          });
+          var data = null;
+          try { data = await res.json(); } catch (e) {}
+          mengetik.remove();
+          if (res.ok && data && data.ok && data.jawaban) {
+            tambahGelembung(String(data.jawaban), "pasman");
+            riwayat.push({ peran: "pengguna", teks: pertanyaan }, { peran: "pasman", teks: String(data.jawaban) });
+            if (riwayat.length > 8) riwayat = riwayat.slice(-8);
+          } else if (data && data.error) {
+            tambahGelembung(String(data.error), "pasman");
+          } else {
+            tambahGelembung("Maaf, PASman sedang tidak bisa menjawab sekarang. Coba lagi sebentar lagi.", "pasman");
+          }
+        } catch (e) {
+          try { mengetik.remove(); } catch (err) {}
+          tambahGelembung("Maaf, koneksi ke PASman terputus. Periksa internet Anda lalu coba lagi.", "pasman");
+        }
+        sedangMenjawab = false;
+        kirim.disabled = false;
+        try { input.focus(); } catch (e) {}
+      }
+
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var nilai = input.value;
+        input.value = "";
+        tanya(nilai);
+      });
+      saran.addEventListener("click", function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest("[data-pasman-tanya]") : null;
+        if (!btn) return;
+        tanya(btn.getAttribute("data-pasman-tanya") || "");
+      });
+    });
+  })();
+</script>

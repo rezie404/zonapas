@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import PasmanChat from '../components/PasmanChat.astro';
 import { SITE } from '../data/site';
 import '../styles/global.css';
 
@@ -91,6 +92,7 @@ const ld = jsonLd
       <slot />
     </main>
     <Footer />
+    <PasmanChat />
     <script is:inline>
       // Toggle mode gelap/terang
       document.addEventListener('click', (e) => {
