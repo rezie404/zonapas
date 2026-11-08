@@ -778,15 +778,22 @@ async function buildPdfLegacy(data) {
   const doc = new PdfDokumen(tpl.biner["word/media/image1.jpeg"]);
   const TW = (n) => n / 20; // twips -> pt
   const judulBagian = (teks) => doc.paraTeks(teks, { sebelum: 12, sesudah: 4 }, true, PDF_BIRU_TUA);
-  const subJudul = (teks) => doc.paraTeks(teks, { indentKiri: TW(284), sebelum: 8, sesudah: 0 }, true);
+  // Sub-judul (1. Umum / 2. Maksud / 3. Ruang Lingkup): sebelum 8pt,
+  // sesudah 0 — KECUALI "3. Ruang Lingkup" sesudah 3pt (after=60 di
+  // template DOCX). Nilai default mengikuti template persis.
+  const subJudul = (teks, sesudah = 0) => doc.paraTeks(teks, { indentKiri: TW(284), sebelum: 8, sesudah }, true);
   // Paragraf isi menjorok seperti template: baris pertama masuk sejauh
   // satu tab, seluruh paragraf bergeser ke kanan. Tingkat atas
   // (PENDAHULUAN, KEGIATAN, PENUTUP): kiri 284 twips, baris pertama
   // +425. Di bawah sub-judul (Umum, Maksud, Ruang Lingkup): kiri 567,
   // baris pertama +426. (Satuan: twips, sama seperti template DOCX.)
-  const tubuh = (teks, sesudah = 8, kiri = 284, barisPertama = 425) =>
+  // Spasi sesudah mengikuti template DOCX persis (default 0): paragraf
+  // isi Umum/KEGIATAN after=0; Maksud, Ruang Lingkup, dan Penutup
+  // after=60 (3pt). Jangan diseragamkan ke 8 — template Word memang
+  // memakai spasi berbeda-beda per jenis paragraf.
+  const tubuh = (teks, sesudah = 0, kiri = 284, barisPertama = 425) =>
     doc.paraTeks(teks, { rata: "both", indentKiri: TW(kiri), indentBarisPertama: TW(barisPertama), sesudah });
-  const tubuhSub = (teks, sesudah = 8) => tubuh(teks, sesudah, 567, 426);
+  const tubuhSub = (teks, sesudah = 0) => tubuh(teks, sesudah, 567, 426);
 
   // --- Kop: logo 72x72pt + 5 baris nama instansi (tengah, kolom kanan) ---
   {
@@ -822,15 +829,17 @@ async function buildPdfLegacy(data) {
   subJudul("1. Umum");
   tubuhSub(TEKS_UMUM);
   subJudul("2. Maksud dan Tujuan");
-  tubuhSub(TEKS_MAKSUD);
+  // Pengantar Maksud: after=60 (3pt) di template.
+  tubuhSub(TEKS_MAKSUD, 3);
   // Butir bernomor seperti numbering otomatis Word: nomor digambar di
   // kolom nomor, teks digambar sebagai paragraf di kolom teks — sehingga
   // baris lanjutan sejajar dengan baris pertama (bukan mulai di bawah
   // nomor). xNomor = posisi kiri kolom nomor, xTeks = posisi kiri kolom
   // teks (tab stop di template DOCX). Jumlah baris dihitung dulu agar
   // pastikan() jalan SEBELUM nomor digambar — bila pindah halaman,
-  // nomor dan teks tetap sebaris.
-  const butirBernomor = (nomor, runsTeks, xNomor, xTeks, sesudah = 8, rata = "left") => {
+  // nomor dan teks tetap sebaris. Spasi sesudah mengikuti template
+  // (after=20 = 1pt untuk butir TUJUAN maupun per-UPT).
+  const butirBernomor = (nomor, runsTeks, xNomor, xTeks, sesudah = 1, rata = "left") => {
     const nBaris = Math.max(1, doc.bagiBaris(runsTeks, PDF_CW - xTeks).length);
     doc.pastikan(nBaris * PDF_LH + sesudah);
     const yAwal = doc.y;
@@ -838,16 +847,17 @@ async function buildPdfLegacy(data) {
     doc.paragraf(runsTeks, { rata, indentKiri: xTeks, sesudah });
   };
   // Daftar tujuan: nomor di kolom 567, teks di kolom 851 (tab stop
-  // template); spasi antar butir disamakan dengan paragraf isi (8).
+  // template); spasi antar butir 1pt seperti template (after=20).
   TUJUAN.forEach((t, i) => {
-    butirBernomor(i + 1, [{ teks: t, tebal: false }], TW(567), TW(851), 8, "both");
+    butirBernomor(i + 1, [{ teks: t, tebal: false }], TW(567), TW(851), 1, "both");
   });
-  subJudul("3. Ruang Lingkup");
-  // Ruang Lingkup: spasi disamakan dengan paragraf isi (8) — sebelumnya
-  // paragraf 1 dan butir 1, sehingga tampak lebih rapat dari yang lain.
-  tubuhSub(TEKS_RUANG_LINGKUP, 8);
-  doc.paraTeks(`• Hari/tanggal : ${tglPanjang}`, { indentKiri: TW(720), sesudah: 8 });
-  doc.paraTeks("• Pukul : 20.00 WIB", { indentKiri: TW(720), sesudah: 8 });
+  // Sub-judul "3. Ruang Lingkup": sesudah 3pt (after=60 di template).
+  subJudul("3. Ruang Lingkup", 3);
+  // Paragraf Ruang Lingkup: after=60 (3pt) di template.
+  tubuhSub(TEKS_RUANG_LINGKUP, 3);
+  // Butir Hari/tanggal dan Pukul: after=20 (1pt) di template.
+  doc.paraTeks(`• Hari/tanggal : ${tglPanjang}`, { indentKiri: TW(720), sesudah: 1 });
+  doc.paraTeks("• Pukul : 20.00 WIB", { indentKiri: TW(720), sesudah: 1 });
   // --- B. KEGIATAN YANG DILAKSANAKAN ---
   judulBagian("B. KEGIATAN YANG DILAKSANAKAN");
   tubuh(TEKS_KEGIATAN_1);
@@ -855,27 +865,33 @@ async function buildPdfLegacy(data) {
   tubuh(TEKS_KEGIATAN_3);
   // --- C. HASIL YANG DICAPAI ---
   judulBagian("C. HASIL YANG DICAPAI");
-  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 8 }, true);
-  doc.paragraf([{ teks: "Jumlah publikasi pada hari pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 8 });
+  // "1. Rekapitulasi Publikasi": sebelum 4pt, sesudah 3pt (after=60).
+  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 3 }, true);
+  // "Jumlah publikasi...": after=60 (3pt) di template.
+  doc.paragraf([{ teks: "Jumlah publikasi pada hari pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  // Garis hitung (Media Sosial / Media Massa / Jumlah): after=20 (1pt).
   const garisHitung = (label, n) => {
-    doc.pastikan(PDF_LH + 8);
+    doc.pastikan(PDF_LH + 1);
     doc.gambarBaris([{ teks: label }], PDF_M + TW(567), doc.y, "left", 200);
     doc.gambarBaris([{ teks: `: ${n} publikasi` }], PDF_M + TW(1985), doc.y, "left", 200);
-    doc.y -= PDF_LH + 8;
+    doc.y -= PDF_LH + 1;
   };
   garisHitung("Media Sosial", total.sosial);
   garisHitung("Media Massa", total.massa);
   garisHitung("Jumlah", total.jumlah);
-  doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 8 });
+  // "Rincian jumlah...": after=60 (3pt) di template.
+  doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
   doc.tabelRekap(perUpt, total);
   doc.y -= PDF_LH;
   // --- 2. Rincian Publikasi Per Satuan Kerja ---
   doc.paraTeks("2. Rincian Publikasi Per Satuan Kerja", { indentKiri: TW(142), sesudah: 0 }, true);
   perUpt.forEach((u, i) => {
     // Satu baris kosong antar laporan UPT (kecuali sebelum UPT pertama).
-    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: i === 0 ? 0 : PDF_LH, sesudah: 0 });
+    // Judul UPT: sesudah 0 (UPT pertama) / 3pt (UPT ke-2 dst, after=60).
+    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: i === 0 ? 0 : PDF_LH, sesudah: i === 0 ? 0 : 3 });
     doc.paraTeks(`a. Media Sosial : ${u.sosial} publikasi`, { indentKiri: TW(360), sesudah: 0 });
-    doc.paraTeks(`b. Media Massa : ${u.massa} publikasi`, { indentKiri: TW(360), sesudah: 0 });
+    // "b. Media Massa": after=20 (1pt) di template.
+    doc.paraTeks(`b. Media Massa : ${u.massa} publikasi`, { indentKiri: TW(360), sesudah: 1 });
     // UPT nihil ditulis sebaris di labelnya (seperti berkas PDF terkirim),
     // tanpa butir bernomor terpisah.
     if (u.judul.length === 1 && u.judul[0] === "Nihil") {
@@ -897,10 +913,11 @@ async function buildPdfLegacy(data) {
   });
   // --- D. PENUTUP ---
   judulBagian("D. PENUTUP");
-  tubuh(TEKS_PENUTUP_1);
+  // Paragraf penutup: after=60 (3pt) di template.
+  tubuh(TEKS_PENUTUP_1, 3);
   // Paragraf penutup kedua: hanya baris pertama menjorok (709 twips,
-  // tanpa geser kiri) seperti template.
-  tubuh(TEKS_PENUTUP_2, 8, 0, 709);
+  // tanpa geser kiri) seperti template; after=60 (3pt).
+  tubuh(TEKS_PENUTUP_2, 3, 0, 709);
   doc.y -= PDF_LH;
   // --- Blok tanda tangan (dijaga utuh satu halaman) ---
   doc.pastikan(7 * PDF_LH);
