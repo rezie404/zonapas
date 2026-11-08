@@ -50,7 +50,7 @@ const narasi = teksNarasi(entry.body) || summary;
       {showCategory && cat && <span class="inline-block rounded bg-[#D9232E] px-2 py-1 text-xs font-bold uppercase tracking-wide text-white">{cat.name}</span>}
       {source === 'contoh' && <span class="ml-2 inline-block rounded bg-amber-400 px-2 py-1 text-xs font-bold uppercase tracking-wide text-amber-950">Artikel Contoh</span>}
       <span class="mt-2 block text-xl font-extrabold leading-tight text-white sm:text-3xl">{title}</span>
-      <span class="mt-2 hidden text-sm text-slate-200 line-clamp-4 sm:line-clamp-4">{narasi}</span>
+      <span class="mt-2 hidden text-justify text-sm text-slate-200 line-clamp-4 sm:line-clamp-4">{narasi}</span>
       <span class="mt-2 hidden text-sm font-bold text-white group-hover:underline sm:block">Lanjutkan membaca →</span>
       <span class="mt-2 block text-xs text-slate-300">{formatDateShort(publishDate)}</span>
     </span>
@@ -62,7 +62,7 @@ const narasi = teksNarasi(entry.body) || summary;
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
       {source === 'contoh' && <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>}
       <span class="mt-1 block text-base font-bold leading-snug group-hover:text-[#D9232E]">{title}</span>
-      <span class="mt-2 text-sm text-slate-600 line-clamp-4 dark:text-slate-400">{narasi}</span>
+      <span class="mt-2 text-justify text-sm text-slate-600 line-clamp-4 dark:text-slate-400">{narasi}</span>
       <span class="mt-2 block text-sm font-bold text-[#D9232E] group-hover:underline">Lanjutkan membaca →</span>
       <span class="mt-3 block text-xs text-slate-500 dark:text-slate-400">{formatDateShort(publishDate)}</span>
     </span>
