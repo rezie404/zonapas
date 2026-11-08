@@ -758,7 +758,14 @@ async function buildPdfDariDocx(data) {
       margin: 0,
       filename: "laporan.pdf",
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+      html2canvas: {
+        scale: 2, useCORS: true, backgroundColor: "#ffffff",
+        // Layar penutup harus DIABAIKAN saat menggambar: ia menutupi wadah
+        // di dokumen, sehingga tanpa ini hasil tangkapan hanya berisi
+        // warna penutup (PDF ~9 KB). Dengan ignoreElements, penutup tetap
+        // menutupi wadah di mata pengguna tetapi tidak ikut tergambar.
+        ignoreElements: (el) => el === penutup,
+      },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ["css", "legacy"] },
     }).from(wadah).outputPdf("blob");
