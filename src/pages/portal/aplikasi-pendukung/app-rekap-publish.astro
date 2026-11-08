@@ -613,10 +613,13 @@ const PLATFORM = [
 
     // Pratinjau bisa diminimalkan/ditutup supaya tidak perlu scroll jauh
     // melewati dokumen saat mau mengunduh/mengirim atau melihat Statistik.
-    on('btn-pratinjau-toggle', 'click', () => {
+    // Delegasi di document (bukan on() langsung) supaya tetap berfungsi
+    // walau tombol sempat tertutup elemen lain saat diklik.
+    document.addEventListener('click', (e) => {
+      const tombol = e.target && e.target.closest ? e.target.closest('#btn-pratinjau-toggle') : null;
+      if (!tombol) return;
       const pratinjau = $('laporan-pratinjau');
-      const tombol = $('btn-pratinjau-toggle');
-      if (!pratinjau || !tombol) return;
+      if (!pratinjau) return;
       const disembunyikan = pratinjau.classList.toggle('hidden');
       tombol.textContent = disembunyikan ? 'Tampilkan pratinjau' : 'Sembunyikan pratinjau';
       tombol.setAttribute('aria-expanded', String(!disembunyikan));
