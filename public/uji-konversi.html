@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><title>Uji Konversi DOCX ke PDF</title></head>
+<body>
+<h1>Uji Konversi DOCX ke PDF</h1>
+<pre id="log">Memulai...</pre>
+<script type="module">
+const log = (s) => { document.getElementById('log').textContent += '\n' + s; };
+try {
+  log('1. Memuat rekap-laporan.mjs...');
+  const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs');
+  log('2. Mengambil data 8 Nov 2026 (fetch JSON lokal)...');
+  const res = await fetch('/uji-data-8nov.json');
+  const data = await res.json();
+  const rows = data.rows.map(r => ({ ...r, judul: r.title }));
+  const d = { date: data.date, nihil: data.nihil, rows };
+  log('3. Membangun DOCX...');
+  const blobDocx = await buildDocx(d);
+  log('   DOCX: ' + blobDocx.size + ' byte, type=' + blobDocx.type);
+  log('4. Mengimpor docx-preview + html2pdf dari CDN...');
+  const t0 = Date.now();
+  const [{ renderAsync }, html2pdfMod] = await Promise.all([
+    import('https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/+esm'),
+    import('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/+esm'),
+  ]);
+  log('   CDN dimuat dalam ' + (Date.now() - t0) + ' ms. renderAsync=' + typeof renderAsync + ', html2pdfMod=' + typeof html2pdfMod + ', default=' + typeof html2pdfMod.default);
+  const html2pdf = html2pdfMod.default || html2pdfMod;
+  log('   html2pdf=' + typeof html2pdf);
+  log('5. Merender DOCX ke HTML (docx-preview)...');
+  const wadah = document.createElement('div');
+  wadah.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;background:#fff;';
+  document.body.appendChild(wadah);
+  await renderAsync(blobDocx, wadah, null, { breakPages: true });
+  log('   Render selesai. Panjang HTML wadah: ' + wadah.innerHTML.length + ' karakter.');
+  log('   Jumlah .docx-page: ' + wadah.querySelectorAll('.docx-page, [class*=docx]').length);
+  log('6. Mengonversi HTML ke PDF (html2pdf)...');
+  const pdf = await html2pdf().set({
+    margin: 0,
+    filename: 'laporan.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] },
+  }).from(wadah).outputPdf('blob');
+  log('   PDF hasil konversi: ' + pdf.size + ' byte, type=' + pdf.type);
+  log('7. Membandingkan dengan buildPdf()...');
+  const pdf2 = await buildPdf(d);
+  log('   buildPdf(): ' + pdf2.size + ' byte, type=' + pdf2.type);
+  log('SELESAI. Jika PDF konversi jauh lebih besar dari buildPdf dan mengandung gambar, konversi BERHASIL.');
+} catch (e) {
+  log('GAGAL: ' + (e && e.name ? e.name + ': ' : '') + (e && e.message ? e.message : String(e)));
+  log('Stack: ' + (e && e.stack ? String(e.stack).split('\n').slice(0, 5).join(' | ') : '-'));
+}
+</script>
+</body>
+</html>
