@@ -736,20 +736,18 @@ async function buildPdfDariDocx(data) {
   if (!window.html2pdf) await muatScript("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js");
   const renderAsync = window.docx.renderAsync;
   const html2pdf = window.html2pdf;
-  // Wadah HARUS ter-render TERLIHAT di layar agar html2canvas bisa
-  // menggambar isinya. Terbukti lewat uji: wadah di luar layar
-  // (left:-10000px) maupun di belakang halaman (z-index:-1) sama-sama
-  // menghasilkan PDF 1 halaman KOSONG (~9 KB); wadah di alur normal
-  // dokumen menghasilkan PDF 4 halaman berisi gambar (2,7 MB). Layar
-  // penutup TIDAK boleh dipakai — ia ikut tergambar menutupi wadah di
-  // salinan html2canvas (ignoreElements tidak menolong). Sebagai gantinya
-  // wadah ditaruh position:absolute di pojok kiri-atas dokumen (di atas
-  // latar body); pengguna yang sedang berada di seksi Laporan (sudah
-  // scroll ke bawah) tidak melihatnya, dan html2canvas menangkapnya
-  // karena posisinya normal di dokumen. opacity:0 TIDAK boleh dipakai
-  // (html2canvas menangkapnya transparan).
+  // Wadah HARUS di ALUR NORMAL dokumen (position:static, tanpa
+  // left/top/z-index) agar html2canvas bisa menggambar isinya. Terbukti
+  // lewat uji: wadah di luar layar (left:-10000px), di belakang halaman
+  // (z-index:-1), position:absolute, maupun position:fixed — semuanya
+  // menghasilkan PDF 1 halaman KOSONG (~9 KB); hanya wadah di alur
+  // normal yang menghasilkan PDF 4 halaman berisi gambar (2,7 MB).
+  // Layar penutup juga TIDAK boleh dipakai (ikut tergambar). Wadah
+  // ditambahkan di AKHIR body (di bawah viewport pengguna yang sedang
+  // berada di seksi Laporan) lalu dihapus setelah selesai; opacity:0
+  // TIDAK boleh dipakai (html2canvas menangkapnya transparan).
   const wadah = document.createElement("div");
-  wadah.style.cssText = "position:absolute;left:0;top:0;width:210mm;background:#fff;";
+  wadah.style.cssText = "width:210mm;background:#fff;margin:0 auto;";
   document.body.appendChild(wadah);
   try {
     await renderAsync(blobDocx, wadah, null, { breakPages: true });

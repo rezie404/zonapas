@@ -7,8 +7,8 @@
 <script type="module">
 const log = (s) => { document.getElementById('log').textContent += '\n' + s; };
 try {
-  log('1. Memuat rekap-laporan.mjs (?v=5, anti-cache)...');
-  const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=5');
+  log('1. Memuat rekap-laporan.mjs (?v=6, anti-cache)...');
+  const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=6');
   log('2. Mengambil data 8 Nov 2026 (fetch JSON lokal)...');
   const res = await fetch('/uji-data-8nov.json');
   const data = await res.json();
