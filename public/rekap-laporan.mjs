@@ -740,39 +740,30 @@ async function buildPdfDariDocx(data) {
   // menggambar isinya. Terbukti lewat uji: wadah di luar layar
   // (left:-10000px) maupun di belakang halaman (z-index:-1) sama-sama
   // menghasilkan PDF 1 halaman KOSONG (~9 KB); wadah di alur normal
-  // dokumen menghasilkan PDF 4 halaman berisi gambar (2,7 MB). Karena
-  // itu wadah ditaruh di alur normal (position:absolute, di atas latar
-  // body) dan DITUTUPI layar penutup penuh yang buram supaya pengguna
-  // tidak melihat dokumen berkedip selama konversi. opacity:0 TIDAK
-  // boleh dipakai (html2canvas menangkapnya transparan).
+  // dokumen menghasilkan PDF 4 halaman berisi gambar (2,7 MB). Layar
+  // penutup TIDAK boleh dipakai — ia ikut tergambar menutupi wadah di
+  // salinan html2canvas (ignoreElements tidak menolong). Sebagai gantinya
+  // wadah ditaruh position:absolute di pojok kiri-atas dokumen (di atas
+  // latar body); pengguna yang sedang berada di seksi Laporan (sudah
+  // scroll ke bawah) tidak melihatnya, dan html2canvas menangkapnya
+  // karena posisinya normal di dokumen. opacity:0 TIDAK boleh dipakai
+  // (html2canvas menangkapnya transparan).
   const wadah = document.createElement("div");
   wadah.style.cssText = "position:absolute;left:0;top:0;width:210mm;background:#fff;";
   document.body.appendChild(wadah);
-  const penutup = document.createElement("div");
-  penutup.style.cssText = "position:fixed;inset:0;background:#0A2540;color:#fff;display:flex;align-items:center;justify-content:center;z-index:99999;font:600 16px system-ui,sans-serif;";
-  penutup.textContent = "Menyiapkan PDF…";
-  document.body.appendChild(penutup);
   try {
     await renderAsync(blobDocx, wadah, null, { breakPages: true });
     const pdf = await html2pdf().set({
       margin: 0,
       filename: "laporan.pdf",
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: {
-        scale: 2, useCORS: true, backgroundColor: "#ffffff",
-        // Layar penutup harus DIABAIKAN saat menggambar: ia menutupi wadah
-        // di dokumen, sehingga tanpa ini hasil tangkapan hanya berisi
-        // warna penutup (PDF ~9 KB). Dengan ignoreElements, penutup tetap
-        // menutupi wadah di mata pengguna tetapi tidak ikut tergambar.
-        ignoreElements: (el) => el === penutup,
-      },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ["css", "legacy"] },
     }).from(wadah).outputPdf("blob");
     return pdf;
   } finally {
     wadah.remove();
-    penutup.remove();
   }
 }
 
