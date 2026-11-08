@@ -33,11 +33,9 @@ try {
   log('   html2pdf=' + typeof html2pdf);
   log('5. Merender DOCX ke HTML (docx-preview)...');
   const wadah = document.createElement('div');
-  // Wadah HARUS terlihat di layar agar html2canvas bisa menggambar isinya;
-  // wadah di luar layar (left:-10000px) menghasilkan halaman kosong.
-  // opacity:0 TIDAK boleh dipakai (html2canvas menangkapnya transparan);
-  // sebagai gantinya wadah ditaruh di belakang halaman (z-index:-1).
-  wadah.style.cssText = 'position:fixed;left:0;top:0;width:210mm;background:#fff;z-index:-1;pointer-events:none;';
+  // UJI: wadah di alur normal dokumen (terlihat penuh) untuk memastikan
+  // apakah html2canvas memang bisa menangkap isi render docx-preview.
+  wadah.style.cssText = 'width:210mm;background:#fff;margin:0 auto;';
   document.body.appendChild(wadah);
   await renderAsync(blobDocx, wadah, null, { breakPages: true });
   const halaman = wadah.querySelectorAll('section.docx, .docx-page').length;
