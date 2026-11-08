@@ -152,52 +152,6 @@ const PLATFORM = [
         <div id="impor-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
       </section>
 
-      <!-- Daftar publikasi -->
-      <section class="mt-8" aria-label="Daftar publikasi">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#0A2540] pb-2 dark:border-white">
-          <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Daftar Publikasi</h2>
-          <label class="flex items-center gap-2 text-sm font-bold">
-            Filter UPT
-            <select id="filter-upt" class="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900">
-              <option value="">Semua UPT</option>
-              {UPT.map((u) => (<option value={u}>{u}</option>))}
-            </select>
-          </label>
-        </div>
-        <p id="publikasi-count" class="mb-3 text-sm text-slate-600 dark:text-slate-400"></p>
-        <div id="publikasi-list" class="grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
-      </section>
-
-      <!-- Tambah manual -->
-      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Tambah publikasi manual">
-        <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Tambah Publikasi Manual</h2>
-        <form id="form-tambah" class="mt-3 grid gap-3 sm:grid-cols-2">
-          <label class="block">
-            <span class="block text-sm font-bold">UPT</span>
-            <select id="tambah-upt" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required>
-              {UPT.map((u) => (<option value={u}>{u}</option>))}
-            </select>
-          </label>
-          <label class="block">
-            <span class="block text-sm font-bold">Platform</span>
-            <select id="tambah-platform" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required>
-              {PLATFORM.map((p) => (<option value={p}>{p}</option>))}
-            </select>
-          </label>
-          <label class="block sm:col-span-2">
-            <span class="block text-sm font-bold">Judul publikasi</span>
-            <input id="tambah-judul" type="text" placeholder="Judul publikasi…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required />
-          </label>
-          <label class="block sm:col-span-2">
-            <span class="block text-sm font-bold">Tautan (URL)</span>
-            <input id="tambah-url" type="url" placeholder="https://…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" required />
-          </label>
-          <div class="sm:col-span-2">
-            <button type="submit" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah Publikasi</button>
-          </div>
-        </form>
-      </section>
-
       <!-- Gaya kertas pratinjau laporan (global: isi pratinjau disisipkan lewat innerHTML, jadi gaya scoped Astro tidak akan menjangkaunya). -->
       <style is:global>
         .pratinjau-dokumen { background: #fff; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.6; }
@@ -240,7 +194,7 @@ const PLATFORM = [
           <button id="btn-docx" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh Word</button>
           <button id="btn-wa" type="button" class="rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:bg-[#1DA851]">Kirim via WhatsApp</button>
         </div>
-        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp mengunggah laporan Word lalu membuka WhatsApp dengan tautan unduhnya. Tautan unduh berlaku 7 hari.</p>
+        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp membagikan berkas Word laporan langsung dari WhatsApp Anda — pilih chat tujuan di WhatsApp. Di perangkat yang tidak mendukung berbagi berkas, laporan dikirim sebagai tautan unduh (berlaku 7 hari).</p>
         <div id="wa-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
       </section>
 
@@ -298,7 +252,6 @@ const PLATFORM = [
     let rekapTanggal = todayISO();
     let rekapChecklist = null; // { upt: [...], total: {...}, sudahLaporCount }
     let rekapRows = []; // semua baris tanggal terpilih
-    let rekapFilterUpt = '';
     let rekapHapusTarget = null; // { tanggal, upt }
 
     function rekapTanggalDipilih() {
@@ -386,29 +339,7 @@ const PLATFORM = [
         if (!rows.length) break;
       }
       rekapRows = semua;
-      renderPublikasi();
       renderLaporanPratinjau();
-    }
-
-    function renderPublikasi() {
-      const el = $('publikasi-list');
-      if (!el) return;
-      const daftar = rekapFilterUpt ? rekapRows.filter((r) => r.upt === rekapFilterUpt) : rekapRows;
-      const c = $('publikasi-count');
-      if (c) c.textContent = daftar.length + ' dari ' + rekapRows.length + ' publikasi pada ' + tanggalIndonesia(rekapTanggalDipilih()) + (rekapFilterUpt ? ' — ' + rekapFilterUpt : '');
-      if (!daftar.length) {
-        el.innerHTML = '<p class="text-sm text-slate-500">Belum ada publikasi pada tanggal ini' + (rekapFilterUpt ? ' untuk UPT ini' : '') + '.</p>';
-        return;
-      }
-      el.innerHTML = daftar.map((r) => {
-        const massa = r.platform === 'Website / Media Online';
-        return '<article class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">' +
-          '<div class="flex flex-wrap items-start justify-between gap-2"><h3 class="min-w-0 flex-1 text-sm font-bold leading-snug sm:text-base">' + esc(r.judul || '(tanpa judul)') + '</h3>' +
-          '<span class="shrink-0 rounded-full ' + (massa ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200') + ' px-2.5 py-1 text-[11px] font-bold">' + esc(r.platform || '-') + '</span></div>' +
-          '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">' + esc(r.upt || '') + '</p>' +
-          (r.url ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener" class="mt-1 block truncate text-sm font-medium text-[#0A2540] underline hover:text-[#92400E] dark:text-white">' + esc(r.url) + '</a>' : '') +
-          '<div class="mt-2"><button type="button" data-hapus-publikasi="' + esc(String(r.id)) + '" class="rounded-lg border border-[#D9232E] px-3 py-1.5 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div></article>';
-      }).join('');
     }
 
     function renderLaporanPratinjau() {
@@ -491,7 +422,6 @@ const PLATFORM = [
 
     on('rekap-tanggal', 'change', () => { rekapTanggal = rekapTanggalDipilih(); muatSemua(); });
     on('btn-muat-ulang', 'click', () => { rekapTanggal = rekapTanggalDipilih(); muatSemua(); });
-    on('filter-upt', 'change', (e) => { rekapFilterUpt = e.target.value; renderPublikasi(); });
 
     // ---------- Impor ----------
     on('impor-file', 'change', (e) => {
@@ -535,25 +465,6 @@ const PLATFORM = [
       }
     });
 
-    // ---------- Tambah manual ----------
-    on('form-tambah', 'submit', async (e) => {
-      e.preventDefault();
-      const upt = $('tambah-upt').value;
-      const judul = ($('tambah-judul').value || '').trim();
-      const platform = $('tambah-platform').value;
-      const url = ($('tambah-url').value || '').trim();
-      if (!upt || !judul || !platform || !url) { showStatus('UPT, judul, platform, dan tautan wajib diisi.', false); return; }
-      try {
-        await workerPost('/redaksi/api/rekap/tambah', { tanggal: rekapTanggalDipilih(), upt, judul, platform, url });
-        showStatus('Publikasi ditambahkan.', true);
-        $('tambah-judul').value = '';
-        $('tambah-url').value = '';
-        await muatSemua();
-      } catch (err) {
-        rekapGalat(err, 'Gagal menambah publikasi');
-      }
-    });
-
     // ---------- Aksi daftar / checklist (delegation) ----------
     document.addEventListener('click', async (e) => {
       const lihatTgl = e.target.closest('[data-lihat-tanggal]');
@@ -586,26 +497,6 @@ const PLATFORM = [
       }
       const hapusUptBtn = e.target.closest('[data-hapus-upt]');
       if (hapusUptBtn) { bukaModalHapus(hapusUptBtn.getAttribute('data-hapus-upt')); return; }
-      const hapusBtn = e.target.closest('[data-hapus-publikasi]');
-      if (hapusBtn) {
-        // Konfirmasi dua ketuk (bukan confirm() bawaan browser): dialog
-        // bawaan tidak bisa dijawab otomasi dan sempat membuat tombol ini
-        // tampak mati saat verifikasi klik. Ketuk pertama mempersenjatai,
-        // ketuk kedua menghapus.
-        if (hapusBtn.getAttribute('data-hapus-arm') !== '1') {
-          hapusBtn.setAttribute('data-hapus-arm', '1');
-          hapusBtn.textContent = 'Ketuk lagi untuk hapus';
-          hapusBtn.classList.add('bg-[#D9232E]', 'text-white');
-          return;
-        }
-        const id = hapusBtn.getAttribute('data-hapus-publikasi');
-        try {
-          await workerApi('/redaksi/api/rekap/publikasi/' + encodeURIComponent(id), { method: 'DELETE' });
-          showStatus('Publikasi dihapus.', true);
-          await muatSemua();
-        } catch (err) { rekapGalat(err, 'Gagal menghapus publikasi'); }
-        return;
-      }
     });
 
     // ---------- Hapus massal satu UPT + satu tanggal ----------
@@ -697,29 +588,44 @@ const PLATFORM = [
     on('btn-docx', 'click', () => unduhLaporan('docx'));
 
     // ---------- Kirim via WhatsApp ----------
+    // Kirim sebagai BERKAS langsung (bukan tautan), dari WhatsApp pengguna
+    // sendiri — lewat lembar berbagi perangkat (Web Share API). Pengguna
+    // memilih WhatsApp lalu chat tujuan; berkas Word terlampir langsung.
+    // Di perangkat yang tidak mendukung berbagi berkas, jatuh kembali ke
+    // jalur tautan lama (unggah + api.whatsapp.com/send).
     on('btn-wa', 'click', async () => {
       const btn = $('btn-wa');
-      if (btn) { btn.disabled = true; btn.textContent = 'Mengunggah…'; }
+      if (btn) { btn.disabled = true; btn.textContent = 'Menyiapkan…'; }
       try {
         const { buildDocx } = await import('/rekap-laporan.mjs');
         const data = rekapDataLaporan();
         const hitung = hitungRekap(data);
         const blob = await buildDocx(data);
-        const isi_base64 = await blobKeBase64(blob);
         const namaFile = namaFileLaporan(data.tanggal, 'docx');
+        const ringkas = 'Laporan Publikasi Harian Kanwil Ditjenpas Bengkulu — ' + tanggalIndonesia(data.tanggal) + '.\n' +
+          'Total ' + hitung.total.jumlah + ' publikasi (' + hitung.total.sosial + ' media sosial, ' + hitung.total.massa + ' media massa) dari ' + (rekapChecklist ? rekapChecklist.sudahLaporCount : 0) + '/9 UPT sudah lapor.';
+        const hasil = $('wa-hasil');
+        const berkas = new File([blob], namaFile, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        if (navigator.canShare && navigator.canShare({ files: [berkas] })) {
+          await navigator.share({ files: [berkas], title: 'Laporan Publikasi Harian — ' + tanggalIndonesia(data.tanggal), text: ringkas });
+          if (hasil) {
+            hasil.classList.remove('hidden');
+            hasil.textContent = 'Berkas laporan dibagikan. Pilih WhatsApp lalu pilih chat tujuan — laporan terkirim sebagai berkas Word langsung, bukan tautan.';
+          }
+          showStatus('Laporan dibagikan sebagai berkas Word — pilih WhatsApp dan chat tujuan di lembar berbagi.', true);
+          return;
+        }
+        // Fallback: perangkat tidak mendukung berbagi berkas — jalur tautan.
+        const isi_base64 = await blobKeBase64(blob);
         const res = await workerPost('/redaksi/api/rekap/file', { nama_file: namaFile, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', isi_base64 });
         if (!res || !res.token) throw new Error('Server tidak mengembalikan tautan unduh.');
         const tautan = 'https://zonapas.web.id/redaksi/api/rekap/file?token=' + res.token;
-        const pesan = 'Laporan Publikasi Harian Kanwil Ditjenpas Bengkulu — ' + tanggalIndonesia(data.tanggal) + '.\n' +
-          'Total ' + hitung.total.jumlah + ' publikasi (' + hitung.total.sosial + ' media sosial, ' + hitung.total.massa + ' media massa) dari ' + (rekapChecklist ? rekapChecklist.sudahLaporCount : 0) + '/9 UPT sudah lapor.\n' +
-          'Unduh laporan (Word): ' + tautan + '\n' +
-          'Tautan berlaku 7 hari.';
-        const hasil = $('wa-hasil');
+        const pesan = ringkas + '\nUnduh laporan (Word): ' + tautan + '\nTautan berlaku 7 hari.';
         if (hasil) {
           hasil.classList.remove('hidden');
           hasil.innerHTML = '';
           const p = document.createElement('p');
-          p.textContent = 'Laporan diunggah. Tautan unduh (berlaku 7 hari): ';
+          p.textContent = 'Perangkat ini tidak mendukung berbagi berkas. Laporan diunggah. Tautan unduh (berlaku 7 hari): ';
           const a = document.createElement('a');
           a.href = tautan;
           a.target = '_blank';
@@ -732,6 +638,8 @@ const PLATFORM = [
         showStatus('Laporan diunggah — WhatsApp dibuka dengan tautan unduh (berlaku 7 hari).', true);
         window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(pesan), '_blank', 'noopener');
       } catch (err) {
+        // Pengguna membatalkan lembar berbagi bukan galat.
+        if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) { return; }
         rekapGalat(err, 'Gagal mengirim via WhatsApp');
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Kirim via WhatsApp'; }
