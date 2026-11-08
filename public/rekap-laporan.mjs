@@ -701,22 +701,20 @@ class PdfDokumen {
 }
 
 // ---------- Perakitan PDF ----------
-// PDF dibuat dengan mengonversi berkas DOCX (bukan digambar ulang oleh
-// builder terpisah), supaya tampilannya persis sama dengan Word — Word
-// rapi karena memakai template asli, sedangkan builder PDF lama menggambar
-// ulang tata letak dengan tangan sehingga selalu ada selisih. Alur:
-// buildDocx -> render DOCX ke HTML (docx-preview) -> HTML ke PDF
-// (html2pdf.js = html2canvas + jsPDF). Hasilnya berupa gambar per halaman
-// (teks tidak bisa dipilih), tetapi tampilannya sama persis dengan Word.
-// Bila konversi gagal (mis. CDN tidak terjangkau), jatuh ke builder lama
-// (buildPdfLegacy) supaya PDF tetap bisa diunduh/dikirim.
+// KEMBALI ke builder lama (buildPdfLegacy) — konversi DOCX->PDF
+// DINONAKTIFKAN 08 Nov 2026 ~23.02 WIB atas perintah Bos Besar
+// ("Kembalikan saja saat tombol masih berfungsi"). Alasannya: konversi
+// membuat wadah salinan laporan di akhir body (buildPdfDariDocx) yang
+// MENELAN semua ketukan — tombol Unduh PDF/Word, Kirim WA, bahkan mode
+// gelap dan Muat Ulang jadi tidak merespon di HP maupun di uji klik
+// (hit-test: "covered/obscured"; keyboard Tab+Spasi tetap jalan).
+// pointer-events:none + cache-bust v7 TIDAK menyelesaikan — modul lama
+// tersimpan di cache terus dipakai. Builder lama tidak membuat wadah
+// apa pun, jadi tombol kembali berfungsi. Konversi tetap tersimpan di
+// buildPdfDariDocx di bawah (tidak dipanggil) untuk dikerjakan ulang
+// di lain waktu bila sudah ada cara yang aman.
 export async function buildPdf(data) {
-  try {
-    return await buildPdfDariDocx(data);
-  } catch (err) {
-    console.warn("[rekap] konversi DOCX->PDF gagal, pakai builder lama:", err);
-    return buildPdfLegacy(data);
-  }
+  return buildPdfLegacy(data);
 }
 
 async function buildPdfDariDocx(data) {
