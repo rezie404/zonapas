@@ -201,14 +201,13 @@ const PLATFORM = [
       <!-- Laporan -->
       <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Laporan">
         <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Laporan</h2>
-        <div id="laporan-minggu" class="mt-3 hidden rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100"></div>
         <div id="laporan-pratinjau" class="mt-3 text-sm"><p class="text-slate-500">Memuat…</p></div>
-        <div id="laporan-tombol" class="mt-4 flex flex-wrap gap-2">
+        <div class="mt-4 flex flex-wrap gap-2">
           <button id="btn-pdf" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh PDF</button>
           <button id="btn-docx" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh Word</button>
           <button id="btn-wa" type="button" class="rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:bg-[#1DA851]">Kirim via WhatsApp</button>
         </div>
-        <p id="laporan-catatan" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp mengunggah laporan Word lalu membuka WhatsApp dengan tautan unduhnya. Tautan unduh berlaku 7 hari.</p>
+        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp mengunggah laporan Word lalu membuka WhatsApp dengan tautan unduhnya. Tautan unduh berlaku 7 hari.</p>
         <div id="wa-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
       </section>
 
@@ -271,22 +270,6 @@ const PLATFORM = [
       return (el && el.value) || rekapTanggal;
     }
 
-    // Aturan Minggu → Senin (08 Nov 2026): tidak ada laporan hari Minggu;
-    // laporan Senin memakai data Minggu + Senin.
-    function hariDariTanggal(iso) {
-      const d = new Date(iso + 'T00:00:00');
-      return Number.isNaN(d.getTime()) ? -1 : d.getDay(); // 0=Minggu, 1=Senin
-    }
-    function tanggalMingguSebelum(isoSenin) {
-      const d = new Date(isoSenin + 'T00:00:00');
-      d.setDate(d.getDate() - 1);
-      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
-      return y + '-' + m + '-' + dd;
-    }
-    function tanggalLaporanUntuk(tgl) {
-      return hariDariTanggal(tgl) === 1 ? [tanggalMingguSebelum(tgl), tgl] : [tgl];
-    }
-
     // 401/403 -> pesan ramah + tautan masuk; galat lain -> pesan singkat
     // tanpa membocorkan detail teknis mentah.
     function rekapGalat(err, konteks) {
@@ -303,8 +286,7 @@ const PLATFORM = [
       const nihil = (rekapChecklist && rekapChecklist.upt ? rekapChecklist.upt : [])
         .filter((u) => u.nihil)
         .map((u) => u.nama);
-      const tgl = rekapTanggalDipilih();
-      return { tanggal: tgl, tanggalLaporan: tanggalLaporanUntuk(tgl), rows: rekapRows, nihil };
+      return { tanggal: rekapTanggalDipilih(), rows: rekapRows, nihil };
     }
 
     async function muatChecklist() {
@@ -319,10 +301,8 @@ const PLATFORM = [
       const el = $('ringkasan-tanggal');
       if (!el || !rekapChecklist) return;
       const t = rekapChecklist.total || { sosial: 0, massa: 0, jumlah: 0 };
-      const tgl = rekapTanggalDipilih();
-      const tambahan = hariDariTanggal(tgl) === 1 ? ' · termasuk data Minggu, ' + tanggalIndonesia(tanggalMingguSebelum(tgl)) : '';
-      el.textContent = tanggalIndonesia(tgl) + ' — ' + (rekapChecklist.sudahLaporCount || 0) + '/9 UPT sudah lapor · ' +
-        t.jumlah + ' publikasi (' + t.sosial + ' media sosial, ' + t.massa + ' media massa)' + tambahan;
+      el.textContent = tanggalIndonesia(rekapTanggalDipilih()) + ' — ' + (rekapChecklist.sudahLaporCount || 0) + '/9 UPT sudah lapor · ' +
+        t.jumlah + ' publikasi (' + t.sosial + ' media sosial, ' + t.massa + ' media massa)';
       const c = $('checklist-count');
       if (c) c.textContent = (rekapChecklist.sudahLaporCount || 0) + '/9 sudah lapor';
     }
@@ -379,9 +359,7 @@ const PLATFORM = [
       if (!el) return;
       const daftar = rekapFilterUpt ? rekapRows.filter((r) => r.upt === rekapFilterUpt) : rekapRows;
       const c = $('publikasi-count');
-      const tgl = rekapTanggalDipilih();
-      const tambahan = hariDariTanggal(tgl) === 1 ? ' (termasuk data Minggu, ' + tanggalIndonesia(tanggalMingguSebelum(tgl)) + ')' : '';
-      if (c) c.textContent = daftar.length + ' dari ' + rekapRows.length + ' publikasi pada ' + tanggalIndonesia(tgl) + tambahan + (rekapFilterUpt ? ' — ' + rekapFilterUpt : '');
+      if (c) c.textContent = daftar.length + ' dari ' + rekapRows.length + ' publikasi pada ' + tanggalIndonesia(rekapTanggalDipilih()) + (rekapFilterUpt ? ' — ' + rekapFilterUpt : '');
       if (!daftar.length) {
         el.innerHTML = '<p class="text-sm text-slate-500">Belum ada publikasi pada tanggal ini' + (rekapFilterUpt ? ' untuk UPT ini' : '') + '.</p>';
         return;
@@ -400,39 +378,9 @@ const PLATFORM = [
     function renderLaporanPratinjau() {
       const el = $('laporan-pratinjau');
       if (!el) return;
-      const tgl = rekapTanggalDipilih();
-      const notice = $('laporan-minggu');
-      const tombol = $('laporan-tombol');
-      const catatan = $('laporan-catatan');
-      // Hari Minggu tidak ada laporan: datanya digabung ke laporan Senin.
-      if (hariDariTanggal(tgl) === 0) {
-        const senin = new Date(tgl + 'T00:00:00');
-        senin.setDate(senin.getDate() + 1);
-        const seninIso = senin.getFullYear() + '-' + String(senin.getMonth() + 1).padStart(2, '0') + '-' + String(senin.getDate()).padStart(2, '0');
-        if (notice) {
-          notice.classList.remove('hidden');
-          notice.innerHTML = '';
-          const p = document.createElement('p');
-          p.textContent = 'Tidak ada laporan rekap hari Minggu — data hari Minggu digabung ke laporan Senin, ' + tanggalIndonesia(seninIso) + '.';
-          notice.appendChild(p);
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.setAttribute('data-lihat-tanggal', seninIso);
-          b.className = 'mt-2 rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]';
-          b.textContent = 'Buka Laporan Senin';
-          notice.appendChild(b);
-        }
-        el.innerHTML = '';
-        if (tombol) tombol.classList.add('hidden');
-        if (catatan) catatan.classList.add('hidden');
-        return;
-      }
-      if (notice) notice.classList.add('hidden');
-      if (tombol) tombol.classList.remove('hidden');
-      if (catatan) catatan.classList.remove('hidden');
       const hitung = hitungRekap(rekapDataLaporan());
       const t = hitung.total;
-      let h = '<p><strong>' + esc(tanggalIndonesia(tgl)) + '</strong> — ' + t.jumlah + ' publikasi (' + t.sosial + ' media sosial, ' + t.massa + ' media massa)</p>';
+      let h = '<p><strong>' + esc(tanggalIndonesia(rekapTanggalDipilih())) + '</strong> — ' + t.jumlah + ' publikasi (' + t.sosial + ' media sosial, ' + t.massa + ' media massa)</p>';
       h += '<div class="mt-3 overflow-x-auto"><table class="w-full min-w-[420px] border-collapse text-left text-sm">' +
         '<thead><tr class="border-b-2 border-[#0A2540] dark:border-white"><th class="py-1.5 pr-2">UPT</th><th class="py-1.5 pr-2 text-right">Sosial</th><th class="py-1.5 pr-2 text-right">Massa</th><th class="py-1.5 text-right">Jumlah</th></tr></thead><tbody>';
       h += hitung.perUpt.map((u) => '<tr class="border-b border-slate-200 dark:border-slate-800"><td class="py-1.5 pr-2">' + esc(u.nama) + (u.nihil ? ' <span class="text-xs font-bold text-slate-500">(nihil)</span>' : '') + '</td><td class="py-1.5 pr-2 text-right">' + u.sosial + '</td><td class="py-1.5 pr-2 text-right">' + u.massa + '</td><td class="py-1.5 text-right font-bold">' + u.jumlah + '</td></tr>').join('');
@@ -596,13 +544,8 @@ const PLATFORM = [
       const batalBtn = e.target.closest('[data-batal-nihil]');
       if (batalBtn) {
         const upt = batalBtn.getAttribute('data-batal-nihil');
-        // Tanda nihil bisa tercatat di Minggu (saat laporan Senin
-        // menggabungkan Minggu + Senin): batalkan di tanggal tercatat,
-        // bukan hanya di tanggal yang sedang dipilih.
-        const entri = (rekapChecklist && rekapChecklist.upt || []).find((u) => u.nama === upt);
-        const daftar = (entri && entri.tanggalNihil && entri.tanggalNihil.length) ? entri.tanggalNihil : [rekapTanggalDipilih()];
         try {
-          for (const t of daftar) await workerPost('/redaksi/api/rekap/batal-nihil', { tanggal: t, upt });
+          await workerPost('/redaksi/api/rekap/batal-nihil', { tanggal: rekapTanggalDipilih(), upt });
           showStatus('Tanda nihil ' + upt + ' dibatalkan.', true);
           await muatSemua();
         } catch (err) { rekapGalat(err, 'Gagal membatalkan nihil'); }
@@ -647,10 +590,7 @@ const PLATFORM = [
         const res = await workerGet('/redaksi/api/rekap/pratinjau-hapus?tanggal=' + encodeURIComponent(rekapHapusTarget.tanggal) + '&upt=' + encodeURIComponent(upt));
         if (!wadah) return;
         const rows = (res && res.rows) || [];
-        const rentang = (res && res.tanggalLaporan && res.tanggalLaporan.length === 2)
-          ? esc(tanggalIndonesia(res.tanggalLaporan[0])) + ' + ' + esc(tanggalIndonesia(res.tanggalLaporan[1]))
-          : esc(tanggalIndonesia(res.tanggal || rekapHapusTarget.tanggal));
-        let h = '<p class="font-bold">' + esc(upt) + ' — ' + rentang + '</p>' +
+        let h = '<p class="font-bold">' + esc(upt) + ' — ' + esc(tanggalIndonesia(res.tanggal || rekapHapusTarget.tanggal)) + '</p>' +
           '<p class="mt-1">' + (res.jumlah || 0) + ' publikasi akan dihapus (' + (res.sosial || 0) + ' media sosial, ' + (res.massa || 0) + ' media massa).</p>';
         if (rows.length) {
           h += '<ul class="mt-2 max-h-56 list-disc overflow-y-auto rounded-lg bg-slate-50 px-5 py-2 dark:bg-slate-800">' +

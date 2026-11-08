@@ -65,13 +65,7 @@ export function namaFileLaporan(tanggal, ext) {
 // judul UNIK per UPT (urutan kemunculan pertama); tautan = semua baris.
 export function hitungRekap(data) {
   const tanggal = data.tanggal || data.date || "";
-  // Rentang tanggal laporan: Senin memakai [Minggu, Senin] (aturan
-  // Minggu → Senin); hari lain hanya [tanggal]. Tanpa daftar ini,
-  // perilaku lama: hanya baris yang tanggalnya sama dengan tanggal.
-  const daftarTanggal = Array.isArray(data.tanggalLaporan) && data.tanggalLaporan.length
-    ? data.tanggalLaporan
-    : (tanggal ? [tanggal] : []);
-  const rows = (data.rows || []).filter((r) => !daftarTanggal.length || !r.tanggal || daftarTanggal.includes(r.tanggal));
+  const rows = (data.rows || []).filter((r) => !tanggal || !r.tanggal || r.tanggal === tanggal);
   const nihilSet = new Set((data.nihil || []).map((n) => (typeof n === "string" ? n : n.upt)));
   const perUpt = REKAP_UPT_LAPORAN.map((nama) => {
     const rs = rows.filter((r) => r.upt === nama);
