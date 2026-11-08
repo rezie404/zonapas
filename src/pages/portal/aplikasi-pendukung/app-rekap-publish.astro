@@ -244,12 +244,12 @@ const PLATFORM = [
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=6"></script>
+  <script is:inline src="/kelola-umum.js?v=7"></script>
   <script type="module">
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
     // saat mengunduh/mengirim laporan — lihat unduhLaporan() dan btn-wa.
-    import { hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari, pratinjauLaporanHtml } from '/rekap-ringan.mjs';
+    import { hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari, pratinjauLaporanHtml } from '/rekap-ringan.mjs?v=2';
 
     // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
     // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
