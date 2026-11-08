@@ -261,6 +261,7 @@ const PLATFORM = [
     let rekapChecklist = null; // { upt: [...], total: {...}, sudahLaporCount }
     let rekapRows = []; // semua baris tanggal terpilih
     let rekapHapusTarget = null; // { tanggal, upt }
+    let janjiBerkasWa = null; // berkas WA (Word+PDF) yang sudah disiapkan di latar belakang
 
     function rekapTanggalDipilih() {
       const el = $('rekap-tanggal');
@@ -379,6 +380,9 @@ const PLATFORM = [
     }
 
     async function muatSemua() {
+      // Data berubah (tanggal / impor / hapus / nihil) -> berkas WA yang
+      // sudah disiapkan jadi basi; kosongkan supaya dibangun ulang.
+      janjiBerkasWa = null;
       // Muat PARALEL (dulu berurutan: checklist, lalu publikasi, lalu
       // statistik — tiga perjalanan bolak-balik ke server). Statistik tidak
       // pernah melempar galat (ditangani di dalamnya), jadi aman di sini.
@@ -387,6 +391,10 @@ const PLATFORM = [
       } catch (err) {
         rekapGalat(err, 'Gagal memuat data rekap');
       }
+      // Panaskan berkas WA di latar belakang: modul + template dimuat
+      // sekarang, supaya saat pengguna mengetuk kirim, berbagi bisa
+      // langsung dipanggil di dalam ketukannya (lihat siapkanBerkasWa).
+      siapkanBerkasWa();
     }
 
     function unduhBlob(blob, namaFile) {
@@ -599,25 +607,62 @@ const PLATFORM = [
     // Kirim sebagai BERKAS langsung (bukan tautan), dari WhatsApp pengguna
     // sendiri — lewat lembar berbagi perangkat (Web Share API). Pengguna
     // memilih dulu formatnya (Word atau PDF), lalu memilih WhatsApp dan
-    // chat tujuan; berkas terlampir langsung. Di perangkat yang tidak
-    // mendukung berbagi berkas, jatuh kembali ke jalur tautan lama.
+    // chat tujuan; berkas terlampir langsung.
+    //
+    // PERANGKAP (penyebab "tidak ada respon" 08 Nov 2026):
+    // navigator.share() WAJIB dipanggil saat ketukan pengguna masih
+    // berlaku. Membangun berkas (impor modul + ambil template + rakit
+    // DOCX/PDF) butuh waktu; bila berbagi baru dipanggil setelah ketukan
+    // kedaluwarsa, Chrome melempar NotAllowedError — dan kode lama MENELAN
+    // galat itu diam-diam, sehingga tombol kembali seperti semula tanpa
+    // lembar berbagi, tanpa tautan, tanpa pesan apa pun.
+    // Perbaikannya dua lapis:
+    //  1. Berkas DIBANGUN DULU di latar belakang (siapkanBerkasWa, dipanggil
+    //     begitu data termuat dan saat kotak pilihan dibuka). Saat pengguna
+    //     mengetuk Word/PDF, berkasnya sudah siap sehingga berbagi bisa
+    //     langsung dipanggil di dalam ketukan itu.
+    //  2. Bila berbagi TETAP gagal (bukan karena pengguna membatalkan),
+    //     jangan diam: jatuh ke jalur tautan dan tampilkan tautannya di
+    //     kotak hasil, supaya laporan tetap bisa dikirim.
+    function siapkanBerkasWa() {
+      if (janjiBerkasWa) return janjiBerkasWa;
+      janjiBerkasWa = (async () => {
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs');
+        const data = rekapDataLaporan();
+        const hitung = hitungRekap(data);
+        const ringkas = 'Laporan Publikasi Harian Kanwil Ditjenpas Bengkulu — ' + tanggalIndonesia(data.tanggal) + '.\n' +
+          'Total ' + hitung.total.jumlah + ' publikasi (' + hitung.total.sosial + ' media sosial, ' + hitung.total.massa + ' media massa) dari ' + (rekapChecklist ? rekapChecklist.sudahLaporCount : 0) + '/9 UPT sudah lapor.';
+        const [blobDocx, blobPdf] = await Promise.all([buildDocx(data), buildPdf(data)]);
+        return {
+          tanggal: data.tanggal,
+          ringkas,
+          docx: new File([blobDocx], namaFileLaporan(data.tanggal, 'docx'), { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }),
+          pdf: new File([blobPdf], namaFileLaporan(data.tanggal, 'pdf'), { type: 'application/pdf' }),
+        };
+      })();
+      // Bila gagal, kosongkan supaya percobaan berikutnya membangun ulang
+      // (dan supaya tidak ada unhandled rejection).
+      janjiBerkasWa.catch(() => { janjiBerkasWa = null; });
+      return janjiBerkasWa;
+    }
     async function kirimViaWhatsApp(ext) {
       const btn = $('btn-wa');
       if (btn) { btn.disabled = true; btn.textContent = 'Menyiapkan…'; }
       try {
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs');
-        const data = rekapDataLaporan();
-        const hitung = hitungRekap(data);
-        const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
-        const namaFile = namaFileLaporan(data.tanggal, ext);
+        const siap = await siapkanBerkasWa();
+        const berkas = ext === 'pdf' ? siap.pdf : siap.docx;
         const label = ext === 'pdf' ? 'PDF' : 'Word';
-        const mime = ext === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        const ringkas = 'Laporan Publikasi Harian Kanwil Ditjenpas Bengkulu — ' + tanggalIndonesia(data.tanggal) + '.\n' +
-          'Total ' + hitung.total.jumlah + ' publikasi (' + hitung.total.sosial + ' media sosial, ' + hitung.total.massa + ' media massa) dari ' + (rekapChecklist ? rekapChecklist.sudahLaporCount : 0) + '/9 UPT sudah lapor.';
         const hasil = $('wa-hasil');
-        const berkas = new File([blob], namaFile, { type: mime });
         if (navigator.canShare && navigator.canShare({ files: [berkas] })) {
-          await navigator.share({ files: [berkas], title: 'Laporan Publikasi Harian — ' + tanggalIndonesia(data.tanggal), text: ringkas });
+          try {
+            await navigator.share({ files: [berkas], title: 'Laporan Publikasi Harian — ' + tanggalIndonesia(siap.tanggal), text: siap.ringkas });
+          } catch (err) {
+            // Pengguna membatalkan lembar berbagi: diam saja.
+            if (err && err.name === 'AbortError') { return; }
+            // Berbagi gagal (mis. ketukan sudah kedaluwarsa): JANGAN diam —
+            // lanjut ke jalur tautan supaya laporan tetap bisa dikirim.
+            return kirimViaWhatsAppTautan(ext, siap);
+          }
           if (hasil) {
             hasil.classList.remove('hidden');
             hasil.textContent = 'Berkas laporan (' + label + ') dibagikan. Pilih WhatsApp lalu pilih chat tujuan — laporan terkirim sebagai berkas langsung, bukan tautan.';
@@ -625,39 +670,47 @@ const PLATFORM = [
           showStatus('Laporan (' + label + ') dibagikan sebagai berkas — pilih WhatsApp dan chat tujuan di lembar berbagi.', true);
           return;
         }
-        // Fallback: perangkat tidak mendukung berbagi berkas — jalur tautan.
-        const isi_base64 = await blobKeBase64(blob);
-        const res = await workerPost('/redaksi/api/rekap/file', { nama_file: namaFile, mime, isi_base64 });
-        if (!res || !res.token) throw new Error('Server tidak mengembalikan tautan unduh.');
-        const tautan = 'https://zonapas.web.id/redaksi/api/rekap/file?token=' + res.token;
-        const pesan = ringkas + '\nUnduh laporan (' + label + '): ' + tautan + '\nTautan berlaku 7 hari.';
-        if (hasil) {
-          hasil.classList.remove('hidden');
-          hasil.innerHTML = '';
-          const p = document.createElement('p');
-          p.textContent = 'Perangkat ini tidak mendukung berbagi berkas. Laporan diunggah. Tautan unduh (berlaku 7 hari): ';
-          const a = document.createElement('a');
-          a.href = tautan;
-          a.target = '_blank';
-          a.rel = 'noopener';
-          a.className = 'font-bold underline';
-          a.textContent = tautan;
-          p.appendChild(a);
-          hasil.appendChild(p);
-        }
-        showStatus('Laporan diunggah — WhatsApp dibuka dengan tautan unduh (berlaku 7 hari).', true);
-        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(pesan), '_blank', 'noopener');
+        // Perangkat tidak mendukung berbagi berkas — jalur tautan.
+        return kirimViaWhatsAppTautan(ext, siap);
       } catch (err) {
-        // Pengguna membatalkan lembar berbagi bukan galat.
-        if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) { return; }
         rekapGalat(err, 'Gagal mengirim via WhatsApp');
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Kirim via WhatsApp'; }
       }
     }
+    async function kirimViaWhatsAppTautan(ext, siap) {
+      const label = ext === 'pdf' ? 'PDF' : 'Word';
+      const mime = ext === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      const berkas = ext === 'pdf' ? siap.pdf : siap.docx;
+      const isi_base64 = await blobKeBase64(berkas);
+      const res = await workerPost('/redaksi/api/rekap/file', { nama_file: berkas.name, mime, isi_base64 });
+      if (!res || !res.token) throw new Error('Server tidak mengembalikan tautan unduh.');
+      const tautan = 'https://zonapas.web.id/redaksi/api/rekap/file?token=' + res.token;
+      const pesan = siap.ringkas + '\nUnduh laporan (' + label + '): ' + tautan + '\nTautan berlaku 7 hari.';
+      const hasil = $('wa-hasil');
+      if (hasil) {
+        hasil.classList.remove('hidden');
+        hasil.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = 'Berbagi berkas tidak bisa dibuka di perangkat ini. Laporan diunggah — ketuk tautan untuk mengunduh, lalu bagikan dari WhatsApp (berlaku 7 hari): ';
+        const a = document.createElement('a');
+        a.href = tautan;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'font-bold underline';
+        a.textContent = tautan;
+        p.appendChild(a);
+        hasil.appendChild(p);
+      }
+      showStatus('Laporan diunggah — WhatsApp dibuka dengan tautan unduh (berlaku 7 hari).', true);
+      window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(pesan), '_blank', 'noopener');
+    }
     on('btn-wa', 'click', () => {
       const pilih = $('wa-pilih');
       if (pilih) pilih.classList.remove('hidden');
+      // Mulai bangun kedua berkas di latar belakang selagi pengguna
+      // memilih format, supaya berbagi nanti bisa langsung dipanggil.
+      siapkanBerkasWa();
     });
     on('btn-wa-docx', 'click', () => { const p = $('wa-pilih'); if (p) p.classList.add('hidden'); kirimViaWhatsApp('docx'); });
     on('btn-wa-pdf', 'click', () => { const p = $('wa-pilih'); if (p) p.classList.add('hidden'); kirimViaWhatsApp('pdf'); });
