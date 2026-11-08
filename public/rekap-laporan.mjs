@@ -704,7 +704,14 @@ export async function buildPdf(data) {
   const TW = (n) => n / 20; // twips -> pt
   const judulBagian = (teks) => doc.paraTeks(teks, { sebelum: 12, sesudah: 4 }, true, PDF_BIRU_TUA);
   const subJudul = (teks) => doc.paraTeks(teks, { indentKiri: TW(284), sebelum: 8, sesudah: 0 }, true);
-  const tubuh = (teks, sesudah = 8) => doc.paraTeks(teks, { rata: "both", sesudah });
+  // Paragraf isi menjorok seperti template: baris pertama masuk sejauh
+  // satu tab, seluruh paragraf bergeser ke kanan. Tingkat atas
+  // (PENDAHULUAN, KEGIATAN, PENUTUP): kiri 284 twips, baris pertama
+  // +425. Di bawah sub-judul (Umum, Maksud, Ruang Lingkup): kiri 567,
+  // baris pertama +426. (Satuan: twips, sama seperti template DOCX.)
+  const tubuh = (teks, sesudah = 8, kiri = 284, barisPertama = 425) =>
+    doc.paraTeks(teks, { rata: "both", indentKiri: TW(kiri), indentBarisPertama: TW(barisPertama), sesudah });
+  const tubuhSub = (teks, sesudah = 8) => tubuh(teks, sesudah, 567, 426);
 
   // --- Kop: logo 72x72pt + 5 baris nama instansi (tengah, kolom kanan) ---
   {
@@ -727,7 +734,8 @@ export async function buildPdf(data) {
     doc.hal.ops.push(`${rgb(PDF_GARIS_KOP)} 0.5 w`);
     doc.hal.ops.push(`${PDF_M.toFixed(2)} ${(yAtas - 74).toFixed(2)} m ${(PDF_M + PDF_CW).toFixed(2)} ${(yAtas - 74).toFixed(2)} l S`);
     doc.hal.ops.push(`${PDF_M.toFixed(2)} ${(yAtas - 76).toFixed(2)} m ${(PDF_M + PDF_CW).toFixed(2)} ${(yAtas - 76).toFixed(2)} l S`);
-    doc.y = yAtas - 72 - PDF_LH;
+    // Spasi tambahan 12pt antara garis ganda kop dan judul LAPORAN.
+    doc.y = yAtas - 72 - PDF_LH - 12;
   }
   // --- Judul laporan ---
   for (const baris of ["LAPORAN", "TENTANG", "DATA HARIAN HASIL RILIS DAN PUBLIKASI MEDIA SOSIAL", "UNIT PELAKSANA TEKNIS PEMASYARAKATAN DI LINGKUNGAN", "KANTOR WILAYAH DIREKTORAT JENDERAL PEMASYARAKATAN BENGKULU"]) {
@@ -737,14 +745,14 @@ export async function buildPdf(data) {
   judulBagian("A. PENDAHULUAN");
   tubuh(TEKS_PENDAHULUAN);
   subJudul("1. Umum");
-  tubuh(TEKS_UMUM);
+  tubuhSub(TEKS_UMUM);
   subJudul("2. Maksud dan Tujuan");
-  tubuh(TEKS_MAKSUD);
+  tubuhSub(TEKS_MAKSUD);
   TUJUAN.forEach((t, i) => {
     doc.paragraf([{ teks: `${i + 1}.`, tebal: false }, { teks: " ", tebal: false }, { teks: t, tebal: false }], { rata: "both", indentKiri: TW(851), indentBarisPertama: -TW(284), sesudah: 1 });
   });
   subJudul("3. Ruang Lingkup");
-  tubuh(TEKS_RUANG_LINGKUP, 1);
+  tubuhSub(TEKS_RUANG_LINGKUP, 1);
   doc.paraTeks(`• Hari/tanggal : ${tglPanjang}`, { indentKiri: TW(720), sesudah: 1 });
   doc.paraTeks("• Pukul : 20.00 WIB", { indentKiri: TW(720), sesudah: 1 });
   // --- B. KEGIATAN YANG DILAKSANAKAN ---
@@ -754,7 +762,7 @@ export async function buildPdf(data) {
   tubuh(TEKS_KEGIATAN_3);
   // --- C. HASIL YANG DICAPAI ---
   judulBagian("C. HASIL YANG DICAPAI");
-  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 8, sesudah: 3 }, true);
+  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 3 }, true);
   doc.paragraf([{ teks: "Jumlah publikasi pada hari pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
   const garisHitung = (label, n) => {
     doc.pastikan(PDF_LH + 1);
@@ -765,13 +773,14 @@ export async function buildPdf(data) {
   garisHitung("Media Sosial", total.sosial);
   garisHitung("Media Massa", total.massa);
   garisHitung("Jumlah", total.jumlah);
-  doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
   doc.tabelRekap(perUpt, total);
   doc.y -= PDF_LH;
   // --- 2. Rincian Publikasi Per Satuan Kerja ---
   doc.paraTeks("2. Rincian Publikasi Per Satuan Kerja", { indentKiri: TW(142), sesudah: 0 }, true);
   perUpt.forEach((u, i) => {
-    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sesudah: 0 });
+    // Satu baris kosong antar laporan UPT (kecuali sebelum UPT pertama).
+    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: i === 0 ? 0 : PDF_LH, sesudah: 0 });
     doc.paraTeks(`a. Media Sosial : ${u.sosial} publikasi`, { indentKiri: TW(360), sesudah: 0 });
     doc.paraTeks(`b. Media Massa : ${u.massa} publikasi`, { indentKiri: TW(360), sesudah: 0 });
     // UPT nihil ditulis sebaris di labelnya (seperti berkas PDF terkirim),
@@ -796,7 +805,9 @@ export async function buildPdf(data) {
   // --- D. PENUTUP ---
   judulBagian("D. PENUTUP");
   tubuh(TEKS_PENUTUP_1);
-  tubuh(TEKS_PENUTUP_2);
+  // Paragraf penutup kedua: hanya baris pertama menjorok (709 twips,
+  // tanpa geser kiri) seperti template.
+  tubuh(TEKS_PENUTUP_2, 8, 0, 709);
   doc.y -= PDF_LH;
   // --- Blok tanda tangan (dijaga utuh satu halaman) ---
   doc.pastikan(7 * PDF_LH);

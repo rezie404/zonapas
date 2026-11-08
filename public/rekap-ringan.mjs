@@ -27,7 +27,7 @@ export function tanggalIndonesiaTanpaHari(iso) {
   return `${d} ${BULAN_ID[(m || 1) - 1]} ${y}`;
 }
 export function namaFileLaporan(tanggal, ext) {
-  const [y, m, d] = String(tanggal || "");
+  const [y, m, d] = String(tanggal || "").split("-");
   return `${d}_${m}_${y}_Laporan_Publikasi_Harian_Kanwil_Ditjenpas_Bengkulu.${ext}`;
 }
 
@@ -94,31 +94,31 @@ export function pratinjauLaporanHtml(hitung) {
   h += '<div class="judul-laporan"><p>LAPORAN</p><p>TENTANG</p><p>DATA HARIAN HASIL RILIS DAN PUBLIKASI MEDIA SOSIAL</p><p>UNIT PELAKSANA TEKNIS PEMASYARAKATAN DI LINGKUNGAN</p><p>KANTOR WILAYAH DIREKTORAT JENDERAL PEMASYARAKATAN BENGKULU</p></div>';
   // A. PENDAHULUAN
   h += '<h3>A. PENDAHULUAN</h3>';
-  h += '<p>' + escHtml(TEKS_PENDAHULUAN) + '</p>';
-  h += '<h4>1. Umum</h4><p>' + escHtml(TEKS_UMUM) + '</p>';
-  h += '<h4>2. Maksud dan Tujuan</h4><p>' + escHtml(TEKS_MAKSUD) + '</p>';
+  h += '<p class="isi">' + escHtml(TEKS_PENDAHULUAN) + '</p>';
+  h += '<h4>1. Umum</h4><p class="isi-sub">' + escHtml(TEKS_UMUM) + '</p>';
+  h += '<h4>2. Maksud dan Tujuan</h4><p class="isi-sub">' + escHtml(TEKS_MAKSUD) + '</p>';
   h += '<ol class="tujuan">' + TEKS_TUJUAN.map((x) => '<li>' + escHtml(x) + '</li>').join('') + '</ol>';
-  h += '<h4>3. Ruang Lingkup</h4><p>' + escHtml(TEKS_RUANG_LINGKUP) + '</p>';
+  h += '<h4>3. Ruang Lingkup</h4><p class="isi-sub">' + escHtml(TEKS_RUANG_LINGKUP) + '</p>';
   h += '<p class="ruang">\u2022 Hari/tanggal : ' + escHtml(tglPanjang) + '</p>';
   h += '<p class="ruang">\u2022 Pukul : 20.00 WIB</p>';
   // B. KEGIATAN YANG DILAKSANAKAN
   h += '<h3>B. KEGIATAN YANG DILAKSANAKAN</h3>';
-  h += TEKS_KEGIATAN.map((x) => '<p>' + escHtml(x) + '</p>').join('');
+  h += TEKS_KEGIATAN.map((x) => '<p class="isi">' + escHtml(x) + '</p>').join('');
   // C. HASIL YANG DICAPAI
   h += '<h3>C. HASIL YANG DICAPAI</h3>';
-  h += '<h4>1. Rekapitulasi Publikasi</h4>';
-  h += '<p>Jumlah publikasi pada hari pelaporan adalah sebagai berikut:</p>';
+  h += '<h4 class="rapat">1. Rekapitulasi Publikasi</h4>';
+  h += '<p class="isi-tab">Jumlah publikasi pada hari pelaporan adalah sebagai berikut:</p>';
   h += '<p class="ruang">Media Sosial : ' + t.sosial + ' publikasi</p>';
   h += '<p class="ruang">Media Massa : ' + t.massa + ' publikasi</p>';
   h += '<p class="ruang">Jumlah : ' + t.jumlah + ' publikasi</p>';
-  h += '<p>Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:</p>';
+  h += '<p class="isi-tab-kecil">Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:</p>';
   h += '<div class="gulir"><table><thead><tr><th>No.</th><th>Satuan Kerja</th><th class="angka">Media Sosial</th><th class="angka">Media Massa</th><th class="angka">Jumlah</th></tr></thead><tbody>';
   h += hitung.perUpt.map((u, i) => '<tr><td>' + (i + 1) + '</td><td>' + escHtml(namaLaporan(u.nama)) + '</td><td class="angka">' + u.sosial + '</td><td class="angka">' + u.massa + '</td><td class="angka">' + u.jumlah + '</td></tr>').join('');
   h += '<tr class="jumlah"><td></td><td>JUMLAH</td><td class="angka">' + t.sosial + '</td><td class="angka">' + t.massa + '</td><td class="angka">' + t.jumlah + '</td></tr>';
   h += '</tbody></table></div>';
   h += '<h4>2. Rincian Publikasi Per Satuan Kerja</h4>';
   hitung.perUpt.forEach((u, i) => {
-    h += '<h4>' + (i + 1) + ') ' + escHtml(namaLaporan(u.nama)) + '</h4>';
+    h += '<h4' + (i > 0 ? ' style="margin-top:30px"' : '') + '>' + (i + 1) + ') ' + escHtml(namaLaporan(u.nama)) + '</h4>';
     h += '<p>a. Media Sosial : ' + u.sosial + ' publikasi</p>';
     h += '<p>b. Media Massa : ' + u.massa + ' publikasi</p>';
     // UPT nihil ditulis sebaris di labelnya (seperti DOCX/PDF), tanpa daftar.
@@ -137,7 +137,8 @@ export function pratinjauLaporanHtml(hitung) {
   });
   // D. PENUTUP
   h += '<h3>D. PENUTUP</h3>';
-  h += TEKS_PENUTUP.map((x) => '<p>' + escHtml(x) + '</p>').join('');
+  h += '<p class="isi">' + escHtml(TEKS_PENUTUP[0]) + '</p>';
+  h += '<p class="isi-tab-besar">' + escHtml(TEKS_PENUTUP[1]) + '</p>';
   h += '<div class="tanda-tangan"><p>Bengkulu, ' + escHtml(tglSingkat) + '</p><p>Kepala Kantor Wilayah,</p><p>ttd</p><p><strong>MASJUNO</strong></p></div>';
   h += '</div>';
   return h;
