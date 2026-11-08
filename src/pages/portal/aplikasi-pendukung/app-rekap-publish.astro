@@ -194,11 +194,11 @@ const PLATFORM = [
           <h3 class="text-lg font-black">Pratinjau laporan</h3>
           <p id="laporan-tanggal" class="text-sm text-slate-500 dark:text-slate-400"></p>
         </div>
-        <div id="laporan-pratinjau" class="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"><p class="text-sm text-slate-500">Memuat…</p></div>
-        <div class="mt-4 flex flex-wrap gap-2">
+        <div class="mt-3 flex flex-wrap gap-2">
           <button id="btn-pdf" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh PDF</button>
           <button id="btn-docx" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh Word</button>
           <button id="btn-wa" type="button" class="rounded-lg bg-[#25D366] px-4 py-2 text-sm font-bold text-white hover:bg-[#1DA851]">Kirim via WhatsApp</button>
+          <button id="btn-pratinjau-toggle" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700" aria-expanded="true" aria-controls="laporan-pratinjau">Sembunyikan pratinjau</button>
         </div>
         <div id="wa-pilih" class="mt-3 hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
           <p class="text-sm font-bold">Kirim laporan via WhatsApp sebagai:</p>
@@ -211,6 +211,7 @@ const PLATFORM = [
         </div>
         <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Kirim via WhatsApp membagikan berkas laporan langsung dari WhatsApp Anda — pilih format (Word atau PDF), lalu pilih chat tujuan di WhatsApp. Di perangkat yang tidak mendukung berbagi berkas, laporan dikirim sebagai tautan unduh (berlaku 7 hari).</p>
         <div id="wa-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
+        <div id="laporan-pratinjau" class="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"><p class="text-sm text-slate-500">Memuat…</p></div>
       </section>
 
       <!-- Statistik -->
@@ -609,6 +610,17 @@ const PLATFORM = [
     }
     on('btn-pdf', 'click', () => unduhLaporan('pdf'));
     on('btn-docx', 'click', () => unduhLaporan('docx'));
+
+    // Pratinjau bisa diminimalkan/ditutup supaya tidak perlu scroll jauh
+    // melewati dokumen saat mau mengunduh/mengirim atau melihat Statistik.
+    on('btn-pratinjau-toggle', 'click', () => {
+      const pratinjau = $('laporan-pratinjau');
+      const tombol = $('btn-pratinjau-toggle');
+      if (!pratinjau || !tombol) return;
+      const disembunyikan = pratinjau.classList.toggle('hidden');
+      tombol.textContent = disembunyikan ? 'Tampilkan pratinjau' : 'Sembunyikan pratinjau';
+      tombol.setAttribute('aria-expanded', String(!disembunyikan));
+    });
 
     // ---------- Kirim via WhatsApp ----------
     // Kirim sebagai BERKAS langsung (bukan tautan), dari WhatsApp pengguna
