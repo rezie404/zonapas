@@ -121,10 +121,19 @@ export function pratinjauLaporanHtml(hitung) {
     h += '<h4>' + (i + 1) + ') ' + escHtml(namaLaporan(u.nama)) + '</h4>';
     h += '<p>a. Media Sosial : ' + u.sosial + ' publikasi</p>';
     h += '<p>b. Media Massa : ' + u.massa + ' publikasi</p>';
-    h += '<p>c. Judul Publikasi :</p>';
-    h += '<ol class="daftar">' + u.judul.map((j) => '<li>' + escHtml(j) + '</li>').join('') + '</ol>';
-    h += '<p>d. Tautan Publikasi :</p>';
-    h += '<ol class="daftar">' + u.tautan.map((ta) => (ta === 'Nihil' ? '<li>Nihil</li>' : '<li><a href="' + escHtml(ta) + '" target="_blank" rel="noopener">' + escHtml(ta) + '</a></li>')).join('') + '</ol>';
+    // UPT nihil ditulis sebaris di labelnya (seperti DOCX/PDF), tanpa daftar.
+    if (u.judul.length === 1 && u.judul[0] === 'Nihil') {
+      h += '<p>c. Judul Publikasi : Nihil</p>';
+    } else {
+      h += '<p>c. Judul Publikasi :</p>';
+      h += '<ol class="daftar">' + u.judul.map((j) => '<li>' + escHtml(j) + '</li>').join('') + '</ol>';
+    }
+    if (u.tautan.length === 1 && u.tautan[0] === 'Nihil') {
+      h += '<p>d. Tautan Publikasi : Nihil</p>';
+    } else {
+      h += '<p>d. Tautan Publikasi :</p>';
+      h += '<ol class="daftar">' + u.tautan.map((ta) => '<li><a href="' + escHtml(ta) + '" target="_blank" rel="noopener">' + escHtml(ta) + '</a></li>').join('') + '</ol>';
+    }
   });
   // D. PENUTUP
   h += '<h3>D. PENUTUP</h3>';
