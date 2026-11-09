@@ -857,11 +857,18 @@ async function buildPdfLegacy(data) {
   const tglSingkat = tanggalIndonesiaTanpaHari(tanggal);
   const doc = new PdfDokumen(tpl.biner["word/media/image1.jpeg"]);
   const TW = (n) => n / 20; // twips -> pt
-  const judulBagian = (teks) => doc.paraTeks(teks, { sebelum: 12, sesudah: 4 }, true, PDF_BIRU_TUA);
+  // jaga = heading + SELURUH isi berikut — paragraf di PDF ini
+  // digambar utuh (paragraf.pastikan memakai tinggi seluruh paragraf),
+  // jadi jaga hanya "heading + baris pertama" tidak cukup: bila
+  // paragraf berikut tak muat utuh, ia pindah halaman dan heading
+  // tertinggal sendirian (D. PENUTUP yatim di lap. 7 Nov, 09 Nov 2026).
+  // Tanpa jaga, "A./B./C./D." dan "1./2./3." bisa tertinggal sendirian
+  // di ujung halaman.
+  const judulBagian = (teks) => doc.paraTeks(teks, { sebelum: 12, sesudah: 4, jaga: 100 }, true, PDF_BIRU_TUA);
   // Sub-judul (1. Umum / 2. Maksud / 3. Ruang Lingkup): sebelum 8pt,
   // sesudah 0 — KECUALI "3. Ruang Lingkup" sesudah 3pt (after=60 di
   // template DOCX). Nilai default mengikuti template persis.
-  const subJudul = (teks, sesudah = 0) => doc.paraTeks(teks, { indentKiri: TW(284), sebelum: 8, sesudah }, true);
+  const subJudul = (teks, sesudah = 0) => doc.paraTeks(teks, { indentKiri: TW(284), sebelum: 8, sesudah, jaga: 85 }, true);
   // Paragraf isi menjorok seperti template: baris pertama masuk sejauh
   // satu tab, seluruh paragraf bergeser ke kanan. Tingkat atas
   // (PENDAHULUAN, KEGIATAN, PENUTUP): kiri 284 twips, baris pertama
@@ -962,7 +969,8 @@ async function buildPdfLegacy(data) {
   // --- C. HASIL YANG DICAPAI ---
   judulBagian("C. HASIL YANG DICAPAI");
   // "1. Rekapitulasi Publikasi": sebelum 4pt, sesudah 3pt (after=60).
-  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 3 }, true);
+  // jaga = heading + paragraf "Jumlah publikasi..." utuh.
+  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 3, jaga: 55 }, true);
   // "Jumlah publikasi...": after=60 (3pt) di template.
   doc.paragraf([{ teks: "Jumlah publikasi pada hari pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
   // Garis hitung (Media Sosial / Media Massa / Jumlah): after=20 (1pt).
@@ -979,8 +987,6 @@ async function buildPdfLegacy(data) {
   doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
   doc.tabelRekap(perUpt, total);
   doc.y -= PDF_LH;
-  // --- 2. Rincian Publikasi Per Satuan Kerja ---
-  doc.paraTeks("2. Rincian Publikasi Per Satuan Kerja", { indentKiri: TW(142), sesudah: 0 }, true);
   // Tinggi (pt) satu butir bernomor per-UPT, termasuk spasi sesudah 1pt.
   const tinggiButir = (teks) => Math.max(1, doc.bagiBaris([{ teks }], PDF_CW - TW(1080)).length) * PDF_LH + 1;
   // Tinggi blok kepala UPT (judul + a. + b. + c. + butir pertama, atau
@@ -1002,6 +1008,10 @@ async function buildPdfLegacy(data) {
     }
     return h;
   };
+  // --- 2. Rincian Publikasi Per Satuan Kerja ---
+  // jaga = heading + blok kepala UPT pertama utuh — bila blok kepala
+  // UPT pertama tak muat, heading ini ikut turun (09 Nov 2026).
+  doc.paraTeks("2. Rincian Publikasi Per Satuan Kerja", { indentKiri: TW(142), sesudah: 0, jaga: PDF_LH + tinggiKepala(perUpt[0], 0) }, true);
   perUpt.forEach((u, i) => {
     // Satu baris kosong antar laporan UPT (kecuali sebelum UPT pertama).
     // Judul UPT: sesudah 0 (UPT pertama) / 3pt (UPT ke-2 dst, after=60).
