@@ -12,6 +12,7 @@ breaking: true
 breakingSince: "2026-11-09T09:10:38.249Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
+jurnalpas_id: 247
 ---
 
 Bengkulu - Kanwil Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Sosialisasi Tindak Lanjut Instruksi Menteri terkait Pengadaan Belanja Bahan Makanan bagi Warga Binaan Tahun 2027. Kegiatan ini menjadi langkah penting dalam menyamakan pemahaman serta memperkuat kesiapan jajaran pemasyarakatan dalam melaksanakan proses pengadaan bahan makanan secara tepat, transparan, dan akuntabel.
