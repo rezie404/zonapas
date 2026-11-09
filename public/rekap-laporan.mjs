@@ -567,7 +567,15 @@ class PdfDokumen {
     }
     const baris = [];
     let kini = [], lebarKini = 0;
-    const dorong = () => { if (kini.length) baris.push(kini); kini = []; lebarKini = 0; };
+    const dorong = () => {
+      if (!kini.length) return;
+      // Buang spasi di ujung baris: spasi akhir tak terlihat, tapi ikut
+      // dihitung dalam justify sehingga baris berakhir sebelum tepi
+      // kanan (PDF tampak tidak rata seperti DOCX, 09 Nov 2026).
+      while (kini.length && kini[kini.length - 1].spasi) kini.pop();
+      if (kini.length) baris.push(kini);
+      kini = []; lebarKini = 0;
+    };
     for (const k of kata) {
       if (k.spasi) {
         // Spasi di awal baris dibuang; spasi lain menempel di kata sebelumnya.
