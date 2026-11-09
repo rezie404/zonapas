@@ -12,6 +12,7 @@ breaking: true
 breakingSince: "2026-11-09T08:15:53.989Z"
 upt: "Bapas Kelas I Bengkulu"
 source: "zonapas"
+jurnalpas_id: 245
 ---
 
 Bengkulu— Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, menyambangi Kantor Balai Pemasyarakatan (Bapas) Kelas I Bengkulu untuk melaksanakan kunjungan kerja serta memberikan pengarahan langsung kepada seluruh jajaran pegawai. Agenda ini bertujuan mengokohkan struktur organisasi sekaligus memastikan kesiapan Bapas dalam mengantisipasi dinamika sistem pemasyarakatan di tengah era pemberlakuan KUHP dan KUHAP yang baru.  
