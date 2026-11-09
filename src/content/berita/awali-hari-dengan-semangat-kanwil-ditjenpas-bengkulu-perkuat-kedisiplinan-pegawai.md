@@ -1,7 +1,7 @@
 ---
 title: "Awali Hari Dengan Semangat, Kanwil Ditjenpas Bengkulu Perkuat Kedisiplinan Pegawai"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi sebagai bagian dari upaya membangun semangat kerja, meningkatkan…"
-category: "Pembinaan"
+category: "Kepegawaian"
 tags: []
 author: "Rezie"
 publishDate: 2026-11-09
@@ -12,7 +12,6 @@ breaking: true
 breakingSince: "2026-11-09T06:31:17.820Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
-jurnalpas_id: 243
 ---
 
 Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi sebagai bagian dari upaya membangun semangat kerja, meningkatkan kedisiplinan, serta memperkuat profesionalisme pegawai dalam menjalankan tugas dan fungsi pemasyarakatan. Kegiatan ini menjadi momentum untuk mengawali aktivitas dengan semangat, tanggung jawab, dan komitmen bersama dalam memberikan kinerja terbaik.
