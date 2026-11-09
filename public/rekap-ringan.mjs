@@ -31,8 +31,45 @@ export function namaFileLaporan(tanggal, ext) {
   return `${d}_${m}_${y}_Laporan_Publikasi_Harian_Kanwil_Ditjenpas_Bengkulu.${ext}`;
 }
 
+// Singkatan resmi yang tetap kapital semua di judul publikasi (sama
+// seperti aturan judul artikel ZonaPas, ditambah BMN dan TKA yang muncul
+// di judul publikasi UPT). Angka Romawi (I–XII) juga tetap kapital semua.
+const SINGKATAN_JUDUL = new Set([
+  "UPT", "LPP", "WBP", "LPKA", "TPP", "KPLP", "IIA", "IIB",
+  "BIMTEK", "FGD", "KPPN", "PKBI", "BMN", "TKA",
+]);
+const ROMAWI_JUDUL = new Set(["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]);
+// Normalisasi judul publikasi ke Huruf Kapital Setiap Kata (Title Case):
+// tiap kata diawali huruf kapital dilanjutkan huruf kecil, kecuali
+// singkatan resmi dan angka Romawi yang tetap kapital semua, serta angka
+// yang tidak berubah. Judul huruf besar semua ("PERKUAT PELAKSANAAN...")
+// maupun huruf kecil semua jadi rapi; judul yang sudah rapi tidak
+// berubah. Kata kecil seperti "dan"/"di" ikut dikapitalkan (seperti
+// aturan judul artikel). Berlaku di aplikasi ZonaPas (09 Nov 2026).
+export function normalisasiJudulPublikasi(judul) {
+  const teks = String(judul || "").trim().replace(/\s+/g, " ");
+  if (!teks) return "";
+  return teks.split(" ").map((kata) => {
+    if (!kata) return kata;
+    // Pisahkan tanda baca di awal/akhir kata (koma, titik, tanda kutip).
+    const m = /^([^A-Za-z0-9]*)([A-Za-z0-9][A-Za-z0-9'’-]*)([^A-Za-z0-9]*)$/.exec(kata);
+    if (!m) return kata;
+    const [, awal, inti, akhir] = m;
+    const atas = inti.toUpperCase();
+    if (/^\d/.test(inti)) return kata; // angka (2027, 19) tidak diubah
+    if (SINGKATAN_JUDUL.has(atas) || ROMAWI_JUDUL.has(atas)) return awal + atas + akhir;
+    // Huruf pertama kapital + huruf sesudah "-" atau "'" kapital, sisanya
+    // huruf kecil ("sosialisasi-pembinaan" -> "Sosialisasi-Pembinaan").
+    const kecil = inti.toLowerCase().replace(/(^|[-'])[a-z]/g, (c) => c.toUpperCase());
+    return awal + kecil + akhir;
+  }).join(" ");
+}
+
 // Hitung rekap per UPT dari rows + penanda nihil. Judul di laporan adalah
 // judul UNIK per UPT (urutan kemunculan pertama); tautan = semua baris.
+// Judul dinormalisasi ke Huruf Kapital Setiap Kata (lihat
+// normalisasiJudulPublikasi) supaya tidak ada judul huruf besar semua
+// atau huruf kecil semua di laporan.
 export function hitungRekap(data) {
   const tanggal = data.tanggal || data.date || "";
   const rows = (data.rows || []).filter((r) => !tanggal || !r.tanggal || r.tanggal === tanggal);
@@ -43,7 +80,7 @@ export function hitungRekap(data) {
     const massa = rs.length - sosial;
     const judulUnik = [];
     for (const r of rs) {
-      const j = String(r.judul || "").trim() || REKAP_JUDUL_KOSONG;
+      const j = normalisasiJudulPublikasi(String(r.judul || "").trim()) || REKAP_JUDUL_KOSONG;
       if (!judulUnik.includes(j)) judulUnik.push(j);
     }
     return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judulUnik : ["Nihil"], tautan: rs.length ? rs.map((r) => r.url) : ["Nihil"] };
