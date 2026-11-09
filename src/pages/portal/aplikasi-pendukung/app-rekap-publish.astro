@@ -37,7 +37,7 @@ const PLATFORM = [
 
 <BaseLayout
   title="Rekap Laporan Publikasi Harian"
-  description="Impor laporan WA, checklist harian 9 UPT, dan unduh laporan PDF/Word — hanya untuk Administrator."
+  description="Impor laporan WA, checklist harian 9 UPT, dan unduh laporan PDF/Word — untuk Administrator dan akun yang ditunjuk."
 >
   <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
        ekspresi {…} di dalam tag <script>. -->
@@ -48,7 +48,7 @@ const PLATFORM = [
       <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Rekap Laporan Publikasi Harian</h1>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Impor laporan dari WA, checklist harian 9 UPT, dan unduh laporan PDF/Word. Halaman ini hanya untuk Administrator.
+        Impor laporan dari WA, checklist harian 9 UPT, dan unduh laporan PDF/Word. Halaman ini hanya untuk Administrator dan akun yang ditunjuk Administrator.
       </p>
     </div>
 
@@ -57,7 +57,7 @@ const PLATFORM = [
 
     <!-- Sesi berakhir / bukan admin -->
     <div id="sesi-error" class="mt-4 hidden rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-      Sesi Anda sudah berakhir atau akun ini bukan Administrator.
+      Sesi Anda sudah berakhir atau akun ini bukan Administrator dan belum ditunjuk mengakses Aplikasi Pendukung.
       <a href="/masuk/" class="font-bold underline">Masuk lagi lewat /masuk/</a>
     </div>
 
@@ -66,7 +66,7 @@ const PLATFORM = [
       <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
       <h2 class="mt-3 text-lg font-bold">Masuk untuk membuka Rekap Laporan Publikasi</h2>
       <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
-        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator Anda.
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator — atau akun Google Penulis/Penyunting yang sudah ditunjuk Administrator.
       </p>
       <button
         id="btn-login"
@@ -92,14 +92,14 @@ const PLATFORM = [
       </p>
     </section>
 
-    <!-- Akses ditolak (bukan Administrator) -->
+    <!-- Akses ditolak (bukan Administrator / belum ditunjuk) -->
     <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
-      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Halaman ini hanya untuk Administrator</h2>
-      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Rekap Laporan Publikasi Harian hanya bisa dibuka oleh Administrator. Hubungi Administrator bila Anda merasa seharusnya punya akses.</p>
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Halaman ini hanya untuk Administrator dan akun yang ditunjuk</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Rekap Laporan Publikasi Harian hanya bisa dibuka oleh Administrator dan akun yang ditunjuk Administrator. Hubungi Administrator bila Anda merasa seharusnya punya akses.</p>
       <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
     </section>
 
-    <!-- Aplikasi (setelah login sebagai Administrator) -->
+    <!-- Aplikasi (setelah login sebagai Administrator / akun yang ditunjuk) -->
     <div id="app" class="hidden">
       <div class="mt-6 flex flex-wrap items-center gap-3">
         <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
@@ -192,7 +192,7 @@ const PLATFORM = [
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=7"></script>
+  <script is:inline src="/kelola-umum.js?v=8"></script>
   <script type="module">
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
@@ -229,7 +229,7 @@ const PLATFORM = [
       const sesi = $('sesi-error');
       if (err && (err.status === 401 || err.status === 403)) {
         if (sesi) sesi.classList.remove('hidden');
-        showStatus(konteks + ': sesi Anda sudah berakhir atau akun ini bukan Administrator. Silakan masuk lagi.', false);
+        showStatus(konteks + ': sesi Anda sudah berakhir atau akun ini bukan Administrator dan belum ditunjuk mengakses Aplikasi Pendukung. Silakan masuk lagi.', false);
         return;
       }
       showStatus(konteks + ': ' + (err && err.message ? err.message : 'terjadi galat. Coba lagi.'), false);

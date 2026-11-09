@@ -22,7 +22,7 @@ const APLIKASI = [
 
 <BaseLayout
   title="Aplikasi Pendukung"
-  description="Aplikasi pendukung redaksi dan Kanwil Ditjenpas Bengkulu — hanya untuk Administrator."
+  description="Aplikasi pendukung redaksi dan Kanwil Ditjenpas Bengkulu — untuk Administrator dan akun Google yang ditunjuk Administrator."
 >
   <!-- Data pulau JSON: HARUS memakai set:html — Astro tidak mengevaluasi
        ekspresi {…} di dalam tag <script>, jadi penulisan {JSON.stringify(…)}
@@ -34,7 +34,7 @@ const APLIKASI = [
       <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Aplikasi Pendukung</h1>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Aplikasi bantu redaksi dan Kanwil Ditjenpas Bengkulu. Halaman ini hanya untuk Administrator.
+        Aplikasi bantu redaksi dan Kanwil Ditjenpas Bengkulu. Halaman ini hanya untuk Administrator dan akun Google Penulis/Penyunting yang ditunjuk Administrator.
       </p>
     </div>
 
@@ -46,7 +46,7 @@ const APLIKASI = [
       <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
       <h2 class="mt-3 text-lg font-bold">Masuk untuk membuka Aplikasi Pendukung</h2>
       <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
-        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator Anda.
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator — atau akun Google Penulis/Penyunting yang sudah ditunjuk Administrator.
       </p>
       <button
         id="btn-login"
@@ -108,5 +108,5 @@ const APLIKASI = [
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=6"></script>
+  <script is:inline src="/kelola-umum.js?v=8"></script>
 </BaseLayout>

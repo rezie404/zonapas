@@ -90,6 +90,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Pengguna</h2>
         </div>
         <h3 class="mt-2 text-base font-black">Pengguna Redaksi</h3>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tombol "Beri Akses Pendukung" menunjuk akun Penulis/Penyunting agar bisa membuka Aplikasi Pendukung (mis. Rekap Laporan Publikasi Harian) walaupun bukan Administrator. Tombol emas "✓ Akses Pendukung" berarti akun itu sudah ditunjuk — ketuk lagi untuk mencabutnya.</p>
         <div id="pengguna-list" class="mt-2 grid gap-2"><p class="text-sm text-slate-500">Memuat…</p></div>
         <h3 class="mt-6 text-base font-black">Buat Undangan</h3>
         <div class="mt-2 flex flex-wrap gap-2">
@@ -123,7 +124,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=6"></script>
+  <script is:inline src="/kelola-umum.js?v=8"></script>
   <script>
 
 
@@ -200,10 +201,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             const aktif = u.status ? (u.status !== 'nonaktif' && u.active !== false) : (u.active !== false);
             const utama = !!(u.is_main_admin || u.main_admin || u.is_main);
             const opsi = ['admin', 'penyunting', 'penulis'].map((r) => '<option value="' + r + '"' + (r === role ? ' selected' : '') + '>' + labelPeran(r) + '</option>').join('');
+            // Penunjukan Aplikasi Pendukung (Nov 2026): hanya untuk
+            // Penulis/Penyunting. Administrator sudah punya akses; Pembaca
+            // tidak tampil di daftar ini. Tombol emas = sudah ditunjuk.
+            const punyaPendamping = !!u.akses_pendamping;
+            const bisaDitunjuk = role === 'penyunting' || role === 'penulis';
+            const tombolPendamping = bisaDitunjuk
+              ? '<button type="button" data-pendamping-user="' + esc(id) + '" data-pendamping-baru="' + (punyaPendamping ? '0' : '1') + '" title="' + (punyaPendamping ? 'Cabut akses Aplikasi Pendukung' : 'Beri akses Aplikasi Pendukung') + '" class="rounded-lg border px-3 py-1.5 text-xs font-bold ' + (punyaPendamping ? 'border-[#FACC15] bg-[#FACC15] text-[#0A2540] hover:bg-[#fde047]' : 'border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800') + '">' + (punyaPendamping ? '✓ Akses Pendukung' : 'Beri Akses Pendukung') + '</button>'
+              : '';
             return '<div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">' +
               '<span class="min-w-0 flex-1"><span class="block text-sm font-bold">' + esc(nama) + '</span>' +
               '<span class="block text-xs text-slate-500">' + esc(email) + (aktif ? '' : ' · Nonaktif') + '</span></span>' +
               '<select data-peran-user="' + esc(id) + '" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900">' + opsi + '</select>' +
+              tombolPendamping +
               (utama ? '<span class="text-xs font-bold text-slate-500">Admin utama</span>' : '<button type="button" data-status-user="' + esc(id) + '" data-status-baru="' + (aktif ? 'nonaktif' : 'aktif') + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">' + (aktif ? 'Nonaktifkan' : 'Aktifkan') + '</button>') +
               '</div>';
           }).join('');
@@ -287,6 +297,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const baru = statusBtn.getAttribute('data-status-baru');
         try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/status', { status: baru, active: baru === 'aktif' }); showStatus('Status pengguna diubah.', true); await muatPengguna(); }
         catch (err) { showStatus('Gagal mengubah status: ' + err.message, false); }
+        return;
+      }
+      // Penunjukan Aplikasi Pendukung (admin): beri/cabut akses Rekap dkk.
+      const pendampingBtn = e.target.closest('[data-pendamping-user]');
+      if (pendampingBtn) {
+        const id = pendampingBtn.getAttribute('data-pendamping-user');
+        const baru = pendampingBtn.getAttribute('data-pendamping-baru') === '1';
+        try { await workerPost('/redaksi/api/pengguna/' + encodeURIComponent(id) + '/akses-pendamping', { akses: baru }); showStatus(baru ? 'Akses Aplikasi Pendukung diberikan.' : 'Akses Aplikasi Pendukung dicabut.', true); await muatPengguna(); }
+        catch (err) { showStatus('Gagal mengubah akses Aplikasi Pendukung: ' + err.message, false); }
         return;
       }
       const setujuiP = e.target.closest('[data-permohonan-setujui]');

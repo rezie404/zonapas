@@ -65,6 +65,10 @@
     // --- Peran (login terpadu) ---
     let peran = null;
  // 'admin' | 'penyunting' | 'penulis' | null
+    // Akses Aplikasi Pendukung (Nov 2026): true bila Administrator, atau
+    // akun Google Penulis/Penyunting yang DITUNJUK Administrator
+    // (Worker: user.akses_pendamping). Dipakai penjaga halaman pendamping.
+    let aksesPendamping = false;
     let sumberLogin = null;
  // 'github' | 'google' | null
     let identitas = null;
@@ -310,6 +314,7 @@
     function terapkanIdentitas(user, sumber) {
       sumberLogin = sumber;
       peran = user.role || null;
+      aksesPendamping = peran === 'admin' || user.akses_pendamping === true;
       identitas = {
         nama: user.name || user.login || user.email || (sumber === 'github' ? 'GitHub' : 'Google'),
         peran: user.role || null,
@@ -317,6 +322,13 @@
         login: user.login || '',
         picture: user.picture || '',
       };
+    }
+
+
+    // Boleh membuka Aplikasi Pendukung: Administrator, atau akun Google
+    // Penulis/Penyunting yang ditunjuk Administrator.
+    function bisaAksesPendamping() {
+      return peran === 'admin' || aksesPendamping === true;
     }
 
 
@@ -373,7 +385,7 @@
       const kartuPengguna = $('kartu-pengguna');
       if (kartuPengguna) kartuPengguna.classList.toggle('hidden', peran !== 'admin');
       const kartuAplikasi = $('kartu-aplikasi-pendukung');
-      if (kartuAplikasi) kartuAplikasi.classList.toggle('hidden', peran !== 'admin');
+      if (kartuAplikasi) kartuAplikasi.classList.toggle('hidden', !bisaAksesPendamping());
       const tombolAntreanHub = $('tombol-antrean-hub');
       if (tombolAntreanHub) tombolAntreanHub.classList.toggle('hidden', peran === 'penulis');
       const kartuVideo = $('kartu-tulis-video');
@@ -742,20 +754,21 @@
       if (user.avatar_url) { avatar.src = user.avatar_url; avatar.alt = user.login || ''; avatar.classList.remove('hidden'); }
       else { avatar.classList.add('hidden'); }
       terapkanPeran();
-      // Penjaga halaman: antrean bukan untuk Penulis; halaman pengguna,
-      // aplikasi-pendukung (daftar + semua aplikasi di bawahnya, mis.
-      // app-rekap-publish) & tulis-video hanya Administrator. Dialihkan
-      // sebelum daftar dimuat. Halaman aplikasi Rekap menampilkan panel
+      // Penjaga halaman: antrean bukan untuk Penulis; halaman pengguna
+      // hanya Administrator; aplikasi-pendukung (daftar + semua aplikasi
+      // di bawahnya, mis. app-rekap-publish) untuk Administrator dan akun
+      // yang ditunjuk; tulis-video hanya Administrator. Dialihkan sebelum
+      // daftar dimuat. Halaman aplikasi Rekap menampilkan panel
       // akses-ditolak dulu lalu dialihkan, supaya pesannya terbaca.
       const pathHalaman = window.location.pathname.replace(/\/$/, '');
       if (pathHalaman === '/portal/kelola-berita/antrean' && peran === 'penulis') { window.location.href = '/portal/kelola-berita/'; return; }
       if (pathHalaman === '/portal/kelola-pengguna' && peran !== 'admin') { window.location.href = '/portal/'; return; }
-      if (pathHalaman === '/portal/aplikasi-pendukung/app-rekap-publish' && peran !== 'admin') {
-        tampilkanAksesDitolak('Halaman Rekap Laporan Publikasi Harian hanya untuk Administrator. Anda dialihkan ke Portal…');
+      if (pathHalaman === '/portal/aplikasi-pendukung/app-rekap-publish' && !bisaAksesPendamping()) {
+        tampilkanAksesDitolak('Halaman Rekap Laporan Publikasi Harian hanya untuk Administrator dan akun yang ditunjuk Administrator. Anda dialihkan ke Portal…');
         setTimeout(() => { window.location.href = '/portal/'; }, 2500);
         return;
       }
-      if ((pathHalaman === '/portal/aplikasi-pendukung' || pathHalaman.indexOf('/portal/aplikasi-pendukung/') === 0) && peran !== 'admin') { window.location.href = '/portal/'; return; }
+      if ((pathHalaman === '/portal/aplikasi-pendukung' || pathHalaman.indexOf('/portal/aplikasi-pendukung/') === 0) && !bisaAksesPendamping()) { window.location.href = '/portal/'; return; }
       if (pathHalaman === '/portal/kelola-berita/tulis-video' && peran !== 'admin') { window.location.href = '/portal/kelola-berita/'; return; }
       // Hook halaman (script modul) bisa belum jalan saat sesi cookie
       // terverifikasi lebih dulu — tunda sampai DOMContentLoaded bila
@@ -773,7 +786,7 @@
 
     function setLoggedOut(msg) {
       token = null;
-      peran = null; sumberLogin = null; identitas = null; antrean = []; editingAntrean = null; pendingGambarIsi = [];
+      peran = null; aksesPendamping = false; sumberLogin = null; identitas = null; antrean = []; editingAntrean = null; pendingGambarIsi = [];
       try { sessionStorage.removeItem('zonapas-kelola-token'); } catch (e) {}
       appEl.classList.add('hidden');
       const ditolak = $('akses-ditolak');
