@@ -120,6 +120,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <p class="mt-1 text-xs text-slate-500">Bagian yang diunggah: <span id="v-trim-info" class="font-bold"></span> (dari total <span id="v-trim-total"></span>). Bila olahan gagal (mis. memori HP tidak cukup), video asli diunggah apa adanya.</p>
             <button id="v-trim-pratinjau" type="button" class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Putar Potongan</button>
           </div>
+          <!-- Foto sampul video (Nov 2026): BUKAN unggah gambar — admin
+               memilih satu scene dari video itu sendiri. Geser ke scene
+               yang diinginkan, ketuk "Tangkap Frame Ini", frame itu jadi
+               foto sampul di kartu video (Tonton Juga & beranda). Bila
+               tidak dipilih, sampul memakai gambar mini YouTube. -->
+          <div id="v-sampul-wrap" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="mb-2 text-sm font-bold">Foto Sampul Video</p>
+            <p class="mb-2 text-xs text-slate-500">Pilih satu scene dari video sebagai foto sampul — bukan unggah gambar. Geser ke scene yang diinginkan, lalu ketuk "Tangkap Frame Ini". Sampul dipakai di kartu video (Tonton Juga &amp; beranda). Bila tidak dipilih, sampul memakai gambar mini YouTube.</p>
+            <label class="text-xs">Scene: <span id="v-sampul-teks" class="font-bold">0:00.0</span>
+              <input id="v-sampul-geser" type="range" min="0" max="100" step="0.1" value="0" class="w-full" />
+            </label>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button id="v-sampul-tangkap" type="button" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]">Tangkap Frame Ini</button>
+              <button id="v-sampul-hapus" type="button" class="hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Hapus Sampul</button>
+            </div>
+            <div id="v-sampul-pratinjau-wrap" class="mt-3 hidden">
+              <p class="mb-1 text-xs font-bold">Pratinjau sampul:</p>
+              <img id="v-sampul-pratinjau" alt="Pratinjau foto sampul video" class="aspect-video w-full max-w-md rounded-lg object-cover" />
+            </div>
+          </div>
           <div id="yt-progress-wrap" class="hidden">
             <progress id="yt-progress" max="100" value="0" class="w-full"></progress>
             <p id="yt-progress-teks" class="mt-1 text-xs text-slate-500"></p>
@@ -188,6 +208,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         'description: ' + q(d.description),
         'video: ' + q(d.video),
       ];
+      // Foto sampul (poster): frame yang dipilih admin dari video; bila
+      // kosong, kartu memakai gambar mini YouTube.
+      if (d.poster) lines.push('poster: ' + q(d.poster));
       lines.push('publishDate: ' + d.publishDate, 'author: ' + q(d.author), '---', '');
       return lines.join('\n');
     }
@@ -231,9 +254,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       el.innerHTML = videos.map((v) => {
         const d = v.data;
         const idYt = idYoutube(d.video);
-        const thumb = idYt
-          ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
-          : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
+        // Sampul: foto frame pilihan admin (poster) didahulukan; bila
+        // tidak ada, pakai gambar mini YouTube.
+        const thumb = d.poster
+          ? '<img src="' + esc(d.poster) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
+          : idYt
+            ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
+            : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
         return '<article class="flex gap-3 py-4">' + thumb +
           '<div class="min-w-0 flex-1">' +
           '<span class="block text-sm font-bold leading-snug">' + esc(d.title || '(tanpa judul)') + '</span>' +
@@ -393,6 +420,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     on('v-file', 'change', () => {
       const f = $('v-file').files && $('v-file').files[0];
       resetTrim();
+      resetSampul();
       if (!f) return;
       trimUrl = URL.createObjectURL(f);
       const vid = $('v-trim-preview');
@@ -407,6 +435,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const elAkhir = $('v-trim-akhir'); if (elAkhir) { elAkhir.max = String(trimDurasi); elAkhir.value = String(trimDurasi); }
           perbaruiTrim();
           if (wrap) wrap.classList.remove('hidden');
+          // Siapkan pemilih sampul: geser menjangkau seluruh durasi video.
+          const elSampul = $('v-sampul-geser'); if (elSampul) { elSampul.max = String(trimDurasi); elSampul.value = '0'; }
+          const teksSampul = $('v-sampul-teks'); if (teksSampul) teksSampul.textContent = fmtTrim(0);
+          const wrapSampul = $('v-sampul-wrap'); if (wrapSampul) wrapSampul.classList.remove('hidden');
         };
         vid.ontimeupdate = () => {
           if (!vid.paused && trimAkhir > 0 && vid.currentTime >= trimAkhir) { vid.pause(); vid.currentTime = trimAwal; }
@@ -431,6 +463,70 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!vid || !trimDurasi) return;
       vid.currentTime = trimAwal;
       vid.play().catch(() => {});
+    });
+
+
+    // ---------- Foto sampul video: tangkap frame dari video ----------
+    // BUKAN unggah gambar — admin memilih satu scene dari video itu
+    // sendiri. Frame ditangkap dari elemen <video> pratinjau lewat
+    // canvas (JPEG, maks lebar 1280px) lalu disimpan sebagai data URL
+    // sampai formulir dikirim; saat simpan, berkas diunggah ke repo dan
+    // jalurnya ditulis ke frontmatter `poster`.
+    let sampulDataUrl = null;
+
+    function resetSampul() {
+      sampulDataUrl = null;
+      const wrap = $('v-sampul-wrap'); if (wrap) wrap.classList.add('hidden');
+      const prev = $('v-sampul-pratinjau-wrap'); if (prev) prev.classList.add('hidden');
+      const hapus = $('v-sampul-hapus'); if (hapus) hapus.classList.add('hidden');
+      const img = $('v-sampul-pratinjau'); if (img) img.removeAttribute('src');
+      const teks = $('v-sampul-teks'); if (teks) teks.textContent = fmtTrim(0);
+    }
+
+    on('v-sampul-geser', 'input', () => {
+      const vid = $('v-trim-preview');
+      if (!vid || !trimDurasi) return;
+      const v = Number($('v-sampul-geser').value || 0);
+      vid.pause();
+      vid.currentTime = v;
+      const teks = $('v-sampul-teks'); if (teks) teks.textContent = fmtTrim(v);
+    });
+
+    on('v-sampul-tangkap', 'click', () => {
+      const vid = $('v-trim-preview');
+      if (!vid || !trimDurasi || !vid.videoWidth) { showStatus('Pilih file video dulu, tunggu pratinjau termuat.', false); return; }
+      // Gambar frame saat ini ke canvas. Bila video sedang seek, tunggu
+      // event seeked supaya frame yang digambar bukan frame kosong.
+      const ambil = () => {
+        try {
+          const scale = Math.min(1, 1280 / vid.videoWidth);
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(vid.videoWidth * scale));
+          c.height = Math.max(1, Math.round(vid.videoHeight * scale));
+          c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+          sampulDataUrl = c.toDataURL('image/jpeg', 0.85);
+          const img = $('v-sampul-pratinjau');
+          if (img) img.src = sampulDataUrl;
+          const prev = $('v-sampul-pratinjau-wrap'); if (prev) prev.classList.remove('hidden');
+          const hapus = $('v-sampul-hapus'); if (hapus) hapus.classList.remove('hidden');
+          showStatus('Frame sampul ditangkap pada ' + fmtTrim(vid.currentTime) + '. Sampul tersimpan saat video diunggah.', true);
+        } catch (err) {
+          showStatus('Gagal menangkap frame: ' + (err && err.message ? err.message : 'galat'), false);
+        }
+      };
+      if (vid.seeking) {
+        vid.addEventListener('seeked', ambil, { once: true });
+      } else {
+        ambil();
+      }
+    });
+
+    on('v-sampul-hapus', 'click', () => {
+      sampulDataUrl = null;
+      const prev = $('v-sampul-pratinjau-wrap'); if (prev) prev.classList.add('hidden');
+      const hapus = $('v-sampul-hapus'); if (hapus) hapus.classList.add('hidden');
+      const img = $('v-sampul-pratinjau'); if (img) img.removeAttribute('src');
+      showStatus('Sampul dihapus — kartu video akan memakai gambar mini YouTube.', true);
     });
 
 
@@ -474,11 +570,32 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         btn.textContent = 'Mengunggah…';
         aturProgres(0, fileUnggah.size, 'Memulai unggahan…');
         const hasil = await unggahKeYoutube(fileUnggah, judul, deskripsi, (tk, total) => aturProgres(tk, total, 'Mengunggah ke YouTube…'));
+        // Foto sampul (bila admin menangkap frame): unggah JPEG frame ke
+        // repo — pola sama seperti foto sampul artikel (gh bila ada token
+        // GitHub, bila tidak lewat Worker). Jalur ditulis ke frontmatter
+        // `poster`; kartu video memakai poster ini, bukan gambar mini
+        // YouTube.
+        let posterPath = '';
+        if (sampulDataUrl) {
+          const stampSampul = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+          const namaSampul = 'sampul-video-' + slugDasar + '-' + stampSampul + '.jpg';
+          const base64Sampul = sampulDataUrl.split(',')[1];
+          if (token) {
+            await gh('/contents/public/images/' + encodeURIComponent(namaSampul), {
+              method: 'PUT',
+              body: JSON.stringify({ message: 'Unggah foto sampul video: ' + namaSampul, content: base64Sampul, branch: 'main' }),
+            });
+          } else {
+            await githubTulis('public/images/' + namaSampul, base64Sampul, 'Unggah foto sampul video: ' + namaSampul);
+          }
+          posterPath = '/images/' + namaSampul;
+        }
         const tanggal = new Date().toISOString().slice(0, 10);
         const md = buildVideoMarkdown({
           title: judul,
           description: deskripsi,
           video: 'https://www.youtube.com/watch?v=' + hasil.id,
+          poster: posterPath,
           publishDate: tanggal,
           author: (identitas && identitas.nama) || 'Rezie',
         });
@@ -506,6 +623,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         showStatus('Video "' + judul + '" terunggah ke YouTube dan ditambahkan ke ZonaPasTV' + privasi + '.' + catatanOlahan + ' Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
         $('form-video').reset();
         resetTrim();
+        resetSampul();
         const wrap = $('yt-progress-wrap'); if (wrap) wrap.classList.add('hidden');
         await muatVideo();
       } catch (err) {

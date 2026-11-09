@@ -24,7 +24,12 @@ const idYoutube = (tautan: string) => {
   return m ? m[1] : '';
 };
 const id = idYoutube(video);
-const thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+// Sampul video: foto frame pilihan admin (poster) didahulukan; bila
+// tidak ada, pakai gambar mini YouTube. thumbnailUrl JSON-LD memakai URL
+// absolut; BaseLayout image menerima jalur relatif (diubah jadi absolut
+// di sana untuk og:image).
+const thumb = entry.data.poster || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+const thumbAbs = thumb.startsWith('http') ? thumb : `${SITE.url}${thumb}`;
 
 // Video lainnya: terbaru dulu, maksimal 6. Sejak 07 Nov 2026 kartunya
 // memakai thumbnail bawaan YouTube (bingkai video itu sendiri) dengan
@@ -40,7 +45,7 @@ const jsonLd = {
   '@type': 'VideoObject',
   name: title,
   description: description || title,
-  thumbnailUrl: thumb,
+  thumbnailUrl: thumbAbs,
   uploadDate: publishDate.toISOString(),
   embedUrl: `https://www.youtube-nocookie.com/embed/${id}`,
   author: { '@type': 'Person', name: author || 'Rezie' },
@@ -117,7 +122,7 @@ const jsonLd = {
               class="group overflow-hidden rounded-xl border border-slate-200 text-left dark:border-slate-800"
             >
               <span class="relative block aspect-video w-full overflow-hidden">
-                <img src={`https://i.ytimg.com/vi/${idYoutube(v.data.video)}/hqdefault.jpg`} alt="" loading="lazy" class="h-full w-full object-cover" />
+                <img src={v.data.poster || `https://i.ytimg.com/vi/${idYoutube(v.data.video)}/hqdefault.jpg`} alt="" loading="lazy" class="h-full w-full object-cover" />
                 <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
                   <svg viewBox="0 0 68 48" class="h-12 w-auto drop-shadow-lg transition-transform duration-200 group-hover:scale-110">
                     <path fill="#FF0000" d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55C3.97 2.33 2.27 4.81 1.48 7.74.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" />
