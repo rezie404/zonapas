@@ -211,6 +211,33 @@ function gantiTeksPertama(xmlParagraf, teksBaru) {
   const buka = pertama[0].slice(0, pertama[0].indexOf(">") + 1);
   return xmlParagraf.slice(0, awal) + buka + escXml(teksBaru) + "</w:t>" + xmlParagraf.slice(akhir);
 }
+// Tab stop titik dua label a./b./c./d. (twips dari margin kiri) — dipakai
+// DOCX dan PDF supaya titik duanya lurus seperti menekan Tab di Word:
+// indent kiri 360 + lebar label terpanjang "d. Tautan Publikasi" (Arial
+// 11 = 1871 twips) + 1 spasi (61 twips). Label terpanjang tidak bergeser;
+// label yang lebih pendek melompat ke tab stop yang sama.
+const TAB_TITIK_DUA = 2292;
+// Ubah paragraf label a./b./c./d. menjadi "label <TAB> : isi": sisipkan
+// tab stop ke pPr (w:tabs harus sebelum w:spacing/w:ind) dan pecah run
+// tunggal jadi label + <w:tab/> + ": isi". Run memakai rPr asli paragraf
+// (Arial 11) supaya tampilannya tidak berubah. isi kosong -> hanya ":".
+function paragrafLabelTab(xmlParagraf, label, isi) {
+  const mRpr = /<w:r><w:rPr>([\s\S]*?)<\/w:rPr>/.exec(String(xmlParagraf));
+  const rpr = mRpr ? `<w:rPr>${mRpr[1]}</w:rPr>` : "";
+  let xml = String(xmlParagraf);
+  if (/<w:pPr>/.test(xml)) {
+    xml = xml.replace(/<w:pPr>/, `<w:pPr><w:tabs><w:tab w:val="left" w:pos="${TAB_TITIK_DUA}"/></w:tabs>`);
+  }
+  const awalRun = xml.indexOf("<w:r>");
+  const akhirRun = xml.lastIndexOf("</w:r>");
+  if (awalRun < 0 || akhirRun < 0) return xmlParagraf;
+  const teksTitikDua = isi ? ": " + isi : ":";
+  const isiBaru =
+    `<w:r>${rpr}<w:t xml:space="preserve">${escXml(label)}</w:t></w:r>` +
+    `<w:r>${rpr}<w:tab/></w:r>` +
+    `<w:r>${rpr}<w:t xml:space="preserve">${escXml(teksTitikDua)}</w:t></w:r>`;
+  return xml.slice(0, awalRun) + isiBaru + xml.slice(akhirRun + "</w:r>".length);
+}
 // Hapus w14:paraId dari paragraf kloning (Word/WPS memberi yang baru;
 // paraId ganda bisa membingungkan Word).
 function tanpaParaId(xmlParagraf) {
@@ -284,23 +311,24 @@ function bangunRincian(segmenRincian, perUpt, perNama, contoh, rels) {
     keluar.push(xml); i++;
     if (!u) continue; // UPT tidak dikenal — biarkan blok apa adanya.
     // Paragraf a./b. di template adalah SATU run ("a. Media Sosial : 0
-    // publikasi") — ganti SELURUH isi run dengan label + angka baru.
+    // publikasi") — ubah jadi label + TAB + ": angka publikasi" supaya
+    // titik dua lurus dengan label c./d. (tab stop TAB_TITIK_DUA).
     if (i < segmenRincian.length && /^a\./.test(teksParagraf(segmenRincian[i]))) {
-      keluar.push(gantiTeksTerakhir(segmenRincian[i], "a. Media Sosial : " + u.sosial + " publikasi")); i++;
+      keluar.push(paragrafLabelTab(segmenRincian[i], "a. Media Sosial", u.sosial + " publikasi")); i++;
     }
     if (i < segmenRincian.length && /^b\./.test(teksParagraf(segmenRincian[i]))) {
-      keluar.push(gantiTeksTerakhir(segmenRincian[i], "b. Media Massa : " + u.massa + " publikasi")); i++;
+      keluar.push(paragrafLabelTab(segmenRincian[i], "b. Media Massa", u.massa + " publikasi")); i++;
     }
     const nihilJudul = u.judul.length === 1 && u.judul[0] === "Nihil";
     if (i < segmenRincian.length && /^c\./.test(teksParagraf(segmenRincian[i]))) {
-      keluar.push(gantiTeksTerakhir(segmenRincian[i], nihilJudul ? "c. Judul Publikasi : Nihil" : "c. Judul Publikasi :")); i++;
+      keluar.push(paragrafLabelTab(segmenRincian[i], "c. Judul Publikasi", nihilJudul ? "Nihil" : "")); i++;
     }
     const judulBaru = nihilJudul ? [] : u.judul.map((j, k) => buatButirJudul(k + 1, j));
     while (i < segmenRincian.length && segmenRincian[i].includes("<w:p") && !/^d\./.test(teksParagraf(segmenRincian[i])) && !/^\d+\)\s/.test(teksParagraf(segmenRincian[i]))) i++;
     keluar.push(...judulBaru);
     const nihilTautan = u.tautan.length === 1 && u.tautan[0] === "Nihil";
     if (i < segmenRincian.length && /^d\./.test(teksParagraf(segmenRincian[i]))) {
-      keluar.push(gantiTeksTerakhir(segmenRincian[i], nihilTautan ? "d. Tautan Publikasi : Nihil" : "d. Tautan Publikasi :")); i++;
+      keluar.push(paragrafLabelTab(segmenRincian[i], "d. Tautan Publikasi", nihilTautan ? "Nihil" : "")); i++;
     }
     const tautanBaru = nihilTautan ? [] : u.tautan.map((t2, k) => buatButirTautan(k + 1, t2));
     while (i < segmenRincian.length && segmenRincian[i].includes("<w:p") && !/^\d+\)\s/.test(teksParagraf(segmenRincian[i]))) i++;
@@ -846,6 +874,17 @@ async function buildPdfLegacy(data) {
     doc.gambarBaris([{ teks: `${nomor}.`, tebal: false }], PDF_M + xNomor, yAwal, "left", xTeks - xNomor);
     doc.paragraf(runsTeks, { rata, indentKiri: xTeks, sesudah });
   };
+  // Baris label a./b./c./d. dengan titik dua lurus di satu tab stop —
+  // seperti menekan Tab di Word: label digambar di indent 360 twips,
+  // titik dua + isi digambar di tab stop TAB_TITIK_DUA (sama seperti
+  // DOCX). isi kosong -> hanya ":".
+  const barisLabelTab = (label, isi, sesudah = 1) => {
+    doc.pastikan(PDF_LH + sesudah);
+    const yAwal = doc.y;
+    doc.gambarBaris([{ teks: label, tebal: false }], PDF_M + TW(360), yAwal, "left", TW(TAB_TITIK_DUA) - TW(360));
+    doc.gambarBaris([{ teks: isi ? ": " + isi : ":", tebal: false }], PDF_M + TW(TAB_TITIK_DUA), yAwal, "left", PDF_CW - TW(TAB_TITIK_DUA));
+    doc.y -= PDF_LH + sesudah;
+  };
   // Daftar tujuan: nomor di kolom 567, teks di kolom 851 (tab stop
   // template); spasi antar butir 1pt seperti template (after=20).
   TUJUAN.forEach((t, i) => {
@@ -889,23 +928,23 @@ async function buildPdfLegacy(data) {
     // Satu baris kosong antar laporan UPT (kecuali sebelum UPT pertama).
     // Judul UPT: sesudah 0 (UPT pertama) / 3pt (UPT ke-2 dst, after=60).
     doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: i === 0 ? 0 : PDF_LH, sesudah: i === 0 ? 0 : 3 });
-    doc.paraTeks(`a. Media Sosial : ${u.sosial} publikasi`, { indentKiri: TW(360), sesudah: 0 });
+    barisLabelTab("a. Media Sosial", u.sosial + " publikasi", 0);
     // "b. Media Massa": after=20 (1pt) di template.
-    doc.paraTeks(`b. Media Massa : ${u.massa} publikasi`, { indentKiri: TW(360), sesudah: 1 });
+    barisLabelTab("b. Media Massa", u.massa + " publikasi", 1);
     // UPT nihil ditulis sebaris di labelnya (seperti berkas PDF terkirim),
     // tanpa butir bernomor terpisah.
     if (u.judul.length === 1 && u.judul[0] === "Nihil") {
-      doc.paraTeks("c. Judul Publikasi : Nihil", { indentKiri: TW(360), sesudah: 1 });
+      barisLabelTab("c. Judul Publikasi", "Nihil", 1);
     } else {
-      doc.paraTeks("c. Judul Publikasi :", { indentKiri: TW(360), sesudah: 1 });
+      barisLabelTab("c. Judul Publikasi", "", 1);
       u.judul.forEach((j, k) => {
         butirBernomor(k + 1, [{ teks: j, tebal: false }], TW(720), TW(1080), 1);
       });
     }
     if (u.tautan.length === 1 && u.tautan[0] === "Nihil") {
-      doc.paraTeks("d. Tautan Publikasi : Nihil", { indentKiri: TW(360), sesudah: 1 });
+      barisLabelTab("d. Tautan Publikasi", "Nihil", 1);
     } else {
-      doc.paraTeks("d. Tautan Publikasi :", { indentKiri: TW(360), sesudah: 1 });
+      barisLabelTab("d. Tautan Publikasi", "", 1);
       u.tautan.forEach((t, k) => {
         butirBernomor(k + 1, [{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], TW(720), TW(1080), 1);
       });
