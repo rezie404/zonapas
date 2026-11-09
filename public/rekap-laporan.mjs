@@ -222,6 +222,25 @@ const TAB_TITIK_DUA = 2292;
 // (Arial 11 = 1324 twips) + 1 spasi (61 twips). Dipakai DOCX dan PDF
 // supaya titik dua keduanya lurus (09 Nov 2026).
 const TAB_TITIK_DUA_TANGGAL = 2105;
+// Ubah perataan paragraf menjadi justify (w:jc both) — isi laporan
+// rata kiri-kanan (09 Nov 2026). jc diletakkan setelah ind/spacing dan
+// sebelum rPr (urutan CT_PPr). Bila sudah both, tidak diubah; bila ada
+// jc lain, nilainya diganti both.
+function tambahJustify(xmlParagraf) {
+  const xml = String(xmlParagraf);
+  const m = /<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(xml);
+  if (!m) return xml;
+  let ppr = m[1];
+  if (/<w:jc w:val="both"\/>/.test(ppr)) return xml;
+  if (/<w:jc w:val="[^"]*"\/>/.test(ppr)) {
+    ppr = ppr.replace(/<w:jc w:val="[^"]*"\/>/, '<w:jc w:val="both"/>');
+  } else if (/<w:rPr>/.test(ppr)) {
+    ppr = ppr.replace(/<w:rPr>/, '<w:jc w:val="both"/><w:rPr>');
+  } else {
+    ppr += '<w:jc w:val="both"/>';
+  }
+  return xml.replace(/<w:pPr>[\s\S]*?<\/w:pPr>/, `<w:pPr>${ppr}</w:pPr>`);
+}
 // Sisipkan <w:keepNext/> ke pPr supaya paragraf tidak yatim di ujung
 // halaman — Word/LibreOffice memindahkannya ke halaman berikut bila
 // paragraf berikutnya tidak muat (aturan Bos Besar 09 Nov 2026: sub
@@ -408,7 +427,9 @@ function gabungDocumentXml(xmlDokumen, hitung, ridAwal) {
   if (!contohJudul || !contohTautan) {
     throw new Error("Template laporan tidak dikenali (butir daftar tidak ditemukan).");
   }
-  const contoh = { judul: contohJudul, tautan: contohTautan };
+  // Butir judul/tautan dijustify (rata kiri-kanan) seperti isi laporan
+  // lainnya — pPr contoh diwarisi semua butir hasil kloning.
+  const contoh = { judul: tambahJustify(contohJudul), tautan: tambahJustify(contohTautan) };
 
   // Fase 1: ganti data sederhana di semua segmen DI LUAR rincian.
   const hasil = segmen.map((s, i) => {
@@ -954,14 +975,33 @@ async function buildPdfLegacy(data) {
   doc.paraTeks("2. Rincian Publikasi Per Satuan Kerja", { indentKiri: TW(142), sesudah: 0 }, true);
   // Tinggi (pt) satu butir bernomor per-UPT, termasuk spasi sesudah 1pt.
   const tinggiButir = (teks) => Math.max(1, doc.bagiBaris([{ teks }], PDF_CW - TW(1080)).length) * PDF_LH + 1;
+  // Tinggi blok kepala UPT (judul + a. + b. + c. + butir pertama, atau
+  // + c./d. nihil): bila tidak muat utuh, judul turun ke halaman
+  // berikut — rantai keepNext satu langkah tidak cukup, karena bila
+  // "b." pindah, judul bisa tertinggal sendirian (09 Nov 2026).
+  const tinggiKepala = (u, i) => {
+    const sebelum = i === 0 ? 0 : PDF_LH;
+    const sesudah = i === 0 ? 0 : 3;
+    let h = sebelum + PDF_LH + sesudah; // judul UPT (1 baris)
+    h += PDF_LH; // a. (sesudah 0)
+    h += PDF_LH + 1; // b.
+    if (u.judul.length === 1 && u.judul[0] === "Nihil") {
+      h += PDF_LH + 1; // c. nihil
+      h += PDF_LH + 1; // d. nihil
+    } else {
+      h += PDF_LH + 1; // c.
+      h += tinggiButir(u.judul[0]); // butir judul pertama
+    }
+    return h;
+  };
   perUpt.forEach((u, i) => {
     // Satu baris kosong antar laporan UPT (kecuali sebelum UPT pertama).
     // Judul UPT: sesudah 0 (UPT pertama) / 3pt (UPT ke-2 dst, after=60).
-    // jaga = tinggi judul + baris "a." — judul yang tanggung di ambang
+    // jaga = tinggi blok kepala utuh — judul yang tanggung di ambang
     // halaman turun utuh ke halaman berikut (09 Nov 2026).
     const sebelumJudul = i === 0 ? 0 : PDF_LH;
     const sesudahJudul = i === 0 ? 0 : 3;
-    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: sebelumJudul, sesudah: sesudahJudul, jaga: sebelumJudul + PDF_LH + sesudahJudul + PDF_LH });
+    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: sebelumJudul, sesudah: sesudahJudul, jaga: tinggiKepala(u, i) });
     // "a." dijaga baris "b.", "b." dijaga baris "c.".
     barisLabelTab("a. Media Sosial", u.sosial + " publikasi", 0, 360, TAB_TITIK_DUA, PDF_LH + 1);
     // "b. Media Massa": after=20 (1pt) di template.
@@ -975,7 +1015,7 @@ async function buildPdfLegacy(data) {
       // "c." dijaga butir judul pertama (utuh, berapa pun barisnya).
       barisLabelTab("c. Judul Publikasi", "", 1, 360, TAB_TITIK_DUA, tinggiButir(u.judul[0]));
       u.judul.forEach((j, k) => {
-        butirBernomor(k + 1, [{ teks: j, tebal: false }], TW(720), TW(1080), 1);
+        butirBernomor(k + 1, [{ teks: j, tebal: false }], TW(720), TW(1080), 1, "both");
       });
     }
     if (u.tautan.length === 1 && u.tautan[0] === "Nihil") {
@@ -984,7 +1024,7 @@ async function buildPdfLegacy(data) {
       // "d." dijaga butir tautan pertama (utuh, berapa pun barisnya).
       barisLabelTab("d. Tautan Publikasi", "", 1, 360, TAB_TITIK_DUA, tinggiButir(u.tautan[0]));
       u.tautan.forEach((t, k) => {
-        butirBernomor(k + 1, [{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], TW(720), TW(1080), 1);
+        butirBernomor(k + 1, [{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], TW(720), TW(1080), 1, "both");
       });
     }
   });
