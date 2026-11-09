@@ -116,7 +116,15 @@ const jsonLd = {
               href={`/video/${v.id.replace(/\.md$/, '')}/`}
               class="group overflow-hidden rounded-xl border border-slate-200 text-left dark:border-slate-800"
             >
-              <img src={`https://i.ytimg.com/vi/${idYoutube(v.data.video)}/hqdefault.jpg`} alt="" loading="lazy" class="aspect-video w-full object-cover" />
+              <span class="relative block aspect-video w-full overflow-hidden">
+                <img src={`https://i.ytimg.com/vi/${idYoutube(v.data.video)}/hqdefault.jpg`} alt="" loading="lazy" class="h-full w-full object-cover" />
+                <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                  <svg viewBox="0 0 68 48" class="h-12 w-auto drop-shadow-lg transition-transform duration-200 group-hover:scale-110">
+                    <path fill="#FF0000" d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55C3.97 2.33 2.27 4.81 1.48 7.74.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" />
+                    <path fill="#fff" d="M45 24 27 14v20L45 24z" />
+                  </svg>
+                </span>
+              </span>
               <span class="block p-3 text-sm font-bold leading-snug group-hover:text-[#D9232E]">{v.data.title}</span>
               <span class="block px-3 pb-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(v.data.publishDate)}</span>
             </a>
