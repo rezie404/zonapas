@@ -54,7 +54,7 @@
 //  - docProps/app.xml template (jumlah kata/halaman) dibiarkan apa adanya;
 //    Word/WPS menghitung ulang saat berkas dibuka.
 
-import { hitungRekap, namaLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from "./rekap-ringan.mjs?v=4";
+import { hitungRekap, namaLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from "./rekap-ringan.mjs?v=5";
 
 function escXml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -313,7 +313,7 @@ function isiTabelRekap(xmlTabel, perUpt, total) {
 function gantiDataParagraf(xmlParagraf, ctx) {
   const t = teksParagraf(xmlParagraf);
   if (t.startsWith("• Hari/tanggal")) return paragrafLabelTab(xmlParagraf, "• Hari/tanggal", ctx.tglPanjang, TAB_TITIK_DUA_TANGGAL);
-  if (t.startsWith("• Pukul")) return paragrafLabelTab(xmlParagraf, "• Pukul", "20.00 WIB", TAB_TITIK_DUA_TANGGAL);
+  if (t.startsWith("• Pukul")) return paragrafLabelTab(xmlParagraf, "• Pukul", "19.00 WIB", TAB_TITIK_DUA_TANGGAL);
   if (/^Media Sosial\s*:\s*\d+ publikasi/.test(t)) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.total.sosial + " publikasi");
   if (/^Media Massa\s*:\s*\d+ publikasi/.test(t)) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.total.massa + " publikasi");
   if (/^Jumlah\s*:\s*\d+ publikasi/.test(t)) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.total.jumlah + " publikasi");
@@ -471,7 +471,7 @@ export async function buildDocx(data) {
   }
   const tglSingkat = tanggalIndonesiaTanpaHari(hitung.tanggal);
   const [y, m, d] = String(hitung.tanggal || "2026-01-01").split("-");
-  const dibuat = `${y}-${m}-${d}T13:00:00Z`; // 20.00 WIB = 13.00 UTC
+  const dibuat = `${y}-${m}-${d}T12:00:00Z`; // 19.00 WIB = 12.00 UTC
   let core = tpl.teks["docProps/core.xml"];
   core = core.replace(TEMPLATE_TANGGAL_SINGKAT, tglSingkat);
   core = core.replace(/<dcterms:created[^>]*>[^<]*<\/dcterms:created>/, `<dcterms:created xsi:type="dcterms:W3CDTF">${dibuat}</dcterms:created>`);
@@ -960,7 +960,7 @@ async function buildPdfLegacy(data) {
   // Butir Hari/tanggal dan Pukul: after=20 (1pt) di template; titik dua
   // keduanya lurus di TAB_TITIK_DUA_TANGGAL (09 Nov 2026).
   barisLabelTab("• Hari/tanggal", tglPanjang, 1, 720, TAB_TITIK_DUA_TANGGAL);
-  barisLabelTab("• Pukul", "20.00 WIB", 1, 720, TAB_TITIK_DUA_TANGGAL);
+  barisLabelTab("• Pukul", "19.00 WIB", 1, 720, TAB_TITIK_DUA_TANGGAL);
   // --- B. KEGIATAN YANG DILAKSANAKAN ---
   judulBagian("B. KEGIATAN YANG DILAKSANAKAN");
   tubuh(TEKS_KEGIATAN_1);

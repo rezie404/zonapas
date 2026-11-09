@@ -197,7 +197,7 @@ const PLATFORM = [
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
     // saat mengunduh laporan — lihat unduhLaporan().
-    import { hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=4';
+    import { hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=5';
 
     // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
     // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
@@ -304,7 +304,7 @@ const PLATFORM = [
       }
       rekapRows = semua;
       const tglEl = $('laporan-tanggal');
-      if (tglEl) tglEl.textContent = tanggalIndonesiaTanpaHari(tgl) + ' \u2022 20.00 WIB';
+      if (tglEl) tglEl.textContent = tanggalIndonesiaTanpaHari(tgl) + ' \u2022 19.00 WIB';
     }
 
     async function muatStatistik() {
@@ -519,7 +519,7 @@ const PLATFORM = [
         // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
         // halaman) supaya halaman pertama terbuka cepat; modul di-cache
         // browser setelah unduhan pertama.
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=18');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=19');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));

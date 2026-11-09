@@ -28,7 +28,9 @@ export function tanggalIndonesiaTanpaHari(iso) {
 }
 export function namaFileLaporan(tanggal, ext) {
   const [y, m, d] = String(tanggal || "").split("-");
-  return `${d}_${m}_${y}_Laporan_Publikasi_Harian_Kanwil_Ditjenpas_Bengkulu.${ext}`;
+  // Nama berkas: "Laporan_Publikasi_Harian_Bengkulu_(09-11-26).pdf" —
+  // tanggal menyesuaikan tanggal laporan (09 Nov 2026).
+  return `Laporan_Publikasi_Harian_Bengkulu_(${d}-${m}-${String(y).slice(2)}).${ext}`;
 }
 
 // Singkatan resmi yang tetap kapital semua di judul publikasi (sama
@@ -139,7 +141,7 @@ export function pratinjauLaporanHtml(hitung) {
   h += '<ol class="tujuan">' + TEKS_TUJUAN.map((x) => '<li>' + escHtml(x) + '</li>').join('') + '</ol>';
   h += '<h4>3. Ruang Lingkup</h4><p class="isi-sub">' + escHtml(TEKS_RUANG_LINGKUP) + '</p>';
   h += '<p class="ruang">\u2022 Hari/tanggal : ' + escHtml(tglPanjang) + '</p>';
-  h += '<p class="ruang">\u2022 Pukul : 20.00 WIB</p>';
+  h += '<p class="ruang">\u2022 Pukul : 19.00 WIB</p>';
   // B. KEGIATAN YANG DILAKSANAKAN
   h += '<h3>B. KEGIATAN YANG DILAKSANAKAN</h3>';
   h += TEKS_KEGIATAN.map((x) => '<p class="isi">' + escHtml(x) + '</p>').join('');
