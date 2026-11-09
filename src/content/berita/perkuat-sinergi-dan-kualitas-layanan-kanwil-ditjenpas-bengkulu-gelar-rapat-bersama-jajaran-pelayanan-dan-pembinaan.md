@@ -5,14 +5,13 @@ category: "Pembinaan"
 tags: []
 author: "Rezie"
 publishDate: 2026-11-09
-image: "/images/cover-perkuat-sinergi-dan-kualitas-layanan-kanwil-ditjenpas-bengkulu-gelar-rapat-bersama-jajaran-pelayanan-dan-pembinaan-202611090925.jpg"
+image: "/images/cover-perkuat-sinergi-dan-kualitas-layanan-kanwil-ditjenpas-bengkulu-gelar-rapat-bersama-jajaran-pelayanan-dan-pembinaan-202611091021.jpg"
 imageCaption: "Dokumentasi kegiatan. (ZonaPas)"
 featured: false
 breaking: true
 breakingSince: "2026-11-09T09:25:27.752Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
-jurnalpas_id: 249
 ---
 
 Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, menggelar rapat perdana bersama jajaran Bidang Pelayanan dan Pembinaan. Kegiatan yang dilaksanakan pada Senin (09/11/2026) bertempat di Ruang Teleconference Kanwil Ditjenpas Bengkulu ini menjadi bagian dari upaya konsolidasi serta penyelarasan pelaksanaan tugas dan fungsi dengan arah kebijakan pimpinan dan prioritas Kementerian Imigrasi dan Pemasyarakatan.  
