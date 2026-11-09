@@ -75,6 +75,7 @@ const ld = jsonLd
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Lora:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Open+Sans:wght@400;600;700;800&family=Bellota:wght@400;700&family=Charm:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="alternate" type="application/rss+xml" title={`${SITE.name} RSS`} href="/rss.xml" />
     <meta name="theme-color" content="#05152E" />
     <script is:inline>
@@ -82,6 +83,15 @@ const ld = jsonLd
         const saved = localStorage.getItem('zonapas-theme');
         if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
+    <script is:inline>
+      // Terapkan font pilihan pembaca sedini mungkin (hindari kedip font).
+      try {
+        var f = localStorage.getItem('zonapas-font');
+        if (f && ['roboto', 'lora', 'quicksand', 'open-sans', 'bellota', 'charm'].indexOf(f) !== -1) {
+          document.documentElement.setAttribute('data-font', f);
         }
       } catch (e) {}
     </script>
@@ -127,6 +137,34 @@ const ld = jsonLd
           kartuReveal.forEach((el) => pengamat.observe(el));
         }
       } catch (e) {}
+    </script>
+    <script is:inline>
+      // Ganti font pembaca (Roboto, Lora, Quicksand, Open Sans, Bellota,
+      // Charm). Pilihan disimpan di localStorage dan berlaku di semua
+      // halaman; semua <select data-font-select> selalu disinkronkan.
+      (function () {
+        var VALID = ['roboto', 'lora', 'quicksand', 'open-sans', 'bellota', 'charm'];
+        function terapkanFont(nilai) {
+          if (nilai && VALID.indexOf(nilai) !== -1) {
+            document.documentElement.setAttribute('data-font', nilai);
+            try { localStorage.setItem('zonapas-font', nilai); } catch (e) {}
+          } else {
+            document.documentElement.removeAttribute('data-font');
+            try { localStorage.removeItem('zonapas-font'); } catch (e) {}
+          }
+          document.querySelectorAll('[data-font-select]').forEach(function (el) { el.value = nilai || ''; });
+        }
+        document.addEventListener('change', function (e) {
+          var sel = e.target && e.target.closest ? e.target.closest('[data-font-select]') : null;
+          if (!sel) return;
+          terapkanFont(sel.value);
+        });
+        try {
+          var awal = document.documentElement.getAttribute('data-font') || '';
+          document.querySelectorAll('[data-font-select]').forEach(function (el) { el.value = awal; });
+        } catch (e) {}
+        window.__terapkanFontZonaPas = terapkanFont;
+      })();
     </script>
     <script is:inline>
       // Daftarkan service worker (PWA/TWA). Gagal daftar = halaman tetap jalan normal.

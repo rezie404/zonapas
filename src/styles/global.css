@@ -14,6 +14,15 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Pilihan font pembaca (Nov 2026): data-font di <html> menimpa
+   --font-sans. Nilai disimpan di localStorage 'zonapas-font'. */
+html[data-font="roboto"] { --font-sans: "Roboto", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+html[data-font="lora"] { --font-sans: "Lora", Georgia, "Times New Roman", serif; }
+html[data-font="quicksand"] { --font-sans: "Quicksand", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+html[data-font="open-sans"] { --font-sans: "Open Sans", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+html[data-font="bellota"] { --font-sans: "Bellota", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+html[data-font="charm"] { --font-sans: "Charm", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+
 /* Ticker breaking news */
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
