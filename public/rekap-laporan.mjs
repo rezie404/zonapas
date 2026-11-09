@@ -54,7 +54,7 @@
 //  - docProps/app.xml template (jumlah kata/halaman) dibiarkan apa adanya;
 //    Word/WPS menghitung ulang saat berkas dibuka.
 
-import { hitungRekap, namaLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from "./rekap-ringan.mjs?v=3";
+import { hitungRekap, namaLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from "./rekap-ringan.mjs?v=4";
 
 function escXml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

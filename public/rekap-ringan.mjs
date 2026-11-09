@@ -47,7 +47,9 @@ const ROMAWI_JUDUL = new Set(["I", "II", "III", "IV", "V", "VI", "VII", "VIII", 
 // berubah. Kata kecil seperti "dan"/"di" ikut dikapitalkan (seperti
 // aturan judul artikel). Berlaku di aplikasi ZonaPas (09 Nov 2026).
 export function normalisasiJudulPublikasi(judul) {
-  const teks = String(judul || "").trim().replace(/\s+/g, " ");
+  // Tanda "*" (penanda tebal WhatsApp) tidak boleh muncul di judul
+  // laporan — buang semuanya sebelum normalisasi huruf (09 Nov 2026).
+  const teks = String(judul || "").replace(/\*/g, "").trim().replace(/\s+/g, " ");
   if (!teks) return "";
   return teks.split(" ").map((kata) => {
     if (!kata) return kata;
