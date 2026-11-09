@@ -519,7 +519,7 @@ const PLATFORM = [
         // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
         // halaman) supaya halaman pertama terbuka cepat; modul di-cache
         // browser setelah unduhan pertama.
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=12');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=13');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));

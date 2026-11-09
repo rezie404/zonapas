@@ -217,16 +217,23 @@ function gantiTeksPertama(xmlParagraf, teksBaru) {
 // 11 = 1871 twips) + 1 spasi (61 twips). Label terpanjang tidak bergeser;
 // label yang lebih pendek melompat ke tab stop yang sama.
 const TAB_TITIK_DUA = 2292;
-// Ubah paragraf label a./b./c./d. menjadi "label <TAB> : isi": sisipkan
-// tab stop ke pPr (w:tabs harus sebelum w:spacing/w:ind) dan pecah run
-// tunggal jadi label + <w:tab/> + ": isi". Run memakai rPr asli paragraf
-// (Arial 11) supaya tampilannya tidak berubah. isi kosong -> hanya ":".
-function paragrafLabelTab(xmlParagraf, label, isi) {
+// Tab stop titik dua "• Hari/tanggal" + "• Pukul" (twips dari margin
+// kiri): indent kiri 720 + lebar label terpanjang "• Hari/tanggal"
+// (Arial 11 = 1324 twips) + 1 spasi (61 twips). Dipakai DOCX dan PDF
+// supaya titik dua keduanya lurus (09 Nov 2026).
+const TAB_TITIK_DUA_TANGGAL = 2105;
+// Ubah paragraf label menjadi "label <TAB> : isi": sisipkan tab stop ke
+// pPr (w:tabs harus sebelum w:spacing/w:ind) dan pecah run tunggal jadi
+// label + <w:tab/> + ": isi". Run memakai rPr asli paragraf (Arial 11)
+// supaya tampilannya tidak berubah. isi kosong -> hanya ":". tabStop
+// default TAB_TITIK_DUA (label a./b./c./d.); untuk Hari/tanggal + Pukul
+// pakai TAB_TITIK_DUA_TANGGAL.
+function paragrafLabelTab(xmlParagraf, label, isi, tabStop = TAB_TITIK_DUA) {
   const mRpr = /<w:r><w:rPr>([\s\S]*?)<\/w:rPr>/.exec(String(xmlParagraf));
   const rpr = mRpr ? `<w:rPr>${mRpr[1]}</w:rPr>` : "";
   let xml = String(xmlParagraf);
   if (/<w:pPr>/.test(xml)) {
-    xml = xml.replace(/<w:pPr>/, `<w:pPr><w:tabs><w:tab w:val="left" w:pos="${TAB_TITIK_DUA}"/></w:tabs>`);
+    xml = xml.replace(/<w:pPr>/, `<w:pPr><w:tabs><w:tab w:val="left" w:pos="${tabStop}"/></w:tabs>`);
   }
   const awalRun = xml.indexOf("<w:r>");
   const akhirRun = xml.lastIndexOf("</w:r>");
@@ -270,9 +277,12 @@ function isiTabelRekap(xmlTabel, perUpt, total) {
 
 // Ganti data di paragraf biasa (di luar rincian): tanggal Ruang Lingkup,
 // 3 angka rekapitulasi, dan tanggal tanda tangan (di tabel tanda tangan).
+// Titik dua Hari/tanggal + Pukul diluruskan via tab stop
+// TAB_TITIK_DUA_TANGGAL (09 Nov 2026).
 function gantiDataParagraf(xmlParagraf, ctx) {
   const t = teksParagraf(xmlParagraf);
-  if (t.startsWith("• Hari/tanggal")) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.tglPanjang);
+  if (t.startsWith("• Hari/tanggal")) return paragrafLabelTab(xmlParagraf, "• Hari/tanggal", ctx.tglPanjang, TAB_TITIK_DUA_TANGGAL);
+  if (t.startsWith("• Pukul")) return paragrafLabelTab(xmlParagraf, "• Pukul", "20.00 WIB", TAB_TITIK_DUA_TANGGAL);
   if (/^Media Sosial\s*:\s*\d+ publikasi/.test(t)) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.total.sosial + " publikasi");
   if (/^Media Massa\s*:\s*\d+ publikasi/.test(t)) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.total.massa + " publikasi");
   if (/^Jumlah\s*:\s*\d+ publikasi/.test(t)) return gantiTeksTerakhir(xmlParagraf, ": " + ctx.total.jumlah + " publikasi");
@@ -875,14 +885,15 @@ async function buildPdfLegacy(data) {
     doc.paragraf(runsTeks, { rata, indentKiri: xTeks, sesudah });
   };
   // Baris label a./b./c./d. dengan titik dua lurus di satu tab stop —
-  // seperti menekan Tab di Word: label digambar di indent 360 twips,
-  // titik dua + isi digambar di tab stop TAB_TITIK_DUA (sama seperti
-  // DOCX). isi kosong -> hanya ":".
-  const barisLabelTab = (label, isi, sesudah = 1) => {
+  // seperti menekan Tab di Word: label digambar di indent, titik dua +
+  // isi digambar di tab stop (sama seperti DOCX). isi kosong -> hanya
+  // ":". Default indent 360 + TAB_TITIK_DUA (label a./b./c./d.);
+  // Hari/tanggal + Pukul pakai indent 720 + TAB_TITIK_DUA_TANGGAL.
+  const barisLabelTab = (label, isi, sesudah = 1, indent = 360, tabStop = TAB_TITIK_DUA) => {
     doc.pastikan(PDF_LH + sesudah);
     const yAwal = doc.y;
-    doc.gambarBaris([{ teks: label, tebal: false }], PDF_M + TW(360), yAwal, "left", TW(TAB_TITIK_DUA) - TW(360));
-    doc.gambarBaris([{ teks: isi ? ": " + isi : ":", tebal: false }], PDF_M + TW(TAB_TITIK_DUA), yAwal, "left", PDF_CW - TW(TAB_TITIK_DUA));
+    doc.gambarBaris([{ teks: label, tebal: false }], PDF_M + TW(indent), yAwal, "left", TW(tabStop) - TW(indent));
+    doc.gambarBaris([{ teks: isi ? ": " + isi : ":", tebal: false }], PDF_M + TW(tabStop), yAwal, "left", PDF_CW - TW(tabStop));
     doc.y -= PDF_LH + sesudah;
   };
   // Daftar tujuan: nomor di kolom 567, teks di kolom 851 (tab stop
@@ -894,9 +905,10 @@ async function buildPdfLegacy(data) {
   subJudul("3. Ruang Lingkup", 3);
   // Paragraf Ruang Lingkup: after=60 (3pt) di template.
   tubuhSub(TEKS_RUANG_LINGKUP, 3);
-  // Butir Hari/tanggal dan Pukul: after=20 (1pt) di template.
-  doc.paraTeks(`• Hari/tanggal : ${tglPanjang}`, { indentKiri: TW(720), sesudah: 1 });
-  doc.paraTeks("• Pukul : 20.00 WIB", { indentKiri: TW(720), sesudah: 1 });
+  // Butir Hari/tanggal dan Pukul: after=20 (1pt) di template; titik dua
+  // keduanya lurus di TAB_TITIK_DUA_TANGGAL (09 Nov 2026).
+  barisLabelTab("• Hari/tanggal", tglPanjang, 1, 720, TAB_TITIK_DUA_TANGGAL);
+  barisLabelTab("• Pukul", "20.00 WIB", 1, 720, TAB_TITIK_DUA_TANGGAL);
   // --- B. KEGIATAN YANG DILAKSANAKAN ---
   judulBagian("B. KEGIATAN YANG DILAKSANAKAN");
   tubuh(TEKS_KEGIATAN_1);
