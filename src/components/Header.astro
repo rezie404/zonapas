@@ -33,6 +33,11 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
             >
               Masuk
             </a>
+            <!-- Lencana notifikasi antrean (Nov 2026): jumlah berita yang
+                 menunggu persetujuan, tampil di sudut tombol profil untuk
+                 Penyunting/Administrator. Disembunyikan bila 0 / bukan
+                 penyetuju. Diisi lewat cekLoginHeader di bawah. -->
+            <span data-header-lencana class="absolute -right-1.5 -top-1.5 z-10 hidden min-w-[20px] items-center justify-center rounded-full bg-[#D9232E] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white" aria-label="Antrean persetujuan menunggu">0</span>
             <div
               data-menu-profil
               class="absolute right-0 top-full z-50 mt-2 hidden w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
@@ -238,6 +243,34 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     }, { passive: true });
     setInterval(cekIdle, 30000);
 
+    // Lencana notifikasi antrean (Nov 2026): untuk Penyunting dan
+    // Administrator — jumlah berita berstatus "menunggu" persetujuan.
+    // Diambil dari /redaksi/api/antrean (sama seperti halaman Antrean)
+    // lalu ditampilkan di sudut tombol profil di header. Bila 0, lencana
+    // disembunyikan. Penulis/Pembaca tidak mendapat lencana ini.
+    function perbaruiLencanaAntrean(user) {
+      var lencana = document.querySelector('[data-header-lencana]');
+      if (!lencana) return;
+      if (user.role !== 'admin' && user.role !== 'penyunting') {
+        lencana.classList.add('hidden');
+        return;
+      }
+      var token = ambilTokenGithub();
+      var headers = {};
+      if (token) headers['X-GitHub-Token'] = token;
+      fetch('/redaksi/api/antrean', { credentials: 'same-origin', headers: headers })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var n = 0;
+          if (d && d.ok && Array.isArray(d.articles)) {
+            n = d.articles.filter(function (a) { return a.status === 'menunggu'; }).length;
+          }
+          lencana.textContent = String(n);
+          lencana.classList.toggle('hidden', n === 0);
+          lencana.setAttribute('aria-label', n > 0 ? (n + ' antrean persetujuan menunggu') : 'Tidak ada antrean persetujuan');
+        })
+        .catch(function () { lencana.classList.add('hidden'); });
+    }
     // Cek login header dengan auth yang SAMA seperti kelola-umum.js: cookie
     // + token GitHub dari sessionStorage bila ada. Tanpa token, sesi yang
     // hanya hidup lewat token (cookie kedaluwarsa/belum ditukar) membuat
@@ -255,7 +288,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
         .then(function (d) {
           if (d && d.ok && d.user) {
             sedangMasuk = true;
-            if (!diKelola) { perbaruiHeader(d.user); pasangMenuProfil(d.user); }
+            if (!diKelola) { perbaruiHeader(d.user); pasangMenuProfil(d.user); perbaruiLencanaAntrean(d.user); }
             catatAktivitas();
             cekIdle();
             return true;
