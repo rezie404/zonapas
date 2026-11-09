@@ -986,7 +986,9 @@ async function buildPdfLegacy(data) {
   // "Rincian jumlah...": after=60 (3pt) di template.
   doc.paragraf([{ teks: "Rincian jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
   doc.tabelRekap(perUpt, total);
-  doc.y -= PDF_LH;
+  // Satu baris kosong antara tabel dan "2. Rincian..." (09 Nov 2026):
+  // 2 x tinggi baris = satu baris kosong + baris heading itu sendiri.
+  doc.y -= 2 * PDF_LH;
   // Tinggi (pt) satu butir bernomor per-UPT, termasuk spasi sesudah 1pt.
   const tinggiButir = (teks) => Math.max(1, doc.bagiBaris([{ teks }], PDF_CW - TW(1080)).length) * PDF_LH + 1;
   // Tinggi blok kepala UPT (judul + a. + b. + c. + butir pertama, atau
