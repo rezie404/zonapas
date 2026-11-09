@@ -222,18 +222,30 @@ const TAB_TITIK_DUA = 2292;
 // (Arial 11 = 1324 twips) + 1 spasi (61 twips). Dipakai DOCX dan PDF
 // supaya titik dua keduanya lurus (09 Nov 2026).
 const TAB_TITIK_DUA_TANGGAL = 2105;
+// Sisipkan <w:keepNext/> ke pPr supaya paragraf tidak yatim di ujung
+// halaman — Word/LibreOffice memindahkannya ke halaman berikut bila
+// paragraf berikutnya tidak muat (aturan Bos Besar 09 Nov 2026: sub
+// judul yang tanggung di ambang halaman turun ke halaman berikutnya).
+// keepNext diletakkan tepat setelah <w:pPr> (urutan CT_PPr: keepNext
+// sebelum tabs/spacing/ind). Bila sudah ada, tidak digandakan.
+function tambahKeepNext(xmlParagraf) {
+  const xml = String(xmlParagraf);
+  if (!/<w:pPr>/.test(xml) || /<w:keepNext\/>/.test(xml)) return xml;
+  return xml.replace(/<w:pPr>/, "<w:pPr><w:keepNext/>");
+}
 // Ubah paragraf label menjadi "label <TAB> : isi": sisipkan tab stop ke
 // pPr (w:tabs harus sebelum w:spacing/w:ind) dan pecah run tunggal jadi
 // label + <w:tab/> + ": isi". Run memakai rPr asli paragraf (Arial 11)
 // supaya tampilannya tidak berubah. isi kosong -> hanya ":". tabStop
 // default TAB_TITIK_DUA (label a./b./c./d.); untuk Hari/tanggal + Pukul
-// pakai TAB_TITIK_DUA_TANGGAL.
+// pakai TAB_TITIK_DUA_TANGGAL. Label selalu diberi <w:keepNext/> supaya
+// tidak yatim di ujung halaman.
 function paragrafLabelTab(xmlParagraf, label, isi, tabStop = TAB_TITIK_DUA) {
   const mRpr = /<w:r><w:rPr>([\s\S]*?)<\/w:rPr>/.exec(String(xmlParagraf));
   const rpr = mRpr ? `<w:rPr>${mRpr[1]}</w:rPr>` : "";
   let xml = String(xmlParagraf);
   if (/<w:pPr>/.test(xml)) {
-    xml = xml.replace(/<w:pPr>/, `<w:pPr><w:tabs><w:tab w:val="left" w:pos="${tabStop}"/></w:tabs>`);
+    xml = xml.replace(/<w:pPr>/, `<w:pPr><w:keepNext/><w:tabs><w:tab w:val="left" w:pos="${tabStop}"/></w:tabs>`);
   }
   const awalRun = xml.indexOf("<w:r>");
   const akhirRun = xml.lastIndexOf("</w:r>");
@@ -318,8 +330,9 @@ function bangunRincian(segmenRincian, perUpt, perNama, contoh, rels) {
     const cocokBlok = /^(\d+)\)\s*(.+)$/.exec(t);
     if (!cocokBlok) { keluar.push(xml); i++; continue; }
     const u = perNama.get(cocokBlok[2]);
-    keluar.push(xml); i++;
-    if (!u) continue; // UPT tidak dikenal — biarkan blok apa adanya.
+    if (!u) { keluar.push(xml); i++; continue; } // UPT tidak dikenal — biarkan blok apa adanya.
+    // Judul UPT diberi keepNext supaya tidak yatim di ujung halaman.
+    keluar.push(tambahKeepNext(xml)); i++;
     // Paragraf a./b. di template adalah SATU run ("a. Media Sosial : 0
     // publikasi") — ubah jadi label + TAB + ": angka publikasi" supaya
     // titik dua lurus dengan label c./d. (tab stop TAB_TITIK_DUA).
@@ -889,8 +902,11 @@ async function buildPdfLegacy(data) {
   // isi digambar di tab stop (sama seperti DOCX). isi kosong -> hanya
   // ":". Default indent 360 + TAB_TITIK_DUA (label a./b./c./d.);
   // Hari/tanggal + Pukul pakai indent 720 + TAB_TITIK_DUA_TANGGAL.
-  const barisLabelTab = (label, isi, sesudah = 1, indent = 360, tabStop = TAB_TITIK_DUA) => {
-    doc.pastikan(PDF_LH + sesudah);
+  // jaga = tinggi (pt) konten berikut yang harus ikut muat di halaman
+  // yang sama — padanan keepNext di DOCX (09 Nov 2026): label yang
+  // tanggung di ambang halaman turun utuh ke halaman berikut.
+  const barisLabelTab = (label, isi, sesudah = 1, indent = 360, tabStop = TAB_TITIK_DUA, jaga = 0) => {
+    doc.pastikan(PDF_LH + sesudah + jaga);
     const yAwal = doc.y;
     doc.gambarBaris([{ teks: label, tebal: false }], PDF_M + TW(indent), yAwal, "left", TW(tabStop) - TW(indent));
     doc.gambarBaris([{ teks: isi ? ": " + isi : ":", tebal: false }], PDF_M + TW(tabStop), yAwal, "left", PDF_CW - TW(tabStop));
@@ -936,19 +952,28 @@ async function buildPdfLegacy(data) {
   doc.y -= PDF_LH;
   // --- 2. Rincian Publikasi Per Satuan Kerja ---
   doc.paraTeks("2. Rincian Publikasi Per Satuan Kerja", { indentKiri: TW(142), sesudah: 0 }, true);
+  // Tinggi (pt) satu butir bernomor per-UPT, termasuk spasi sesudah 1pt.
+  const tinggiButir = (teks) => Math.max(1, doc.bagiBaris([{ teks }], PDF_CW - TW(1080)).length) * PDF_LH + 1;
   perUpt.forEach((u, i) => {
     // Satu baris kosong antar laporan UPT (kecuali sebelum UPT pertama).
     // Judul UPT: sesudah 0 (UPT pertama) / 3pt (UPT ke-2 dst, after=60).
-    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: i === 0 ? 0 : PDF_LH, sesudah: i === 0 ? 0 : 3 });
-    barisLabelTab("a. Media Sosial", u.sosial + " publikasi", 0);
+    // jaga = tinggi judul + baris "a." — judul yang tanggung di ambang
+    // halaman turun utuh ke halaman berikut (09 Nov 2026).
+    const sebelumJudul = i === 0 ? 0 : PDF_LH;
+    const sesudahJudul = i === 0 ? 0 : 3;
+    doc.paragraf([{ teks: `${i + 1}) ${u.nama}`, tebal: true, warna: PDF_BIRU_TUA }], { indentBarisPertama: TW(284), sebelum: sebelumJudul, sesudah: sesudahJudul, jaga: sebelumJudul + PDF_LH + sesudahJudul + PDF_LH });
+    // "a." dijaga baris "b.", "b." dijaga baris "c.".
+    barisLabelTab("a. Media Sosial", u.sosial + " publikasi", 0, 360, TAB_TITIK_DUA, PDF_LH + 1);
     // "b. Media Massa": after=20 (1pt) di template.
-    barisLabelTab("b. Media Massa", u.massa + " publikasi", 1);
+    barisLabelTab("b. Media Massa", u.massa + " publikasi", 1, 360, TAB_TITIK_DUA, PDF_LH + 1);
     // UPT nihil ditulis sebaris di labelnya (seperti berkas PDF terkirim),
     // tanpa butir bernomor terpisah.
     if (u.judul.length === 1 && u.judul[0] === "Nihil") {
-      barisLabelTab("c. Judul Publikasi", "Nihil", 1);
+      // "c." nihil dijaga baris "d.".
+      barisLabelTab("c. Judul Publikasi", "Nihil", 1, 360, TAB_TITIK_DUA, PDF_LH + 1);
     } else {
-      barisLabelTab("c. Judul Publikasi", "", 1);
+      // "c." dijaga butir judul pertama (utuh, berapa pun barisnya).
+      barisLabelTab("c. Judul Publikasi", "", 1, 360, TAB_TITIK_DUA, tinggiButir(u.judul[0]));
       u.judul.forEach((j, k) => {
         butirBernomor(k + 1, [{ teks: j, tebal: false }], TW(720), TW(1080), 1);
       });
@@ -956,7 +981,8 @@ async function buildPdfLegacy(data) {
     if (u.tautan.length === 1 && u.tautan[0] === "Nihil") {
       barisLabelTab("d. Tautan Publikasi", "Nihil", 1);
     } else {
-      barisLabelTab("d. Tautan Publikasi", "", 1);
+      // "d." dijaga butir tautan pertama (utuh, berapa pun barisnya).
+      barisLabelTab("d. Tautan Publikasi", "", 1, 360, TAB_TITIK_DUA, tinggiButir(u.tautan[0]));
       u.tautan.forEach((t, k) => {
         butirBernomor(k + 1, [{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], TW(720), TW(1080), 1);
       });
