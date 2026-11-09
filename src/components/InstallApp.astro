@@ -1,0 +1,93 @@
+---
+// Banner penawaran install aplikasi Android ZonaPas (APK).
+// Muncul di semua halaman lewat BaseLayout, hanya di HP Android dan hanya
+// bila aplikasi belum terpasang sebagai PWA (display-mode: standalone)
+// dan pengguna belum menutupnya dalam 7 hari terakhir. Tombol Install
+// mengunduh APK dari /unduh/ZonaPas.apk; pemasangan dilakukan pengguna
+// lewat berkas unduhan (izinkan pemasangan dari sumber ini).
+---
+
+<div id="install-app" class="install-app" hidden>
+  <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="install-app-logo" width="48" height="48" />
+  <div class="install-app-teks">
+    <strong>Install Aplikasi ZonaPas</strong>
+    <span>Berita pemasyarakatan Bengkulu, langsung dari layar utama HP Anda.</span>
+    <span class="install-app-meta">Gratis &middot; v1.0.0 &middot; 6 MB</span>
+  </div>
+  <a href="/unduh/ZonaPas.apk" download class="install-app-tombol">Install</a>
+  <button id="install-app-tutup" type="button" class="install-app-tutup" aria-label="Tutup penawaran install aplikasi">&times;</button>
+  <p class="install-app-petunjuk">Setelah diunduh, ketuk berkasnya lalu izinkan pemasangan dari sumber ini.</p>
+</div>
+
+<style>
+  .install-app {
+    position: fixed; z-index: 65; left: 12px; right: 12px; bottom: 12px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 12px 14px; border-radius: 16px;
+    background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;
+    box-shadow: 0 12px 32px rgba(5, 21, 46, 0.28);
+    animation: install-app-muncul 0.3s ease-out;
+  }
+  .install-app[hidden] { display: none; }
+  .install-app-logo { width: 48px; height: 48px; border-radius: 9999px; flex: none; object-fit: cover; }
+  .install-app-teks { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+  .install-app-teks strong { font-size: 15px; color: #05152e; }
+  .install-app-teks span { font-size: 12.5px; color: #475569; }
+  .install-app-meta { font-size: 11.5px !important; color: #64748b !important; }
+  .install-app-tombol {
+    flex: none; background: #ffcc00; color: #05152e; font-weight: 800; font-size: 14px;
+    padding: 10px 18px; border-radius: 9999px; text-decoration: none;
+  }
+  .install-app-tutup {
+    flex: none; width: 30px; height: 30px; border-radius: 9999px; border: none;
+    background: #f1f5f9; color: #475569; font-size: 18px; line-height: 1; cursor: pointer;
+  }
+  .install-app-petunjuk { flex: 1 1 100%; margin: 0; font-size: 11px; color: #64748b; line-height: 1.4; }
+  .dark .install-app { background: #0f172a; color: #f1f5f9; border-color: #1e293b; }
+  .dark .install-app-teks strong { color: #ffffff; }
+  .dark .install-app-teks span { color: #cbd5e1; }
+  .dark .install-app-meta { color: #94a3b8 !important; }
+  .dark .install-app-tutup { background: #1e293b; color: #cbd5e1; }
+  .dark .install-app-petunjuk { color: #94a3b8; }
+  @keyframes install-app-muncul { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .install-app { animation: none; } }
+</style>
+
+<script>
+  (function () {
+    var KUNCI = 'zonapas-install-ditolak';
+    var TUNDA_MS = 2500; // muncul 2,5 detik setelah halaman dimuat
+    var INGAT_HARI = 7; // jangan tampil lagi 7 hari setelah ditutup
+    function sudahTerpasang() {
+      try {
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+        if (window.navigator && window.navigator.standalone) return true;
+      } catch (e) {}
+      return false;
+    }
+    function baruDitolak() {
+      try {
+        var t = parseInt(localStorage.getItem(KUNCI) || '0', 10) || 0;
+        return t && Date.now() - t < INGAT_HARI * 24 * 60 * 60 * 1000;
+      } catch (e) { return false; }
+    }
+    function siap(fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+      else fn();
+    }
+    siap(function () {
+      var el = document.getElementById('install-app');
+      var tutup = document.getElementById('install-app-tutup');
+      if (!el || !tutup) return;
+      // Hanya HP Android (APK hanya bisa dipasang di Android).
+      var ua = (navigator.userAgent || '').toLowerCase();
+      if (ua.indexOf('android') === -1) return;
+      if (sudahTerpasang() || baruDitolak()) return;
+      tutup.addEventListener('click', function () {
+        el.hidden = true;
+        try { localStorage.setItem(KUNCI, String(Date.now())); } catch (e) {}
+      });
+      setTimeout(function () { el.hidden = false; }, TUNDA_MS);
+    });
+  })();
+</script>

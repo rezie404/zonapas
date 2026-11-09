@@ -2,6 +2,7 @@
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import PasmanChat from '../components/PasmanChat.astro';
+import InstallApp from '../components/InstallApp.astro';
 import { SITE } from '../data/site';
 import '../styles/global.css';
 
@@ -93,6 +94,7 @@ const ld = jsonLd
     </main>
     <Footer />
     <PasmanChat />
+    <InstallApp />
     <script is:inline>
       // Toggle mode gelap/terang
       document.addEventListener('click', (e) => {
