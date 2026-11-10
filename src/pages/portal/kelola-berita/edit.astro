@@ -109,7 +109,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       </div>
 
       <!-- Tab Artikel (isi lama halaman Edit Berita) -->
-      <div id="tab-artikel">
+      <div id="tab-artikel" class="scroll-mt-24">
       <!-- Pencarian & filter -->
       <div class="mt-4 flex flex-wrap gap-3">
         <input id="q" type="search" placeholder="Cari judul, ringkasan, atau kategori…" class="min-w-[220px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
@@ -146,7 +146,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       </div><!-- /tab-artikel -->
 
       <!-- Tab Video: daftar + formulir edit video ZonaPasTV -->
-      <div id="tab-video" class="hidden">
+      <div id="tab-video" class="hidden scroll-mt-24">
         <section class="pt-8" aria-label="Edit Video ZonaPasTV">
           <div class="mb-4 flex items-center justify-between border-b-2 border-[#D9232E] pb-2">
             <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Edit Video ZonaPasTV</h2>
@@ -269,7 +269,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
     }
 
-    function pilihTabEdit(jenis) {
+    function pilihTabEdit(jenis, gulir) {
       tabEditAktif = jenis;
       const tabA = $('tab-artikel'); if (tabA) tabA.classList.toggle('hidden', jenis !== 'artikel');
       const tabV = $('tab-video'); if (tabV) tabV.classList.toggle('hidden', jenis !== 'video');
@@ -295,10 +295,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (jenis === 'video' && peran === 'admin' && !videos.length) {
         muatVideoEdit().catch((err) => showStatus('Gagal memuat daftar video: ' + err.message, false));
       }
+      // Ketuk kartu = langsung tampilkan daftarnya (gulir ke daftar).
+      if (gulir) {
+        const target = jenis === 'video' ? $('tab-video') : $('tab-artikel');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
-    on('kartu-edit-artikel', 'click', () => pilihTabEdit('artikel'));
-    on('kartu-edit-video', 'click', () => pilihTabEdit('video'));
+    on('kartu-edit-artikel', 'click', () => pilihTabEdit('artikel', true));
+    on('kartu-edit-video', 'click', () => pilihTabEdit('video', true));
 
     // ID YouTube + gambar mini (salinan dari halaman unggah video).
     function idYoutubeEdit(tautan) {
