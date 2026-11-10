@@ -261,9 +261,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-kegiatan-kanan { flex: 1 1 0; min-width: 0; padding: 0 0 0 18px; box-sizing: border-box; }
     .sepekan-kegiatan-narasi .sepekan-paragraf { margin: 0 0 10px 0; }
     .sepekan-kegiatan-narasi .sepekan-paragraf:last-child { margin-bottom: 0; }
-    .sepekan-kolase { display: grid; grid-template-columns: 1fr 1.4fr 1fr; grid-auto-rows: 1fr; gap: 6px; margin: 0 0 14px 0; }
-    .sepekan-kolase img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .sepekan-kolase-sel { overflow: hidden; }
+    /* Kolase sarang lebah di bawah Peserta (Nov 2026): foto-foto kegiatan
+       dalam segi enam (pointy-top) berangkai seperti sarang madu — 2 baris
+       berselang-seling, tiap segi enam berbagi sisi dengan tetangganya.
+       Posisi tiap segi enam dihitung di JS (tambahKolaseMadu). */
+    .sepekan-kolase-madu { position: relative; width: 100%; margin: 0 0 14px 0; }
+    .sepekan-madu-hex { position: absolute; overflow: hidden; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+    .sepekan-madu-hex img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .sepekan-hex-baris { display: flex; gap: 18px; margin: 0 0 14px 0; }
     .sepekan-hexbab { position: relative; flex: 1 1 0; height: 230px; }
     .sepekan-hexbab-luar { position: absolute; inset: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
@@ -983,17 +987,32 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         blok.push(j);
         for (const p of blokParagraf(teks)) { if (grup) p.grup = grup; blok.push(p); }
       };
-      // Kolase kecil di bawah Peserta (Nov 2026, atas permintaan Bos Besar):
-      // mengisi ruang kosong halaman Ruang Lingkup/Peserta. 1 foto per
-      // kegiatan (foto pertama), maksimal 10 foto, tinggi tetap 180px.
-      const tambahKolaseKecil = () => {
+      // Kolase SARANG LEBAH di bawah Peserta (Nov 2026, atas permintaan
+      // Bos Besar): foto-foto kegiatan dalam segi enam (pointy-top)
+      // berangkai seperti sarang madu — 2 baris berselang-seling, tiap
+      // segi enam berbagi sisi dengan tetangganya. 1 foto per kegiatan
+      // (foto pertama), maksimal 10 foto. Geometri: segi enam jari-jari
+      // s=50 (lebar 87, tinggi 100); sebaris berjarak 87 (berbagi sisi
+      // tegak); baris 2 digeser 43 ke kanan + 75 ke bawah (berbagi sisi
+      // miring); klaster diratakan tengah.
+      const tambahKolaseMadu = () => {
         const foto = fotoSepekan.slice(0, 10);
         if (!foto.length) return;
+        const s = 50, W = 87, H = 100, dx = 87, dy = 75, offX = 43;
+        const n1 = Math.ceil(foto.length / 2), n2 = foto.length - n1;
+        const kanan1 = n1 ? W + (n1 - 1) * dx : 0;
+        const kanan2 = n2 ? W + offX + (n2 - 1) * dx : 0;
+        const geserX = Math.round((682 - Math.max(kanan1, kanan2)) / 2);
+        const tinggi = n2 ? H + dy : H;
         let sel = '';
-        for (const f of foto) {
-          sel += '<div class="sepekan-kolase-sel"><img src="' + esc(f) + '" alt="" /></div>';
-        }
-        const html = '<div class="sepekan-kolase" style="height:180px">' + sel + '</div>';
+        foto.forEach((f, i) => {
+          const baris = i < n1 ? 0 : 1;
+          const k = baris === 0 ? i : i - n1;
+          const cx = W / 2 + k * dx + (baris === 1 ? offX : 0) + geserX;
+          const cy = H / 2 + baris * dy;
+          sel += '<div class="sepekan-madu-hex" style="left:' + Math.round(cx - W / 2) + 'px;top:' + Math.round(cy - H / 2) + 'px;width:' + W + 'px;height:' + H + 'px"><img src="' + esc(f) + '" alt="" /></div>';
+        });
+        const html = '<div class="sepekan-kolase-madu" style="height:' + tinggi + 'px">' + sel + '</div>';
         blok.push({ tipe: 'kolase-kecil', html, tinggi: ukurBlok(html) });
       };
       // Isi bab (Latar Belakang, Maksud & Tujuan, Ruang Lingkup,
@@ -1009,7 +1028,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       tambahBab('Maksud & Tujuan', TEMPLATE.maksud, undefined, 'maksud');
       tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
       tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
-      tambahKolaseKecil();
+      tambahKolaseMadu();
       // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
       // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
       // hari ikut grup kegiatan pertama hari itu.
