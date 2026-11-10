@@ -998,8 +998,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const tambahKolaseMadu = () => {
         const foto = fotoSepekan.slice(0, 10);
         if (!foto.length) return;
-        const s = 50, W = 87, H = 100, dx = 87, dy = 75, offX = 43;
+        // DIPERBESAR (Nov 2026, atas permintaan Bos Besar): ukuran segi
+        // enam dihitung dinamis agar kolase mengisi area kosong halaman
+        // — target tinggi kolase ~500px, dibatasi lebar halaman 682px.
+        // Makin sedikit foto, makin besar tiap segi enamnya (1 foto =
+        // segi enam raksasa di tengah halaman). Batas s 50–220.
         const n1 = Math.ceil(foto.length / 2), n2 = foto.length - n1;
+        const sTinggi = n2 ? 500 / 3.5 : 500 / 2;
+        const sLebar = 682 / (Math.max(n1, n2 + 0.5) * 1.732);
+        const s = Math.max(50, Math.min(220, Math.floor(Math.min(sTinggi, sLebar))));
+        const W = Math.floor(1.732 * s), H = 2 * s, dx = W, dy = Math.floor(1.5 * s), offX = Math.floor(0.866 * s);
         const kanan1 = n1 ? W + (n1 - 1) * dx : 0;
         const kanan2 = n2 ? W + offX + (n2 - 1) * dx : 0;
         const geserX = Math.round((682 - Math.max(kanan1, kanan2)) / 2);
