@@ -120,38 +120,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         </div>
       </section>
 
-      <!-- Isi laporan -->
-      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Isi laporan">
-        <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Isi Laporan</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Isi sudah terisi mengikuti template laporan sepekan — ubah seperlunya. Pisahkan paragraf dengan satu baris kosong.</p>
-        <div class="mt-3 space-y-4">
-          <label class="block">
-            <span class="block text-sm font-bold">Latar Belakang</span>
-            <textarea id="sp-latar" rows="7" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
-          </label>
-          <label class="block">
-            <span class="block text-sm font-bold">Maksud &amp; Tujuan</span>
-            <textarea id="sp-maksud" rows="5" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
-          </label>
-          <label class="block">
-            <span class="block text-sm font-bold">Ruang Lingkup</span>
-            <textarea id="sp-ruang" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
-          </label>
-          <label class="block">
-            <span class="block text-sm font-bold">Peserta</span>
-            <textarea id="sp-peserta" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
-          </label>
-          <label class="block">
-            <span class="block text-sm font-bold">Tindak Lanjut (satu butir per baris)</span>
-            <textarea id="sp-tindak" rows="8" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
-          </label>
-          <label class="block">
-            <span class="block text-sm font-bold">Penutup</span>
-            <textarea id="sp-penutup" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
-          </label>
-        </div>
-      </section>
-
       <!-- Hasil per hari -->
       <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Hasil per hari">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -500,6 +468,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     const drafTersimpan = muatDraf();
     let state = drafTersimpan || klon(TEMPLATE);
+    // Isi bab dari draf lama dibuang — bab kini TETAP dari TEMPLATE.
+    ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
     let timerSimpan = null;
     function simpanDraf() {
       clearTimeout(timerSimpan);
@@ -736,12 +706,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-ttd').value = state.ttd || '';
       $('sp-foto-potret').src = state.fotoPotret || FOTO_POTRET_TEMPLATE;
       $('sp-foto-lapangan').src = state.fotoLapangan || FOTO_LAPANGAN_TEMPLATE;
-      $('sp-latar').value = state.latar || '';
-      $('sp-maksud').value = state.maksud || '';
-      $('sp-ruang').value = state.ruang || '';
-      $('sp-peserta').value = state.peserta || '';
-      $('sp-tindak').value = (state.tindak || []).join('\n');
-      $('sp-penutup').value = state.penutup || '';
       const p = $('sp-periode-teks');
       if (p) p.textContent = teksPeriode() ? 'Periode: ' + teksPeriode() : '';
       renderHari();
@@ -750,12 +714,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       state.mulai = $('sp-mulai').value || state.mulai;
       state.akhir = $('sp-akhir').value || state.akhir;
       state.ttd = $('sp-ttd').value || state.ttd;
-      state.latar = $('sp-latar').value;
-      state.maksud = $('sp-maksud').value;
-      state.ruang = $('sp-ruang').value;
-      state.peserta = $('sp-peserta').value;
-      state.tindak = $('sp-tindak').value.split('\n').map((s) => s.trim()).filter(Boolean);
-      state.penutup = $('sp-penutup').value;
       const p = $('sp-periode-teks');
       if (p) p.textContent = teksPeriode() ? 'Periode: ' + teksPeriode() : '';
     }
@@ -921,10 +879,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         blok.push(blokJudulBab(judul));
         blok.push(...blokParagraf(teks));
       };
-      tambahBab('Latar Belakang', state.latar);
-      tambahBab('Maksud & Tujuan', state.maksud);
-      tambahBab('Ruang Lingkup', state.ruang);
-      tambahBab('Peserta', state.peserta);
+      // Isi bab (Latar Belakang, Maksud & Tujuan, Ruang Lingkup,
+      // Peserta, Tindak Lanjut, Penutup) diambil TETAP dari TEMPLATE
+      // (template laporan sebelumnya) — tidak lagi bisa diubah.
+      tambahBab('Latar Belakang', TEMPLATE.latar);
+      tambahBab('Maksud & Tujuan', TEMPLATE.maksud);
+      tambahBab('Ruang Lingkup', TEMPLATE.ruang);
+      tambahBab('Peserta', TEMPLATE.peserta);
       // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
       // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
       // hari ikut grup kegiatan pertama hari itu.
@@ -952,16 +913,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         });
       }
       // Tindak lanjut
-      if ((state.tindak || []).length) {
+      if ((TEMPLATE.tindak || []).length) {
         blok.push(blokJudulBab('Tindak Lanjut'));
-        state.tindak.forEach((t, i) => {
+        TEMPLATE.tindak.forEach((t, i) => {
           const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(t) + '</p>';
           blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html) });
         });
       }
       // Penutup + tanda tangan
       blok.push(blokJudulBab('Penutup'));
-      blok.push(...blokParagraf(state.penutup || 'Demikian laporan yang dapat kami sampaikan, selanjutnya mohon petunjuk dan arahan.'));
+      blok.push(...blokParagraf(TEMPLATE.penutup));
       const htmlTtd = '<div class="sepekan-ttd"><p style="margin:0">' + esc(tglTtdPanjang()) + '</p><p style="margin:0">Kepala Kantor Wilayah<br />Ditjenpas Bengkulu,</p><p style="margin:0">Ttd</p><p class="nama">Masjuno</p></div>';
       blok.push({ tipe: 'ttd', html: htmlTtd, tinggi: ukurBlok(htmlTtd) });
       return blok;
@@ -1165,7 +1126,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     // ---------- Event form ----------
     function hubungkanForm() {
-      ['sp-mulai', 'sp-akhir', 'sp-ttd', 'sp-latar', 'sp-maksud', 'sp-ruang', 'sp-peserta', 'sp-tindak', 'sp-penutup'].forEach((id) => {
+      ['sp-mulai', 'sp-akhir', 'sp-ttd'].forEach((id) => {
         const el = $(id);
         if (!el) return;
         el.addEventListener('input', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
