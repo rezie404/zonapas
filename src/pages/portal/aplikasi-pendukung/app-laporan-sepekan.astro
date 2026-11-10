@@ -231,10 +231,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-kegiatan-kanan { flex: 1 1 0; min-width: 0; padding: 0 0 0 18px; box-sizing: border-box; }
     .sepekan-kegiatan-narasi .sepekan-paragraf { margin: 0 0 10px 0; }
     .sepekan-kegiatan-narasi .sepekan-paragraf:last-child { margin-bottom: 0; }
-    .sepekan-kolase { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 6px; margin: 0 0 14px 0; }
+    .sepekan-kolase { display: grid; grid-template-columns: 1fr 1.4fr 1fr; grid-auto-rows: 1fr; gap: 6px; margin: 0 0 14px 0; }
     .sepekan-kolase img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .sepekan-kolase-sel { height: 150px; overflow: hidden; }
-    .sepekan-kolase-sel-lebar { height: 150px; overflow: hidden; }
+    .sepekan-kolase-sel { overflow: hidden; }
     .sepekan-hex-baris { display: flex; gap: 18px; margin: 0 0 14px 0; }
     .sepekan-hexbab { position: relative; flex: 1 1 0; height: 230px; }
     .sepekan-hexbab-luar { position: absolute; inset: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
@@ -923,14 +922,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         blok.push(blokJudulBab(judul, varian));
         blok.push(...blokParagraf(teks));
       };
-      const tambahKolase = () => {
+      const tambahKolase = (tinggiMaksud) => {
         if (!fotoSepekan.length) return;
-        const ambil = fotoSepekan.slice(0, 9);
+        // Semua foto kegiatan (tanpa batas) di bawah narasi Maksud &
+        // Tujuan, mengisi sisa halaman supaya bab ini 1 halaman penuh.
+        const tinggiKolase = Math.max(200, TINGGI_ISI - (tinggiMaksud || 0) - 8);
         let sel = '';
-        for (let i = 0; i < ambil.length; i++) {
-          sel += '<div class="sepekan-kolase-sel"><img src="' + esc(ambil[i]) + '" alt="" /></div>';
+        for (const f of fotoSepekan) {
+          sel += '<div class="sepekan-kolase-sel"><img src="' + esc(f) + '" alt="" /></div>';
         }
-        const html = '<div class="sepekan-kolase">' + sel + '</div>';
+        const html = '<div class="sepekan-kolase" style="height:' + tinggiKolase + 'px">' + sel + '</div>';
         blok.push({ tipe: 'kolase', html, tinggi: ukurBlok(html) });
       };
       const tambahHexBaris = (foto, warna) => {
@@ -951,8 +952,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Peserta, Tindak Lanjut, Penutup) diambil TETAP dari TEMPLATE
       // (template laporan sebelumnya) — tidak lagi bisa diubah.
       tambahBab('Latar Belakang', TEMPLATE.latar);
+      // Maksud & Tujuan dibuat 1 halaman penuh: narasi + SEMUA foto
+      // kegiatan di bawahnya. Tinggi kolase dihitung dari sisa halaman.
+      const idxMaksud = blok.length;
       tambahBab('Maksud & Tujuan', TEMPLATE.maksud);
-      tambahKolase();
+      let tinggiMaksud = 0;
+      for (let i = idxMaksud; i < blok.length; i++) tinggiMaksud += blok[i].tinggi;
+      tambahKolase(tinggiMaksud);
       tambahHexBaris(fotoSepekan.slice(0, 2), '#1E40AF');
       tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
       tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
