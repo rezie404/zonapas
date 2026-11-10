@@ -13,6 +13,7 @@ breakingSince: "2026-11-10T03:28:25.902Z"
 upt: "Lapas Kelas IIA Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIlsJt66Swe83HBNtm3Hzmf6Dhgj2IuAnOEwbXhzsOf1aKxm37T=s96-c"
 source: "zonapas"
+jurnalpas_id: 253
 ---
 
 Bengkulu – Dalam rangka mengenang jasa dan pengorbanan para
