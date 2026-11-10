@@ -39,6 +39,7 @@ collections:
       - name: category
         label: Kategori
         widget: select
+        default: "Umum"
         options:
           - Pembinaan
           - Pengamanan

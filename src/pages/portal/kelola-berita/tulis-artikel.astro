@@ -109,7 +109,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <div>
               <label for="f-kategori" class="mb-1 block text-sm font-bold">Kategori *</label>
               <select id="f-kategori" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
-                {CATEGORIES.map((c) => <option value={c.name}>{c.name}</option>)}
+                {CATEGORIES.map((c) => <option value={c.name} selected={c.name === 'Umum'}>{c.name}</option>)}
               </select>
             </div>
             <div>
