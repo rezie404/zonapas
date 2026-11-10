@@ -213,11 +213,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; }
     .sepekan-tanggal-hari { font-size: 16px; font-weight: 800; color: #0A2540; margin: 0 0 14px 0; letter-spacing: 0.3px; }
     .sepekan-judul-kegiatan { font-size: 17px; font-weight: 800; line-height: 1.35; color: #0A2540; text-transform: uppercase; margin: 0 0 10px 0; padding-left: 12px; border-left: 6px solid #FFCC00; }
+    .sepekan-2kol { display: flex; gap: 18px; margin: 0 0 14px 0; }
+    .sepekan-2kol-kol { flex: 1 1 0; min-width: 0; }
+    .sepekan-2kol-kol .sepekan-paragraf { margin: 0 0 10px 0; }
+    .sepekan-2kol-kol .sepekan-paragraf:last-child { margin-bottom: 0; }
     .sepekan-foto-baris { display: flex; gap: 10px; margin: 0 0 14px 0; }
     .sepekan-foto-baris img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .sepekan-foto-satu { flex: 1 1 0; height: 230px; overflow: hidden; border-radius: 4px; }
-    .sepekan-foto-dua { flex: 1 1 0; height: 190px; overflow: hidden; border-radius: 4px; }
-    .sepekan-foto-tunggal { height: 250px; overflow: hidden; border-radius: 4px; margin: 0 0 14px 0; }
+    .sepekan-foto-satu { flex: 1 1 0; height: 170px; overflow: hidden; border-radius: 4px; }
+    .sepekan-foto-dua { flex: 1 1 0; height: 170px; overflow: hidden; border-radius: 4px; }
+    .sepekan-foto-tunggal { width: 340px; height: 200px; overflow: hidden; border-radius: 4px; margin: 0 0 14px 0; }
     .sepekan-ttd { margin-top: 26px; text-align: right; font-size: 15px; line-height: 1.5; color: #16233D; }
     .sepekan-ttd .nama { font-weight: 800; text-transform: uppercase; margin-top: 64px; }
     /* Sampul */
@@ -610,6 +614,41 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       return keluar;
     }
+    function blokNarasi2Kol(teks) {
+      // Narasi kegiatan ditata 2 kolom seperti koran (lihat template):
+      // teks dibagi rata ke kolom kiri dan kanan. Tiap blok adalah satu
+      // kelompok kalimat yang muat 1 halaman. Awal paragraf tetap
+      // menjorok (tab 28px); sambungan tidak menjorok.
+      const keluar = [];
+      const paragraf = String(teks || '').split(/\n\s*\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const satuan = []; // { teks, awal }
+      for (const p of paragraf) {
+        const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
+        kal.forEach((k, i) => satuan.push({ teks: k.trim(), awal: i === 0 }));
+      }
+      if (!satuan.length) return keluar;
+      const buatHtml = (list) => {
+        const total = list.reduce((a, s) => a + s.teks.length + 1, 0);
+        let kiri = [], kanan = [], n = 0;
+        for (const s of list) {
+          if (n < total / 2) { kiri.push(s); n += s.teks.length + 1; }
+          else kanan.push(s);
+        }
+        const renderKol = (arr) => arr.map((s) => '<p class="sepekan-paragraf' + (s.awal ? '' : ' lanjutan') + '">' + esc(s.teks) + '</p>').join('');
+        return '<div class="sepekan-2kol"><div class="sepekan-2kol-kol">' + renderKol(kiri) + '</div><div class="sepekan-2kol-kol">' + renderKol(kanan) + '</div></div>';
+      };
+      let buf = [];
+      for (const s of satuan) {
+        const coba = buf.concat([s]);
+        const h = ukurBlok(buatHtml(coba));
+        if (h > TINGGI_ISI && buf.length) {
+          keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+          buf = [s];
+        } else { buf = coba; }
+      }
+      if (buf.length) keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+      return keluar;
+    }
     function blokJudulBab(judul) {
       const html = '<h2 class="sepekan-judul-bab">' + esc(judul) + '</h2><div class="sepekan-garis-kuning"></div>';
       return { tipe: 'judul', html, tinggi: ukurBlok(html) };
@@ -634,7 +673,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) continue;
           const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
           blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul) });
-          blok.push(...blokParagraf(k.narasi));
+          blok.push(...blokNarasi2Kol(k.narasi));
           const fotos = (k.foto || []).filter(Boolean);
           if (fotos.length === 1) {
             const htmlFoto = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[0]) + '" alt="" /></div>';
