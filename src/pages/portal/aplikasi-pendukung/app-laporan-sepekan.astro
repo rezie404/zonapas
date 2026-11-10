@@ -1425,7 +1425,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     // ---------- Init ----------
-    window.__kelolaSetelahLogin = () => { /* aplikasi ini tidak memuat data server */ };
+    // Setelah login, #app baru terlihat — hitung ulang skala pratinjau
+    // dengan lebar wadah yang sebenarnya. Tanpa ini, sesuaikanSkala yang
+    // jalan saat init mengukur wadah tersembunyi (clientWidth 0) lalu
+    // memakai skala 1, sehingga halaman A4 794px meluber dan pratinjau
+    // terpotong kiri-kanan di HP (Nov 2026).
+    window.__kelolaSetelahLogin = () => { sesuaikanSkala(); };
     // Mode pratinjau (?pratinjau=1): sembunyikan editor + kepala halaman,
     // tampilkan hanya bar kembali + pratinjau. Mode editor: sebaliknya —
     // pratinjau TIDAK tampil di bawah form (tetap dirender tersembunyi
