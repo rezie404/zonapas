@@ -149,7 +149,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 4 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Sabtu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 4 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Sabtu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -478,6 +478,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!perHariSaja && (!mulai || !akhir || akhir < mulai)) { showStatus('Isi dulu periode yang benar (tanggal mulai s/d akhir).', false); return; }
       const tglTarget = perHariSaja ? parseTgl(hanyaTanggal) : null;
       if (perHariSaja && !tglTarget) { showStatus('Tanggal hari tidak valid.', false); return; }
+      if (perHariSaja && state.hari.some((h) => h.tanggal === hanyaTanggal && h.kunci)) { showStatus('Hari ' + labelHari(hanyaTanggal) + ' terkunci — buka kunci dulu bila mau menarik ulang hari itu.', false); return; }
       sedangTarik = true;
       if (btn) { btn.disabled = true; btn.textContent = 'Menarik berita…'; }
       showStatus(perHariSaja
@@ -518,7 +519,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           else { state.hari.push(hariBaru); state.hari.sort((x, y) => String(x.tanggal || '').localeCompare(String(y.tanggal || ''))); }
         } else {
           periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
-          state.hari = Object.keys(perHari).sort().map((k) => perHari[k]);
+          // Hari yang terkunci TIDAK ditimpa tarikan mingguan — hari fix
+          // tetap seperti apa adanya. Hanya hari terkunci yang tanggalnya
+          // masih di dalam periode ini yang dipertahankan; hari terkunci
+          // di luar periode ikut berganti saat periode diubah.
+          const terkunci = {};
+          state.hari.forEach((h) => {
+            if (h && h.kunci && h.tanggal) {
+              const d = parseTgl(h.tanggal);
+              if (d && d >= mulai && d <= akhir && d.getDay() !== 0) terkunci[h.tanggal] = h;
+            }
+          });
+          const semuaTgl = new Set(Object.keys(perHari));
+          Object.keys(terkunci).forEach((t) => semuaTgl.add(t));
+          state.hari = Array.from(semuaTgl).sort().map((k) => terkunci[k] || perHari[k]);
           const fotoBerita = artikel.filter((a) => a.image).map((a) => a.image);
           if (fotoBerita.length) {
             state.fotoPotret = fotoBerita[0];
@@ -883,41 +897,46 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const wadah = $('sp-hari-list');
       if (!wadah) return;
       wadah.innerHTML = state.hari.map((h, hi) => {
+        // Kunci hari (Nov 2026): hari yang dikunci tidak bisa diedit
+        // sembarangan dan tidak ditimpa tarikan mingguan; ketuk gembok
+        // untuk membuka kunci dan mengedit lagi.
+        const kunci = !!h.kunci;
+        const tutup = !!h.tutup;
+        const jmlKeg = h.kegiatan.length;
         const keg = h.kegiatan.map((k, ki) => {
           const fotos = k.foto.map((f, fi) => {
             if (!f) return '';
             return '<span class="relative inline-block">' +
               '<img src="' + esc(f) + '" alt="Foto kegiatan" class="h-20 w-28 rounded-lg object-cover" />' +
-              '<button type="button" data-hapus-foto="' + hi + ':' + ki + ':' + fi + '" class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[11px] font-bold text-white" aria-label="Hapus foto">×</button></span>';
+              (kunci ? '' : '<button type="button" data-hapus-foto="' + hi + ':' + ki + ':' + fi + '" class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[11px] font-bold text-white" aria-label="Hapus foto">×</button>') + '</span>';
           }).join('');
           return '<div class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">' +
             '<div class="flex items-center justify-between gap-2">' +
               '<span class="text-sm font-bold">Kegiatan ' + (ki + 1) + '</span>' +
-              '<button type="button" data-hapus-kegiatan="' + hi + ':' + ki + '" class="text-xs font-bold text-red-600 hover:underline">Hapus kegiatan</button>' +
+              (kunci ? '' : '<button type="button" data-hapus-kegiatan="' + hi + ':' + ki + '" class="text-xs font-bold text-red-600 hover:underline">Hapus kegiatan</button>') +
             '</div>' +
             '<label class="mt-2 block"><span class="block text-xs font-bold">Judul kegiatan</span>' +
-              '<input type="text" data-judul-kegiatan="' + hi + ':' + ki + '" value="' + esc(k.judul) + '" placeholder="Contoh: Apel Pagi Kanwil Ditjenpas Bengkulu" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>' +
+              '<input type="text" data-judul-kegiatan="' + hi + ':' + ki + '" value="' + esc(k.judul) + '" placeholder="Contoh: Apel Pagi Kanwil Ditjenpas Bengkulu" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"' + (kunci ? ' disabled' : '') + ' /></label>' +
             '<label class="mt-2 block"><span class="block text-xs font-bold">Narasi</span>' +
-              '<textarea rows="5" data-narasi-kegiatan="' + hi + ':' + ki + '" placeholder="Tulis narasi kegiatan…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(k.narasi) + '</textarea></label>' +
+              '<textarea rows="5" data-narasi-kegiatan="' + hi + ':' + ki + '" placeholder="Tulis narasi kegiatan…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"' + (kunci ? ' disabled' : '') + '>' + esc(k.narasi) + '</textarea></label>' +
             '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 4)</span>' +
               '<div class="mt-1 flex flex-wrap items-center gap-2">' + fotos +
-              (k.foto.filter(Boolean).length < 4 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
+              (!kunci && k.foto.filter(Boolean).length < 4 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
               '</div></div></div>';
         }).join('');
-        const tutup = !!h.tutup;
-        const jmlKeg = h.kegiatan.length;
         return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
           '<div class="flex flex-wrap items-center gap-3">' +
             '<button type="button" data-tutup-hari="' + hi + '" class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="' + (tutup ? 'Buka' : 'Tutup') + ' hari">' + (tutup ? '▸ ' : '▾ ') + jmlKeg + ' kegiatan</button>' +
             '<label class="flex-1"><span class="block text-sm font-bold">Tanggal kegiatan</span>' +
-              '<span class="mt-1 flex max-w-xs items-center gap-1"><input type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" data-tanggal-hari="' + hi + '" value="' + esc(isoKeDMY(h.tanggal)) + '" class="sp-tgl w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />' +
-              '<button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal kegiatan dari kalender">📅</button></span></label>' +
+              '<span class="mt-1 flex max-w-xs items-center gap-1"><input type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" data-tanggal-hari="' + hi + '" value="' + esc(isoKeDMY(h.tanggal)) + '" class="sp-tgl w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"' + (kunci ? ' disabled' : '') + ' />' +
+              (kunci ? '' : '<button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal kegiatan dari kalender">📅</button>') + '</span></label>' +
             '<span class="text-sm font-bold text-[#0A2540] dark:text-white">' + esc(labelHari(h.tanggal)) + '</span>' +
-            '<button type="button" data-tarik-hari="' + esc(h.tanggal) + '" class="rounded-lg bg-[#0A2540] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Hari Ini</button>' +
-            '<button type="button" data-hapus-hari="' + hi + '" class="text-xs font-bold text-red-600 hover:underline">Hapus hari</button>' +
+            (kunci ? '' : '<button type="button" data-tarik-hari="' + esc(h.tanggal) + '" class="rounded-lg bg-[#0A2540] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Hari Ini</button>') +
+            (kunci ? '' : '<button type="button" data-hapus-hari="' + hi + '" class="text-xs font-bold text-red-600 hover:underline">Hapus hari</button>') +
+            '<button type="button" data-kunci-hari="' + hi + '" class="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-bold ' + (kunci ? 'border-transparent bg-[#FACC15] text-[#0A2540]' : 'border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800') + '" aria-label="' + (kunci ? 'Buka kunci hari ini' : 'Kunci hari ini') + '">' + (kunci ? '🔒 Terkunci' : '🔓 Kunci') + '</button>' +
           '</div>' +
           '<div class="mt-3 space-y-3 sp-isi-hari' + (tutup ? ' hidden' : '') + '">' + keg + '</div>' +
-          '<button type="button" data-tambah-kegiatan="' + hi + '" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800' + (tutup ? ' hidden' : '') + '">+ Tambah Kegiatan</button>' +
+          '<button type="button" data-tambah-kegiatan="' + hi + '" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800' + ((tutup || kunci) ? ' hidden' : '') + '">+ Tambah Kegiatan</button>' +
         '</article>';
       }).join('');
     }
@@ -1607,6 +1626,23 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             }
             perbaruiTombolTutupSemua();
             renderPratinjau();
+          }
+          return;
+        }
+        const kunciHari = t.closest('[data-kunci-hari]');
+        if (kunciHari) {
+          const hi = Number(kunciHari.dataset.kunciHari);
+          const h = state.hari[hi];
+          if (h) {
+            h.kunci = !h.kunci;
+            simpanDraf();
+            // Render ulang penuh (kunci mengubah banyak kontrol sekaligus).
+            // Minimize tetap bisa dipakai pada hari terkunci (hanya tampilan).
+            renderHari();
+            renderPratinjau();
+            showStatus(h.kunci
+              ? 'Hari ' + labelHari(h.tanggal) + ' dikunci — tidak akan tertimpa tarikan mingguan. Ketuk gembok lagi untuk membuka kunci dan mengedit.'
+              : 'Kunci dibuka — hari ' + labelHari(h.tanggal) + ' bisa diedit dan ditarik ulang lagi.', true);
           }
           return;
         }
