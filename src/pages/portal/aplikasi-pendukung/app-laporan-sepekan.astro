@@ -182,6 +182,38 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   </div>
 
 
+  <!-- Modal potong foto (crop) kegiatan/sampul: muncul setelah foto dipilih -->
+  <div id="sp-modal-crop" class="fixed inset-0 z-[70] hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Potong foto">
+    <div class="mx-auto mt-8 w-full max-w-[640px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-900">
+      <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Potong Foto</h3>
+      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Seret foto untuk mengatur bingkai. Geser Zoom bila perlu, lalu ketuk "Potong &amp; Pakai".</p>
+      <div id="sp-crop-stage" class="relative mt-3 h-[52vh] max-h-[460px] touch-none select-none overflow-hidden rounded-xl bg-slate-900">
+        <img id="sp-crop-img" alt="Foto yang dipotong" class="absolute max-w-none cursor-grab" draggable="false" />
+        <div id="sp-crop-frame" class="pointer-events-none absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"></div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Rasio potongan">
+        <button type="button" data-sp-rasio="1.7" class="sp-crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">17:10 (laporan)</button>
+        <button type="button" data-sp-rasio="0" class="sp-crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">Bebas</button>
+        <button type="button" data-sp-rasio="1" class="sp-crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">1:1</button>
+        <button type="button" data-sp-rasio="1.7778" class="sp-crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">16:9</button>
+        <button type="button" data-sp-rasio="1.3333" class="sp-crop-rasio rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold">4:3</button>
+      </div>
+      <div class="mt-3 flex items-center gap-2">
+        <label for="sp-crop-zoom" class="text-xs font-bold">Zoom</label>
+        <input id="sp-crop-zoom" type="range" min="1" max="3" step="0.05" value="1" class="flex-1" />
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="sp-btn-crop-pakai" type="button" class="rounded-lg bg-[#FACC15] px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">Potong &amp; Pakai</button>
+        <button id="sp-btn-crop-batal" type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
+      </div>
+    </div>
+  </div>
+  <style>
+    #sp-crop-stage { touch-action: none; }
+    #sp-crop-img { touch-action: none; }
+    .sp-crop-rasio-aktif { background: #0A2540 !important; color: #fff !important; border-color: #0A2540 !important; }
+  </style>
+
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
   <script is:inline src="/kelola-umum.js?v=10"></script>
@@ -505,6 +537,187 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           img.src = String(reader.result);
         };
         reader.readAsDataURL(file);
+      });
+    }
+
+    // ---------- Potong foto (crop) ----------
+    // Bingkai tetap di tengah panggung; foto digeser (pan) + di-zoom supaya
+    // bagian yang diinginkan masuk bingkai. Rasio 17:10 = tampilan foto di
+    // laporan; Bebas = pakai seluruh foto tanpa dipotong.
+    let spCrop = null;
+    function spCropFrame() {
+      const st = spCrop;
+      const stage = $('sp-crop-stage');
+      const sw = stage.clientWidth, sh = stage.clientHeight;
+      const pad = 16;
+      let fw, fh;
+      if (!st.rasio) { fw = sw - pad * 2; fh = sh - pad * 2; }
+      else {
+        fw = Math.min(sw - pad * 2, (sh - pad * 2) * st.rasio);
+        fh = fw / st.rasio;
+      }
+      return { x: (sw - fw) / 2, y: (sh - fh) / 2, w: fw, h: fh };
+    }
+    function spCropSkalaDasar() {
+      const st = spCrop;
+      const fr = spCropFrame();
+      return Math.max(fr.w / st.alamiW, fr.h / st.alamiH);
+    }
+    function spCropBatasi() {
+      const st = spCrop;
+      const fr = spCropFrame();
+      const dw = st.alamiW * st.skala, dh = st.alamiH * st.skala;
+      st.imgX = Math.max(fr.x + fr.w - dw, Math.min(st.imgX, fr.x));
+      st.imgY = Math.max(fr.y + fr.h - dh, Math.min(st.imgY, fr.y));
+    }
+    function spCropTampilkan() {
+      const st = spCrop;
+      if (!st) return;
+      const fr = spCropFrame();
+      const frame = $('sp-crop-frame');
+      frame.style.left = fr.x + 'px';
+      frame.style.top = fr.y + 'px';
+      frame.style.width = fr.w + 'px';
+      frame.style.height = fr.h + 'px';
+      frame.style.display = st.rasio ? '' : 'none';
+      const dw = st.alamiW * st.skala, dh = st.alamiH * st.skala;
+      const img = $('sp-crop-img');
+      img.style.left = st.imgX + 'px';
+      img.style.top = st.imgY + 'px';
+      img.style.width = dw + 'px';
+      img.style.height = dh + 'px';
+    }
+    function spCropTengah() {
+      const st = spCrop;
+      const fr = spCropFrame();
+      const dw = st.alamiW * st.skala, dh = st.alamiH * st.skala;
+      st.imgX = fr.x + fr.w / 2 - dw / 2;
+      st.imgY = fr.y + fr.h / 2 - dh / 2;
+      spCropBatasi();
+    }
+    function spCropAturZoom(z) {
+      const st = spCrop;
+      if (!st) return;
+      const fr = spCropFrame();
+      const cx = fr.x + fr.w / 2, cy = fr.y + fr.h / 2;
+      const dwLama = st.alamiW * st.skala, dhLama = st.alamiH * st.skala;
+      const rx = (cx - st.imgX) / dwLama, ry = (cy - st.imgY) / dhLama;
+      st.skala = spCropSkalaDasar() * z;
+      const dw = st.alamiW * st.skala, dh = st.alamiH * st.skala;
+      st.imgX = cx - rx * dw;
+      st.imgY = cy - ry * dh;
+      spCropBatasi();
+      spCropTampilkan();
+    }
+    function spCropAturRasio(rasio) {
+      const st = spCrop;
+      if (!st) return;
+      st.rasio = rasio;
+      document.querySelectorAll('[data-sp-rasio]').forEach((b) => {
+        b.classList.toggle('sp-crop-rasio-aktif', parseFloat(b.getAttribute('data-sp-rasio')) === rasio);
+      });
+      st.zoom = 1;
+      $('sp-crop-zoom').value = '1';
+      st.skala = spCropSkalaDasar();
+      spCropTengah();
+      spCropTampilkan();
+    }
+    function spCropTutup() { $('sp-modal-crop').classList.add('hidden'); }
+    function spCropBatal() {
+      if (spCrop && spCrop.resolve) spCrop.resolve(null);
+      spCrop = null;
+      spCropTutup();
+    }
+    function spCropHasil(st) {
+      const maxLebar = st.maxLebar || 1000;
+      if (!st.rasio) {
+        const skala = Math.min(1, maxLebar / st.alamiW);
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(st.alamiW * skala));
+        c.height = Math.max(1, Math.round(st.alamiH * skala));
+        c.getContext('2d').drawImage(st.img, 0, 0, c.width, c.height);
+        return c.toDataURL('image/jpeg', 0.85);
+      }
+      const fr = spCropFrame();
+      const dw = st.alamiW * st.skala, dh = st.alamiH * st.skala;
+      const sx = Math.max(0, Math.round((fr.x - st.imgX) / dw * st.alamiW));
+      const sy = Math.max(0, Math.round((fr.y - st.imgY) / dh * st.alamiH));
+      let sw = Math.min(st.alamiW - sx, Math.round(fr.w / dw * st.alamiW));
+      let sh = Math.min(st.alamiH - sy, Math.round(fr.h / dh * st.alamiH));
+      sw = Math.max(1, sw); sh = Math.max(1, sh);
+      const skala = Math.min(1, maxLebar / sw);
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(sw * skala));
+      c.height = Math.max(1, Math.round(sh * skala));
+      c.getContext('2d').drawImage(st.img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.85);
+    }
+    function spCropKonfirmasi() {
+      const st = spCrop;
+      if (!st) return;
+      const hasil = spCropHasil(st);
+      if (st.resolve) st.resolve(hasil);
+      spCrop = null;
+      spCropTutup();
+    }
+    function spBukaCrop(file, maxLebar, rasioAwal) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Gagal membaca berkas.'));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Berkas bukan gambar.'));
+          img.onload = () => {
+            spCrop = {
+              img, alamiW: img.naturalWidth, alamiH: img.naturalHeight,
+              rasio: (rasioAwal === undefined ? 1.7 : rasioAwal),
+              zoom: 1, skala: 1, imgX: 0, imgY: 0,
+              maxLebar: maxLebar || 1000, resolve,
+            };
+            $('sp-crop-img').src = String(reader.result);
+            $('sp-crop-zoom').value = '1';
+            spCropAturRasio(spCrop.rasio);
+            spCrop.skala = spCropSkalaDasar();
+            spCropTengah();
+            spCropTampilkan();
+            $('sp-modal-crop').classList.remove('hidden');
+          };
+          img.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    function spCropPasangGestur() {
+      const stage = $('sp-crop-stage');
+      let seret = null;
+      stage.addEventListener('pointerdown', (e) => {
+        if (!spCrop || !spCrop.rasio) return;
+        seret = { x: e.clientX, y: e.clientY, imgX: spCrop.imgX, imgY: spCrop.imgY };
+        try { stage.setPointerCapture(e.pointerId); } catch {}
+        $('sp-crop-img').style.cursor = 'grabbing';
+      });
+      stage.addEventListener('pointermove', (e) => {
+        if (!seret || !spCrop) return;
+        spCrop.imgX = seret.imgX + (e.clientX - seret.x);
+        spCrop.imgY = seret.imgY + (e.clientY - seret.y);
+        spCropBatasi();
+        spCropTampilkan();
+      });
+      const selesai = () => {
+        seret = null;
+        const im = $('sp-crop-img');
+        if (im) im.style.cursor = 'grab';
+      };
+      stage.addEventListener('pointerup', selesai);
+      stage.addEventListener('pointercancel', selesai);
+      $('sp-crop-zoom').addEventListener('input', (e) => spCropAturZoom(parseFloat(e.target.value) || 1));
+      document.querySelectorAll('[data-sp-rasio]').forEach((b) => {
+        b.addEventListener('click', () => spCropAturRasio(parseFloat(b.getAttribute('data-sp-rasio')) || 0));
+      });
+      $('sp-btn-crop-pakai').addEventListener('click', spCropKonfirmasi);
+      $('sp-btn-crop-batal').addEventListener('click', spCropBatal);
+      $('sp-modal-crop').addEventListener('click', (e) => {
+        if (e.target && !e.target.closest('#sp-modal-crop > div')) spCropBatal();
       });
     }
 
@@ -951,18 +1164,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         el.addEventListener('input', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
         el.addEventListener('change', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
       });
+      // Potong foto (crop)
+      spCropPasangGestur();
       // Foto sampul
       $('sp-input-potret').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        try { state.fotoPotret = await berkasKeDataUrl(f, 1200); $('sp-foto-potret').src = state.fotoPotret; simpanDraf(); renderPratinjau(); showStatus('Foto 1 sampul diganti.', true); }
+        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoPotret = url; $('sp-foto-potret').src = state.fotoPotret; simpanDraf(); renderPratinjau(); showStatus('Foto 1 sampul diganti.', true); }
         catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
         e.target.value = '';
       });
       $('sp-input-lapangan').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        try { state.fotoLapangan = await berkasKeDataUrl(f, 1200); $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); showStatus('Foto 2 sampul diganti.', true); }
+        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoLapangan = url; $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); showStatus('Foto 2 sampul diganti.', true); }
         catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
         e.target.value = '';
       });
@@ -996,7 +1211,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const [hi, ki] = t.dataset.tambahFoto.split(':').map(Number);
           const f = t.files && t.files[0];
           if (!f) return;
-          try { const url = await berkasKeDataUrl(f, 1000); state.hari[hi].kegiatan[ki].foto.push(url); renderHari(); simpanDraf(); renderPratinjau(); }
+          try { const url = await spBukaCrop(f, 1000, 1.7); if (!url) { t.value = ''; return; } state.hari[hi].kegiatan[ki].foto.push(url); renderHari(); simpanDraf(); renderPratinjau(); }
           catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
           t.value = '';
           return;
