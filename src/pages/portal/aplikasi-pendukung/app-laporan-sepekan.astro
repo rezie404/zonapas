@@ -1182,11 +1182,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const berikut = blok[i + 1];
         // Bila blok pertama sebuah grup kegiatan tidak muat bersama
         // seluruh grupnya di sisa halaman, pindahkan seluruh grup ke
-        // halaman baru. Kegiatan yang lebih tinggi dari 1 halaman tetap
-        // mengalir (tidak bisa dihindari), tapi mulai dari atas halaman.
+        // Aturan 1 kegiatan = 1 halaman (Nov 2026, atas permintaan Bos
+        // Besar): tiap kegiatan (grup 'keg-...') SELALU mulai di halaman
+        // baru bila halaman saat ini sudah terisi — walau muat di sisa
+        // ruang — supaya judul, foto, dan narasi satu kegiatan tidak
+        // berbagi halaman dengan kegiatan lain. Grup bab lain tetap
+        // memakai aturan muat-bersama. Kegiatan yang lebih tinggi dari
+        // 1 halaman tetap mengalir (tidak bisa dihindari), tapi mulai
+        // dari atas halaman.
         if (b.grup && !grupMulai.has(b.grup)) {
           grupMulai.add(b.grup);
-          if (kini.length && tinggi + totalGrup[b.grup] > TINGGI_ISI) {
+          const adalahKegiatan = String(b.grup).indexOf('keg-') === 0;
+          if (kini.length && (adalahKegiatan || tinggi + totalGrup[b.grup] > TINGGI_ISI)) {
             halaman.push(kini);
             kini = [];
             tinggi = 0;
