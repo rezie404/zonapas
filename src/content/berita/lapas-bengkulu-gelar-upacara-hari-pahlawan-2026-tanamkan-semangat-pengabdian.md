@@ -14,8 +14,7 @@ upt: "Lapas Kelas IIA Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIlsJt66Swe83HBNtm3Hzmf6Dhgj2IuAnOEwbXhzsOf1aKxm37T=s96-c"
 source: "zonapas"
 ---
-
-Bengkulu – Dalam rangka mengenang jasa dan pengorbanan para
+**Bengkulu** – Dalam rangka mengenang jasa dan pengorbanan para
 pahlawan bangsa sekaligus menumbuhkan semangat nasionalisme dan pengabdian,
 Lembaga Pemasyarakatan (Lapas) Kelas IIA Bengkulu menyelenggarakan Upacara
 Peringatan Hari Pahlawan Tahun 2026, Selasa (10/11/2026).

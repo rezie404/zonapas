@@ -13,8 +13,7 @@ breakingSince: "2026-11-09T09:25:27.752Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 ---
-
-Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, menggelar rapat perdana bersama jajaran Bidang Pelayanan dan Pembinaan. Kegiatan yang dilaksanakan pada Senin (09/11/2026) bertempat di Ruang Teleconference Kanwil Ditjenpas Bengkulu ini menjadi bagian dari upaya konsolidasi serta penyelarasan pelaksanaan tugas dan fungsi dengan arah kebijakan pimpinan dan prioritas Kementerian Imigrasi dan Pemasyarakatan.  
+**Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, menggelar rapat perdana bersama jajaran Bidang Pelayanan dan Pembinaan. Kegiatan yang dilaksanakan pada Senin (09/11/2026) bertempat di Ruang Teleconference Kanwil Ditjenpas Bengkulu ini menjadi bagian dari upaya konsolidasi serta penyelarasan pelaksanaan tugas dan fungsi dengan arah kebijakan pimpinan dan prioritas Kementerian Imigrasi dan Pemasyarakatan.  
 
 Rapat tersebut diikuti langsung oleh Kepala Bidang Pelayanan dan Pembinaan beserta seluruh pejabat dan pegawai di lingkungan Bidang Pelayanan dan Pembinaan. Dalam kesempatan tersebut, Kakanwil Ditjenpas Bengkulu meminta pemaparan menyeluruh mengenai kondisi faktual serta evaluasi kinerja pada setiap Unit Pelaksana Teknis (UPT) di wilayah Bengkulu.  
 

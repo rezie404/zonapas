@@ -13,8 +13,7 @@ upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 jurnalpas_id: 145
 ---
-
-Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi pada Senin (2/11). Apel dipimpin oleh Kepala Bagian Tata Usaha, Sudirwan, yang diikuti oleh jajaran pegawai di lingkungan Kanwil Ditjenpas Bengkulu.
+**Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi pada Senin (2/11). Apel dipimpin oleh Kepala Bagian Tata Usaha, Sudirwan, yang diikuti oleh jajaran pegawai di lingkungan Kanwil Ditjenpas Bengkulu.
 
 Dalam arahannya, Kabag Tata Usaha mengingatkan seluruh pegawai untuk senantiasa menjaga kedisiplinan, khususnya dalam mematuhi waktu kerja dan memastikan kelengkapan atribut pakaian dinas sesuai ketentuan. Hal tersebut merupakan bentuk tanggung jawab serta cerminan profesionalisme sebagai aparatur negara.
 

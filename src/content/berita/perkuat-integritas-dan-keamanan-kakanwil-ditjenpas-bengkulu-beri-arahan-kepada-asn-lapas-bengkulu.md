@@ -15,8 +15,7 @@ authorImage: "https://lh3.googleusercontent.com/a-/ALV-UjUE1rW_4pzQCts6CW1cLwLfU
 source: "zonapas"
 jurnalpas_id: 257
 ---
-
-Bengkulu – Penguatan kinerja, integritas, dan
+**Bengkulu** – Penguatan kinerja, integritas, dan
 profesionalisme aparatur menjadi perhatian utama dalam kunjungan kerja Kepala
 Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, ke Lembaga
 Pemasyarakatan (Lapas) Kelas IIA Bengkulu, Selasa (10/11/2026). Dalam

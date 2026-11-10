@@ -13,8 +13,7 @@ upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 jurnalpas_id: 150
 ---
-
-Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Zoom Meeting Evaluasi dan Penguatan Tugas dan Fungsi Pengamanan yang diselenggarakan oleh Direktorat Pengamanan dan Intelijen. Kegiatan ini dipimpin langsung oleh Direktur Pengamanan dan Intelijen sebagai bagian dari upaya meningkatkan kualitas pelaksanaan tugas pengamanan di lingkungan pemasyarakatan.
+**Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Zoom Meeting Evaluasi dan Penguatan Tugas dan Fungsi Pengamanan yang diselenggarakan oleh Direktorat Pengamanan dan Intelijen. Kegiatan ini dipimpin langsung oleh Direktur Pengamanan dan Intelijen sebagai bagian dari upaya meningkatkan kualitas pelaksanaan tugas pengamanan di lingkungan pemasyarakatan.
 
 
 Dalam kegiatan tersebut, dilaksanakan evaluasi terhadap pelaksanaan tugas dan fungsi pengamanan sekaligus penguatan arahan terkait pentingnya meningkatkan kewaspadaan, pengawasan, serta kesiapsiagaan jajaran dalam mengantisipasi potensi gangguan keamanan dan ketertiban. Penguatan ini menjadi momentum untuk menyamakan persepsi serta memastikan pelaksanaan pengamanan berjalan sesuai dengan ketentuan dan prosedur yang berlaku.

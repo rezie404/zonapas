@@ -14,8 +14,7 @@ upt: "Bapas Kelas I Bengkulu"
 source: "zonapas"
 jurnalpas_id: 245
 ---
-
-Bengkulu— Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, menyambangi Kantor Balai Pemasyarakatan (Bapas) Kelas I Bengkulu untuk melaksanakan kunjungan kerja serta memberikan pengarahan langsung kepada seluruh jajaran pegawai. Agenda ini bertujuan mengokohkan struktur organisasi sekaligus memastikan kesiapan Bapas dalam mengantisipasi dinamika sistem pemasyarakatan di tengah era pemberlakuan KUHP dan KUHAP yang baru.  
+**Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu, Masjuno, menyambangi Kantor Balai Pemasyarakatan (Bapas) Kelas I Bengkulu untuk melaksanakan kunjungan kerja serta memberikan pengarahan langsung kepada seluruh jajaran pegawai. Agenda ini bertujuan mengokohkan struktur organisasi sekaligus memastikan kesiapan Bapas dalam mengantisipasi dinamika sistem pemasyarakatan di tengah era pemberlakuan KUHP dan KUHAP yang baru.  
 
 Kedatangan Kakanwil Masjuno bersama tim disambut hangat oleh Kepala Bapas Kelas I Bengkulu, Aidil Jumidi, beserta jajarannya. Dalam sesi pengarahan, Masjuno menguraikan analisis strategis yang menempatkan Bapas sebagai garda terdepan pembimbingan.  
 

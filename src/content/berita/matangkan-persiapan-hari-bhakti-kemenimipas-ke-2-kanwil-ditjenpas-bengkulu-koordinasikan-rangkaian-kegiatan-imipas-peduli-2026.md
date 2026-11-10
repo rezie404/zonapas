@@ -14,8 +14,7 @@ upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 jurnalpas_id: 227
 ---
-
-Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti koordinasi secara daring terkait perencanaan rangkaian kegiatan Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kamis (5/11). Kegiatan ini membahas persiapan pelaksanaan program dan kegiatan sosial yang akan dilaksanakan di lingkungan wilayah Bengkulu.
+**Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti koordinasi secara daring terkait perencanaan rangkaian kegiatan Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kamis (5/11). Kegiatan ini membahas persiapan pelaksanaan program dan kegiatan sosial yang akan dilaksanakan di lingkungan wilayah Bengkulu.
 
 Dalam pembahasan tersebut, salah satu agenda utama yang menjadi perhatian adalah pelaksanaan IMPAS PEDULI 2026 tingkat wilayah pada 2–6 November 2026. Rangkaian kegiatan yang direncanakan meliputi aksi bersih lingkungan kantor, pemberian bantuan sosial kepada masyarakat dan Warga Binaan Pemasyarakatan, serta bantuan bagi pegawai dan keluarga yang terdampak kebakaran hutan dan lahan maupun masyarakat yang mengalami kekeringan dan kekurangan air bersih.
 

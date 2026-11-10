@@ -15,8 +15,7 @@ authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEEL
 source: "zonapas"
 jurnalpas_id: 235
 ---
-
-Bengkulu – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan kebersihan lingkungan kantor pada Jumat (6/11). Kegiatan ini diikuti langsung oleh Kepala Kantor Wilayah, Masjuno, bersama jajaran pegawai sebagai bentuk kepedulian terhadap kebersihan dan kenyamanan lingkungan kerja.
+**Bengkulu** – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan kebersihan lingkungan kantor pada Jumat (6/11). Kegiatan ini diikuti langsung oleh Kepala Kantor Wilayah, Masjuno, bersama jajaran pegawai sebagai bentuk kepedulian terhadap kebersihan dan kenyamanan lingkungan kerja.
 
 Dengan mengenakan pakaian olahraga dan membawa peralatan kebersihan masing-masing, Masjuno bersama seluruh jajaran bergotong royong membersihkan area lingkungan kantor. Kebersamaan ini mencerminkan semangat kepedulian, tanggung jawab, serta partisipasi aktif seluruh pegawai dalam menjaga lingkungan kerja.
 

@@ -13,8 +13,7 @@ breakingSince: "2026-11-10T03:13:24.953Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 ---
-
-Bengkulu – Dalam rangka memperingati Hari Pahlawan Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan upacara peringatan Hari Pahlawan pada Selasa (10/11/2026), bertempat di halaman kantor Kanwil Ditjenpas Bengkulu. Upacara dipimpin langsung oleh Kepala Kantor Wilayah (Kakanwil) Ditjenpas Bengkulu, Bapak Masjuno, dan diikuti oleh seluruh jajaran pegawai dengan penuh khidmat.
+**Bengkulu** – Dalam rangka memperingati Hari Pahlawan Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan upacara peringatan Hari Pahlawan pada Selasa (10/11/2026), bertempat di halaman kantor Kanwil Ditjenpas Bengkulu. Upacara dipimpin langsung oleh Kepala Kantor Wilayah (Kakanwil) Ditjenpas Bengkulu, Bapak Masjuno, dan diikuti oleh seluruh jajaran pegawai dengan penuh khidmat.
 
 Dalam amanatnya, Kakanwil Masjuno menegaskan pentingnya melanjutkan perjuangan para pahlawan dengan mengimplementasikan nilai-nilai kepahlawanan dalam kehidupan sehari-hari, khususnya melalui pelaksanaan tugas dan tanggung jawab sebagai aparatur negara. Mengusung semangat “Pahlawanku Teladanku, Melangkah Bersama Melanjutkan Perjuangan,” seluruh jajaran diajak untuk menjadikan perjuangan para pahlawan sebagai teladan dalam bekerja, menjaga integritas, meningkatkan kedisiplinan, serta memberikan kontribusi nyata bagi bangsa dan negara.
 

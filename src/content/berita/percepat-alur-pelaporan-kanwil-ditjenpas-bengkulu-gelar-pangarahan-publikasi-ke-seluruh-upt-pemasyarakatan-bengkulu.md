@@ -13,8 +13,7 @@ upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 jurnalpas_id: 205
 ---
-
-Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengadakan pengarahan publikasi untuk seluruh Unit Pelaksana Teknis (UPT) Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu. Kegiatan ini ditujukan sebagai upaya mempercepat alur pelaporan serta mengoptimalkan koordinasi dan standarisasi kehumasan di lingkungan Pemasyarakatan.  
+**Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengadakan pengarahan publikasi untuk seluruh Unit Pelaksana Teknis (UPT) Pemasyarakatan di lingkungan Kanwil Ditjenpas Bengkulu. Kegiatan ini ditujukan sebagai upaya mempercepat alur pelaporan serta mengoptimalkan koordinasi dan standarisasi kehumasan di lingkungan Pemasyarakatan.  
 
 Pengarahan ini bertujuan memberikan pemahaman kepada jajaran UPT mengenai tata cara dan percepatan alur pelaporan sesuai dengan ketentuan terbaru. Melalui kegiatan ini, setiap UPT diharapkan dapat memahami substansi arahan serta menindaklanjutinya guna mewujudkan publikasi yang cepat, akurat, dan transparan.  
 

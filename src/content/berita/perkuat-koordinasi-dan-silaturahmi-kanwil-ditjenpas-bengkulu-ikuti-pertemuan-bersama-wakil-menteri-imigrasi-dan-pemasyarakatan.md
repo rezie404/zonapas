@@ -13,8 +13,7 @@ upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 jurnalpas_id: 163
 ---
-
-Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri secara langsung pertemuan dan silaturahmi bersama Wakil Menteri Imigrasi dan Pemasyarakatan yang dilaksanakan di Ruang Rapat Sahardjo Lantai 2, Direktorat Jenderal Pemasyarakatan, Jakarta Pusat, Selasa (3/11). 
+**Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri secara langsung pertemuan dan silaturahmi bersama Wakil Menteri Imigrasi dan Pemasyarakatan yang dilaksanakan di Ruang Rapat Sahardjo Lantai 2, Direktorat Jenderal Pemasyarakatan, Jakarta Pusat, Selasa (3/11). 
 
 Pertemuan tersebut menjadi wadah untuk mempererat silaturahmi serta memperkuat koordinasi antara pimpinan pusat dan jajaran pemasyarakatan di wilayah. Kegiatan ini juga diikuti oleh para Kepala Unit Pelaksana Teknis (UPT) Pemasyarakatan melalui Zoom Meeting.
 

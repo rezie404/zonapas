@@ -13,8 +13,7 @@ upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
 jurnalpas_id: 122
 ---
-
-Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan rapat koordinasi Kepala Satuan Kerja/Kepala Unit Pelaksana Teknis (UPT) Pemasyarakatan pada Sabtu (31/10). Kegiatan ini membahas penyamaan arah kebijakan, evaluasi kondisi terkini, serta penguatan pola kerja seluruh satuan kerja berdasarkan analisis data per 29 Oktober 2026.
+**Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan rapat koordinasi Kepala Satuan Kerja/Kepala Unit Pelaksana Teknis (UPT) Pemasyarakatan pada Sabtu (31/10). Kegiatan ini membahas penyamaan arah kebijakan, evaluasi kondisi terkini, serta penguatan pola kerja seluruh satuan kerja berdasarkan analisis data per 29 Oktober 2026.
 
 Dalam pembahasan, sejumlah isu strategis menjadi perhatian bersama, mulai dari kondisi hunian yang melebihi kapasitas di beberapa UPT, keamanan dan ketertiban, percepatan usulan integrasi warga binaan, hingga evaluasi penyerapan anggaran dan capaian kinerja. Selain itu, kesiapan pelaksanaan Program Aksi Kementerian Imigrasi dan Pemasyarakatan Tahun 2026 turut menjadi bagian penting dalam menentukan prioritas kerja ke depan.
 

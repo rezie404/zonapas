@@ -15,8 +15,7 @@ authorImage: "https://lh3.googleusercontent.com/a-/ALV-UjUE1rW_4pzQCts6CW1cLwLfU
 source: "zonapas"
 jurnalpas_id: 255
 ---
-
-Bengkulu – Kepala Kantor Wilayah Direktorat Jenderal
+**Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal
 Pemasyarakatan Bengkulu, Masjuno, melakukan kunjungan kerja ke Lembaga
 Pemasyarakatan (Lapas) Kelas IIA Bengkulu, Selasa (10/11). Kedatangannya
 disambut langsung oleh Kepala Lapas Kelas IIA Bengkulu, Julianto Budhi
