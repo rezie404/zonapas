@@ -1,0 +1,729 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../../../data/site';
+import { AUTHORS } from '../../../data/authors';
+
+const categoryColors = Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color]));
+const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.name, { role: a.role, bio: a.bio }]));
+---
+
+<BaseLayout
+  title="Laporan Sepekan"
+  description="Susun Laporan Kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu per pekan dan unduh sebagai PDF — untuk Administrator dan akun yang ditunjuk."
+>
+  <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
+
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Laporan Sepekan</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Laporan Kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu per pekan. Isi periode, ganti foto sampul, tulis isi laporan, lalu unduh sebagai PDF mengikuti template laporan sepekan.
+      </p>
+    </div>
+
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk membuka Laporan Sepekan</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator — atau akun Google Penulis/Penyunting yang sudah ditunjuk Administrator.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
+    </section>
+
+    <!-- Akses ditolak -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Aplikasi Pendukung.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
+    </section>
+
+    <div id="app" class="hidden">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <span class="flex-1"></span>
+        <a href="/portal/aplikasi-pendukung/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Aplikasi Pendukung</a>
+        <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+      </div>
+
+      <!-- Periode -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Periode laporan">
+        <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Periode Laporan</h2>
+        <div class="mt-3 flex flex-wrap items-end gap-3">
+          <label class="min-w-0 flex-1">
+            <span class="block text-sm font-bold">Tanggal mulai</span>
+            <input id="sp-mulai" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+          <label class="min-w-0 flex-1">
+            <span class="block text-sm font-bold">Tanggal akhir</span>
+            <input id="sp-akhir" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+          <label class="min-w-0 flex-1">
+            <span class="block text-sm font-bold">Tanggal tanda tangan</span>
+            <input id="sp-ttd" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+        </div>
+        <p id="sp-periode-teks" class="mt-3 text-sm font-bold text-[#0A2540] dark:text-white"></p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Periode dan tanggal tanda tangan tampil di sampul dan di bagian penutup laporan.</p>
+      </section>
+
+      <!-- Foto sampul -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Foto sampul">
+        <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Foto Sampul</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Dua foto di sampul laporan. Foto 1 (potret) di segi enam besar kiri, Foto 2 (kegiatan) di segi enam kanan. Ketuk foto untuk menggantinya.</p>
+        <div class="mt-3 grid gap-4 sm:grid-cols-2">
+          <div>
+            <p class="mb-1 text-sm font-bold">Foto 1 — Potret Kakanwil</p>
+            <label class="block cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-slate-300 hover:border-[#0A2540] dark:border-slate-700">
+              <img id="sp-foto-potret" src="/images/laporan-sepekan-sampul-potret.png" alt="Foto sampul potret Kakanwil" class="aspect-[4/3] w-full bg-[#FFCC00] object-cover object-top" />
+              <input id="sp-input-potret" type="file" accept="image/*" class="hidden" />
+            </label>
+            <button id="sp-reset-potret" type="button" class="mt-2 text-xs font-bold text-[#0A2540] underline dark:text-white">Kembalikan foto template</button>
+          </div>
+          <div>
+            <p class="mb-1 text-sm font-bold">Foto 2 — Kegiatan</p>
+            <label class="block cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-slate-300 hover:border-[#0A2540] dark:border-slate-700">
+              <img id="sp-foto-lapangan" src="/images/laporan-sepekan-sampul-lapangan.jpg" alt="Foto sampul kegiatan" class="aspect-[4/3] w-full bg-[#FFCC00] object-cover object-top" />
+              <input id="sp-input-lapangan" type="file" accept="image/*" class="hidden" />
+            </label>
+            <button id="sp-reset-lapangan" type="button" class="mt-2 text-xs font-bold text-[#0A2540] underline dark:text-white">Kembalikan foto template</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Isi laporan -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Isi laporan">
+        <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Isi Laporan</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Isi sudah terisi mengikuti template laporan sepekan — ubah seperlunya. Pisahkan paragraf dengan satu baris kosong.</p>
+        <div class="mt-3 space-y-4">
+          <label class="block">
+            <span class="block text-sm font-bold">Latar Belakang</span>
+            <textarea id="sp-latar" rows="7" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-bold">Maksud &amp; Tujuan</span>
+            <textarea id="sp-maksud" rows="5" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-bold">Ruang Lingkup</span>
+            <textarea id="sp-ruang" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-bold">Peserta</span>
+            <textarea id="sp-peserta" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-bold">Tindak Lanjut (satu butir per baris)</span>
+            <textarea id="sp-tindak" rows="8" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-bold">Penutup</span>
+            <textarea id="sp-penutup" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </label>
+        </div>
+      </section>
+
+      <!-- Hasil per hari -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Hasil per hari">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Hasil yang Dicapai (per Hari)</h2>
+          <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
+        </div>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 2 foto. Hari pertama sudah terisi contoh dari template — ubah atau hapus seperlunya.</p>
+        <div id="sp-hari-list" class="mt-4 space-y-5"></div>
+      </section>
+
+      <!-- Aksi -->
+      <section class="mt-6 flex flex-wrap items-center gap-3">
+        <button id="sp-unduh" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">⬇ Unduh PDF</button>
+        <button id="sp-lihat" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Lihat Pratinjau ↓</button>
+        <span class="flex-1"></span>
+        <button id="sp-reset-template" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Template</button>
+        <button id="sp-bersihkan" type="button" class="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-200 dark:hover:bg-red-900/20">Bersihkan Draf</button>
+      </section>
+      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di peramban ini.</p>
+
+      <!-- Pratinjau -->
+      <section id="sp-pratinjau-bagian" class="mt-8" aria-label="Pratinjau laporan">
+        <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Pratinjau Laporan</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tampilan di bawah ini sama dengan isi PDF yang diunduh (ukuran A4 per halaman).</p>
+        <div id="sp-pratinjau" class="mt-4 flex flex-col items-center gap-6"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ====== Gaya template laporan (WARNA HEX — JANGAN pakai utilitas Tailwind di sini:
+       html2canvas tidak memahami warna oklch Tailwind 4, jadi seluruh gaya halaman
+       laporan ditulis manual dengan hex) ====== -->
+  <style>
+    .sepekan-bungkus { position: relative; overflow: hidden; }
+    .sepekan-halaman {
+      width: 794px; height: 1123px; position: relative; overflow: hidden;
+      background: #ffffff; color: #0A2540;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      box-shadow: 0 4px 24px rgba(5, 21, 46, 0.25);
+      flex: none; transform-origin: top left;
+    }
+    .sepekan-isi { padding: 48px 56px 48px 56px; height: 1123px; box-sizing: border-box; }
+    .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
+    .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
+    .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; }
+    .sepekan-butir { font-size: 15px; line-height: 1.6; text-align: justify; margin: 0 0 10px 0; color: #16233D; padding-left: 26px; position: relative; }
+    .sepekan-butir .nomor { position: absolute; left: 0; top: 0; font-weight: 800; color: #0A2540; }
+    .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; }
+    .sepekan-tanggal-hari { font-size: 16px; font-weight: 800; color: #0A2540; margin: 0 0 14px 0; letter-spacing: 0.3px; }
+    .sepekan-judul-kegiatan { font-size: 17px; font-weight: 800; line-height: 1.35; color: #0A2540; text-transform: uppercase; margin: 0 0 10px 0; padding-left: 12px; border-left: 6px solid #FFCC00; }
+    .sepekan-foto-baris { display: flex; gap: 10px; margin: 0 0 14px 0; }
+    .sepekan-foto-baris img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sepekan-foto-satu { flex: 1 1 0; height: 230px; overflow: hidden; border-radius: 4px; }
+    .sepekan-foto-dua { flex: 1 1 0; height: 190px; overflow: hidden; border-radius: 4px; }
+    .sepekan-foto-tunggal { height: 250px; overflow: hidden; border-radius: 4px; margin: 0 0 14px 0; }
+    .sepekan-ttd { margin-top: 26px; text-align: right; font-size: 15px; line-height: 1.5; color: #16233D; }
+    .sepekan-ttd .nama { font-weight: 800; text-transform: uppercase; margin-top: 64px; }
+    /* Sampul */
+    .sepekan-sampul { position: absolute; inset: 0; background: #F4F8FE; overflow: hidden; }
+    .sepekan-sampul-garis { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, transparent 0 90px, rgba(30, 64, 175, 0.05) 90px 96px); }
+    .sepekan-sampul-kepala { position: absolute; top: 34px; left: 44px; right: 44px; display: flex; align-items: center; gap: 14px; }
+    .sepekan-sampul-kepala img { width: 74px; height: 74px; object-fit: contain; }
+    .sepekan-sampul-kepala .t1 { font-size: 26px; font-weight: 800; color: #0A2540; letter-spacing: 1px; line-height: 1.1; }
+    .sepekan-sampul-kepala .t2 { font-size: 22px; font-weight: 800; line-height: 1.1; }
+    .sepekan-sampul-kepala .t2 .biru { color: #1E40AF; }
+    .sepekan-sampul-kepala .t2 .kuning { color: #FFCC00; background: #0A2540; padding: 1px 8px; border-radius: 3px; }
+    .sepekan-sampul-judul { position: absolute; top: 170px; left: 0; right: 0; text-align: center; }
+    .sepekan-sampul-judul .besar { font-size: 76px; font-weight: 800; line-height: 1.02; letter-spacing: 1px; color: #111111; }
+    .sepekan-sampul-judul .besar .biru { color: #1E40AF; }
+    .sepekan-sampul-judul .kecil { font-size: 25px; font-weight: 800; font-style: italic; line-height: 1.25; color: #111111; margin-top: 12px; }
+    .sepekan-sampul-periode { position: absolute; top: 430px; right: 44px; background: #1E40AF; color: #FFCC00; font-size: 26px; font-weight: 800; letter-spacing: 1px; padding: 12px 26px; clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
+    .sepekan-hex-luar { position: absolute; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+    .sepekan-hex-tengah { position: absolute; inset: 10px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: #FFCC00; }
+    .sepekan-hex-dalam { position: absolute; inset: 10px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); overflow: hidden; background: #FFCC00; }
+    .sepekan-hex-dalam img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+    .sepekan-sampul-kaki { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #0A2540; }
+    .sepekan-sampul-kaki::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: #FFCC00; }
+    /* Pengukur tinggi blok (tersembunyi, lebar sama dengan area isi) */
+    #sp-ukur { position: absolute; left: -9999px; top: 0; width: 682px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
+  <script is:inline src="/kelola-umum.js?v=8"></script>
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const HARI_NAMA = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+    const BULAN_NAMA = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+    const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    // ---------- Tanggal ----------
+    function parseTgl(str) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+      if (!m) return null;
+      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+    function labelHari(str) {
+      const d = parseTgl(str);
+      if (!d) return '';
+      return HARI_NAMA[d.getDay()] + ', ' + String(d.getDate()).padStart(2, '0') + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
+    }
+    function teksPeriode() {
+      const a = parseTgl(state.mulai), b = parseTgl(state.akhir);
+      if (!a || !b) return '';
+      const tgl = (d) => String(d.getDate()).padStart(2, '0');
+      if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) {
+        return tgl(a) + ' – ' + tgl(b) + ' ' + BULAN_NAMA[b.getMonth()] + ' ' + b.getFullYear();
+      }
+      if (a.getFullYear() === b.getFullYear()) {
+        return tgl(a) + ' ' + BULAN_NAMA[a.getMonth()] + ' – ' + tgl(b) + ' ' + BULAN_NAMA[b.getMonth()] + ' ' + b.getFullYear();
+      }
+      return tgl(a) + ' ' + BULAN_NAMA[a.getMonth()] + ' ' + a.getFullYear() + ' – ' + tgl(b) + ' ' + BULAN_NAMA[b.getMonth()] + ' ' + b.getFullYear();
+    }
+    function namaBerkas() {
+      const a = parseTgl(state.mulai), b = parseTgl(state.akhir);
+      const fmt = (d) => String(d.getDate()).padStart(2, '0') + '-' + BULAN_PENDEK[d.getMonth()] + '-' + d.getFullYear();
+      const per = (a && b) ? '(' + fmt(a) + '_sd_' + fmt(b) + ')' : '';
+      return 'Laporan_Kegiatan_Kakanwil_' + per + '.pdf';
+    }
+    function tglTtdPanjang() {
+      const d = parseTgl(state.ttd);
+      if (!d) return '';
+      return 'Bengkulu, ' + String(d.getDate()).padStart(2, '0') + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    // ---------- Template bawaan (dari PDF laporan 02–07 Nov 2026) ----------
+    const FOTO_POTRET_TEMPLATE = '/images/laporan-sepekan-sampul-potret.png';
+    const FOTO_LAPANGAN_TEMPLATE = '/images/laporan-sepekan-sampul-lapangan.jpg';
+    const TEMPLATE = {
+      mulai: '2026-11-02', akhir: '2026-11-07', ttd: '2026-11-07',
+      fotoPotret: FOTO_POTRET_TEMPLATE, fotoLapangan: FOTO_LAPANGAN_TEMPLATE,
+      latar: 'Kantor Wilayah Direktorat Jenderal Pemasyarakatan (Kanwil Ditjenpas) Bengkulu adalah salah satu unit kerja dari Direktorat Jenderal Pemasyarakatan yang berada di bawah Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia.\n\nKanwil Ditjenpas Bengkulu memiliki tugas penting dalam pengelolaan dan pembinaan terhadap kegiatan yang berhubungan dengan sistem Pemasyarakatan di wilayah Provinsi Bengkulu. Dalam rangka memastikan kelancaran operasional dan mencapai tujuan strategis Ditjenpas, Kepala Kantor Wilayah Ditjenpas Bengkulu melakukan serangkaian kegiatan yang meliputi pemantauan, evaluasi, pembinaan, serta koordinasi dengan pihak terkait baik di tingkat daerah maupun pusat.\n\nDalam rangka melaksanakan fungsi pembinaan, pengawasan, serta koordinasi terhadap Unit Pelaksana Teknis (UPT) Pemasyarakatan di wilayah Bengkulu, Kepala Kantor Wilayah Ditjenpas Bengkulu beserta jajaran secara konsisten menjalankan beberapa agenda kegiatan. Pada pekan pertama bulan November 2026, sejumlah kegiatan dilaksanakan meliputi penguatan keamanan, pembinaan kepegawaian, peningkatan layanan kesehatan, serta pendampingan kunjungan kerja pejabat pusat. Seluruh rangkaian kegiatan ini merupakan bagian dari komitmen dalam mewujudkan pemasyarakatan yang aman, tertib, profesional, humanis, serta berorientasi pada pelayanan publik yang berkualitas.\n\nLaporan ini diharapkan dapat menjadi bahan evaluasi dalam rangka perencanaan kegiatan selanjutnya serta sebagai bentuk transparansi kepada seluruh pihak yang berkepentingan terhadap pengelolaan Pemasyarakatan di wilayah Bengkulu.',
+      maksud: 'Kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu dalam sepekan bertujuan untuk memastikan bahwa seluruh kegiatan operasional dan administratif di lingkungan pemasyarakatan di wilayah Bengkulu berjalan sesuai dengan peraturan perundang-undangan yang berlaku. Selain itu, kegiatan ini juga bertujuan untuk meningkatkan pelayanan kepada masyarakat dan klien pemasyarakatan serta mendukung pencapaian visi dan misi Direktorat Jenderal Pemasyarakatan.\n\nKegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu dalam sepekan memiliki tujuan yang menyeluruh untuk memperkuat sistem pemasyarakatan yang lebih transparan, akuntabel, dan berorientasi pada pembinaan yang efektif.',
+      ruang: 'Ruang lingkup kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu dalam sepekan melibatkan berbagai aspek operasional, koordinasi, pengawasan, serta perencanaan yang mendalam untuk meningkatkan efektivitas dan kualitas layanan dalam sistem Pemasyarakatan di wilayah Bengkulu.',
+      peserta: 'Peserta dalam kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu melibatkan berbagai pihak yang berkolaborasi untuk mendukung efektivitas dan keberhasilan sistem Pemasyarakatan. Selain pejabat struktural dan Pegawai Kantor Wilayah Ditjenpas, keterlibatan stakeholder terkait, UPT Pemasyarakatan, serta masyarakat juga penting untuk memastikan bahwa tujuan Pemasyarakatan tercapai secara menyeluruh.',
+      tindak: [
+        'Memperkuat budaya disiplin, integritas, dan profesionalisme pegawai melalui tindak lanjut arahan pimpinan serta pengawasan ketertiban dan kelengkapan atribut kedinasan secara konsisten di lingkungan Kanwil Ditjenpas Bengkulu.',
+        'Mengoptimalkan hasil evaluasi dan penguatan tugas pengamanan melalui peningkatan kewaspadaan, kepatuhan terhadap prosedur, serta pengawasan berkelanjutan guna mewujudkan situasi Pemasyarakatan yang aman dan kondusif.',
+        'Menindaklanjuti hasil koordinasi dan arahan pimpinan Kementerian Imigrasi dan Pemasyarakatan sebagai upaya memperkuat sinergi, komunikasi, serta keselarasan pelaksanaan kebijakan di lingkungan Pemasyarakatan.',
+        'Mengawal pelaksanaan pemberian hak integrasi dan remisi bagi Warga Binaan melalui pemantauan proses pengusulan serta pemenuhan persyaratan administratif dan substantif sesuai dengan ketentuan yang berlaku.',
+        'Meningkatkan efektivitas komunikasi publik melalui optimalisasi alur pelaporan dan publikasi seluruh UPT agar penyampaian informasi kegiatan Pemasyarakatan berlangsung secara tertib, akurat, dan tepat waktu.',
+        'Memperkuat koordinasi dan kolaborasi antarinstansi dalam mendukung pelaksanaan tugas pembimbingan kemasyarakatan serta meningkatkan kompetensi dan sinergi petugas melalui pengembangan program Duta Kerja.',
+        'Mengoptimalkan persiapan dan pelaksanaan rangkaian Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, termasuk kegiatan aksi bersih dan Impas Peduli, melalui koordinasi serta keterlibatan aktif seluruh jajaran.',
+        'Mengawal hasil penguatan tugas dan fungsi di Lapas Kelas IIA Curup melalui peningkatan koordinasi, monitoring, dan evaluasi guna memastikan pelaksanaan pelayanan, pembinaan, serta pengamanan berjalan sesuai ketentuan.',
+      ],
+      penutup: 'Demikian laporan yang dapat kami sampaikan, selanjutnya mohon petunjuk dan arahan.',
+      hari: [
+        {
+          tanggal: '2026-11-02',
+          kegiatan: [
+            {
+              judul: 'Disiplin Cermin Profesionalisme Kabag TUM Berikan Arahan Tingkatkan Ketertiban dan Kepatuhan Pegawai',
+              narasi: 'Bengkulu - Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan apel pagi pada Senin (2/11). Apel dipimpin oleh Kepala Bagian Tata Usaha, Sudirwan, yang diikuti oleh jajaran pegawai di lingkungan Kanwil Ditjenpas Bengkulu.\n\nDalam arahannya, Kabag Tata Usaha mengingatkan seluruh pegawai untuk senantiasa menjaga kedisiplinan, khususnya dalam mematuhi waktu kerja dan memastikan kelengkapan atribut pakaian dinas sesuai ketentuan. Hal tersebut merupakan bentuk tanggung jawab serta cerminan profesionalisme sebagai aparatur negara. Ia menegaskan bahwa disiplin harus dimulai dari hal-hal mendasar, seperti hadir tepat waktu dan menggunakan atribut kedinasan secara lengkap dan rapi. Dengan demikian, setiap pegawai diharapkan dapat menjadi teladan serta mendukung terciptanya lingkungan kerja yang tertib dan profesional.\n\nMelalui apel pagi ini, seluruh jajaran diharapkan terus meningkatkan kedisiplinan dan tanggung jawab dalam menjalankan tugas, sehingga pelaksanaan pelayanan dan fungsi Pemasyarakatan dapat berjalan secara optimal.',
+              foto: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    // ---------- State + draf (localStorage) ----------
+    const KUNCI_DRAF = 'zonapas-laporan-sepekan-draf-v1';
+    function klon(o) { return JSON.parse(JSON.stringify(o)); }
+    function muatDraf() {
+      try {
+        const raw = localStorage.getItem(KUNCI_DRAF);
+        if (!raw) return null;
+        const d = JSON.parse(raw);
+        if (!d || typeof d !== 'object' || !Array.isArray(d.hari)) return null;
+        return d;
+      } catch { return null; }
+    }
+    let state = muatDraf() || klon(TEMPLATE);
+    let timerSimpan = null;
+    function simpanDraf() {
+      clearTimeout(timerSimpan);
+      timerSimpan = setTimeout(() => {
+        try {
+          localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
+          const info = $('sp-draf-info');
+          if (info) info.textContent = 'Draf tersimpan otomatis di peramban ini.';
+        } catch {
+          const info = $('sp-draf-info');
+          if (info) info.textContent = 'Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.';
+        }
+      }, 400);
+    }
+    function showStatus(pesan, ok) {
+      const el = $('status');
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.textContent = pesan;
+      el.style.background = ok ? '#dcfce7' : '#fee2e2';
+      el.style.color = ok ? '#166534' : '#991b1b';
+      el.style.border = '1px solid ' + (ok ? '#86efac' : '#fca5a5');
+    }
+
+    // ---------- Foto: baca berkas -> data URL (diperkecil maks 1200px) ----------
+    function berkasKeDataUrl(file, maxLebar) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Gagal membaca berkas.'));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Berkas bukan gambar.'));
+          img.onload = () => {
+            try {
+              const skala = Math.min(1, (maxLebar || 1200) / img.naturalWidth);
+              const c = document.createElement('canvas');
+              c.width = Math.max(1, Math.round(img.naturalWidth * skala));
+              c.height = Math.max(1, Math.round(img.naturalHeight * skala));
+              c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+              resolve(c.toDataURL('image/jpeg', 0.85));
+            } catch (e) { reject(e); }
+          };
+          img.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ---------- Form: isi <-> state ----------
+    function tulisStateKeForm() {
+      $('sp-mulai').value = state.mulai || '';
+      $('sp-akhir').value = state.akhir || '';
+      $('sp-ttd').value = state.ttd || '';
+      $('sp-foto-potret').src = state.fotoPotret || FOTO_POTRET_TEMPLATE;
+      $('sp-foto-lapangan').src = state.fotoLapangan || FOTO_LAPANGAN_TEMPLATE;
+      $('sp-latar').value = state.latar || '';
+      $('sp-maksud').value = state.maksud || '';
+      $('sp-ruang').value = state.ruang || '';
+      $('sp-peserta').value = state.peserta || '';
+      $('sp-tindak').value = (state.tindak || []).join('\n');
+      $('sp-penutup').value = state.penutup || '';
+      const p = $('sp-periode-teks');
+      if (p) p.textContent = teksPeriode() ? 'Periode: ' + teksPeriode() : '';
+      renderHari();
+    }
+    function bacaFormKeState() {
+      state.mulai = $('sp-mulai').value || state.mulai;
+      state.akhir = $('sp-akhir').value || state.akhir;
+      state.ttd = $('sp-ttd').value || state.ttd;
+      state.latar = $('sp-latar').value;
+      state.maksud = $('sp-maksud').value;
+      state.ruang = $('sp-ruang').value;
+      state.peserta = $('sp-peserta').value;
+      state.tindak = $('sp-tindak').value.split('\n').map((s) => s.trim()).filter(Boolean);
+      state.penutup = $('sp-penutup').value;
+      const p = $('sp-periode-teks');
+      if (p) p.textContent = teksPeriode() ? 'Periode: ' + teksPeriode() : '';
+    }
+
+    // ---------- Form hari & kegiatan ----------
+    function renderHari() {
+      const wadah = $('sp-hari-list');
+      if (!wadah) return;
+      wadah.innerHTML = state.hari.map((h, hi) => {
+        const keg = h.kegiatan.map((k, ki) => {
+          const fotos = k.foto.map((f, fi) => {
+            if (!f) return '';
+            return '<span class="relative inline-block">' +
+              '<img src="' + esc(f) + '" alt="Foto kegiatan" class="h-20 w-28 rounded-lg object-cover" />' +
+              '<button type="button" data-hapus-foto="' + hi + ':' + ki + ':' + fi + '" class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[11px] font-bold text-white" aria-label="Hapus foto">×</button></span>';
+          }).join('');
+          return '<div class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">' +
+            '<div class="flex items-center justify-between gap-2">' +
+              '<span class="text-sm font-bold">Kegiatan ' + (ki + 1) + '</span>' +
+              '<button type="button" data-hapus-kegiatan="' + hi + ':' + ki + '" class="text-xs font-bold text-red-600 hover:underline">Hapus kegiatan</button>' +
+            '</div>' +
+            '<label class="mt-2 block"><span class="block text-xs font-bold">Judul kegiatan</span>' +
+              '<input type="text" data-judul-kegiatan="' + hi + ':' + ki + '" value="' + esc(k.judul) + '" placeholder="Contoh: Apel Pagi Kanwil Ditjenpas Bengkulu" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>' +
+            '<label class="mt-2 block"><span class="block text-xs font-bold">Narasi</span>' +
+              '<textarea rows="5" data-narasi-kegiatan="' + hi + ':' + ki + '" placeholder="Tulis narasi kegiatan…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(k.narasi) + '</textarea></label>' +
+            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 2)</span>' +
+              '<div class="mt-1 flex flex-wrap items-center gap-2">' + fotos +
+              (k.foto.filter(Boolean).length < 2 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
+              '</div></div></div>';
+        }).join('');
+        return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
+          '<div class="flex flex-wrap items-center gap-3">' +
+            '<label class="flex-1"><span class="block text-sm font-bold">Tanggal kegiatan</span>' +
+              '<input type="date" data-tanggal-hari="' + hi + '" value="' + esc(h.tanggal) + '" class="mt-1 w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>' +
+            '<span class="text-sm font-bold text-[#0A2540] dark:text-white">' + esc(labelHari(h.tanggal)) + '</span>' +
+            '<button type="button" data-hapus-hari="' + hi + '" class="text-xs font-bold text-red-600 hover:underline">Hapus hari</button>' +
+          '</div>' +
+          '<div class="mt-3 space-y-3">' + keg + '</div>' +
+          '<button type="button" data-tambah-kegiatan="' + hi + '" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">+ Tambah Kegiatan</button>' +
+        '</article>';
+      }).join('');
+    }
+
+    // ---------- Paginator: bagi blok isi ke halaman A4 ----------
+    // Halaman A4 @96dpi = 794 x 1123 px. Area isi: padding 48px atas/bawah,
+    // 56px kiri/kanan -> lebar 682px, tinggi 1027px.
+    const TINGGI_ISI = 1027;
+    let elUkur = null;
+    function ukurBlok(html) {
+      if (!elUkur) {
+        elUkur = document.createElement('div');
+        elUkur.id = 'sp-ukur';
+        document.body.appendChild(elUkur);
+      }
+      elUkur.innerHTML = html;
+      return elUkur.offsetHeight;
+    }
+    function blokParagraf(teks) {
+      // Pecah jadi paragraf (baris kosong), lalu pecah paragraf yang terlalu
+      // panjang jadi kelompok kalimat agar tidak ada blok yang melebihi 1 halaman.
+      const keluar = [];
+      const paragraf = String(teks || '').split(/\n\s*\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      for (const p of paragraf) {
+        const html = '<p class="sepekan-paragraf">' + esc(p) + '</p>';
+        if (ukurBlok(html) <= TINGGI_ISI) { keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) }); continue; }
+        // Paragraf terlalu panjang: pecah per kalimat.
+        const kalimat = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
+        let buf = '';
+        for (const k of kalimat) {
+          const coba = (buf ? buf + ' ' : '') + k.trim();
+          const h = ukurBlok('<p class="sepekan-paragraf">' + esc(coba) + '</p>');
+          if (h > TINGGI_ISI && buf) {
+            keluar.push({ tipe: 'paragraf', html: '<p class="sepekan-paragraf">' + esc(buf) + '</p>', tinggi: ukurBlok('<p class="sepekan-paragraf">' + esc(buf) + '</p>') });
+            buf = k.trim();
+          } else { buf = coba; }
+        }
+        if (buf) keluar.push({ tipe: 'paragraf', html: '<p class="sepekan-paragraf">' + esc(buf) + '</p>', tinggi: ukurBlok('<p class="sepekan-paragraf">' + esc(buf) + '</p>') });
+      }
+      return keluar;
+    }
+    function blokJudulBab(judul) {
+      const html = '<h2 class="sepekan-judul-bab">' + esc(judul) + '</h2><div class="sepekan-garis-kuning"></div>';
+      return { tipe: 'judul', html, tinggi: ukurBlok(html) };
+    }
+    function susunBlok() {
+      const blok = [];
+      const tambahBab = (judul, teks) => {
+        if (!String(teks || '').trim()) return;
+        blok.push(blokJudulBab(judul));
+        blok.push(...blokParagraf(teks));
+      };
+      tambahBab('Latar Belakang', state.latar);
+      tambahBab('Maksud & Tujuan', state.maksud);
+      tambahBab('Ruang Lingkup', state.ruang);
+      tambahBab('Peserta', state.peserta);
+      // Hasil per hari
+      for (const h of state.hari) {
+        if (!h.kegiatan.length) continue;
+        const htmlHari = '<div class="sepekan-pita-hasil">HASIL YANG DICAPAI</div><p class="sepekan-tanggal-hari">' + esc(labelHari(h.tanggal)) + '</p>';
+        blok.push({ tipe: 'hari', html: htmlHari, tinggi: ukurBlok(htmlHari) });
+        for (const k of h.kegiatan) {
+          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) continue;
+          const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
+          blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul) });
+          blok.push(...blokParagraf(k.narasi));
+          const fotos = (k.foto || []).filter(Boolean);
+          if (fotos.length === 1) {
+            const htmlFoto = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[0]) + '" alt="" /></div>';
+            blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto) });
+          } else if (fotos.length >= 2) {
+            const htmlFoto = '<div class="sepekan-foto-baris"><div class="sepekan-foto-dua"><img src="' + esc(fotos[0]) + '" alt="" /></div><div class="sepekan-foto-dua"><img src="' + esc(fotos[1]) + '" alt="" /></div></div>';
+            blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto) });
+          }
+        }
+      }
+      // Tindak lanjut
+      if ((state.tindak || []).length) {
+        blok.push(blokJudulBab('Tindak Lanjut'));
+        state.tindak.forEach((t, i) => {
+          const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(t) + '</p>';
+          blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html) });
+        });
+      }
+      // Penutup + tanda tangan
+      blok.push(blokJudulBab('Penutup'));
+      blok.push(...blokParagraf(state.penutup || 'Demikian laporan yang dapat kami sampaikan, selanjutnya mohon petunjuk dan arahan.'));
+      const htmlTtd = '<div class="sepekan-ttd"><p style="margin:0">' + esc(tglTtdPanjang()) + '</p><p style="margin:0">Kepala Kantor Wilayah<br />Ditjenpas Bengkulu,</p><p style="margin:0">Ttd</p><p class="nama">Masjuno</p></div>';
+      blok.push({ tipe: 'ttd', html: htmlTtd, tinggi: ukurBlok(htmlTtd) });
+      return blok;
+    }
+    function bagiHalaman(blok) {
+      const halaman = [];
+      let kini = [];
+      let tinggi = 0;
+      const JAGA = ['judul', 'hari', 'judul-kegiatan']; // jangan yatim di ujung halaman
+      for (let i = 0; i < blok.length; i++) {
+        const b = blok[i];
+        const berikut = blok[i + 1];
+        // Bila blok ini harus dijaga bersama blok berikut, pastikan keduanya muat.
+        const butuh = JAGA.includes(b.tipe) && berikut ? b.tinggi + berikut.tinggi : b.tinggi;
+        if (kini.length && tinggi + butuh > TINGGI_ISI) {
+          halaman.push(kini);
+          kini = [];
+          tinggi = 0;
+        }
+        kini.push(b);
+        tinggi += b.tinggi;
+      }
+      if (kini.length) halaman.push(kini);
+      return halaman;
+    }
+
+    // ---------- Sampul ----------
+    function htmlSampul() {
+      return '<div class="sepekan-sampul">' +
+        '<div class="sepekan-sampul-garis"></div>' +
+        '<div class="sepekan-sampul-kepala">' +
+          '<img src="/images/logo-kemenimipas.png" alt="Logo Kementerian Imigrasi dan Pemasyarakatan" />' +
+          '<div><div class="t1">KANTOR WILAYAH</div><div class="t2"><span class="biru">DITJENPAS</span> <span class="kuning">Bengkulu</span></div></div>' +
+        '</div>' +
+        '<div class="sepekan-sampul-judul">' +
+          '<div class="besar">LAPORAN<br /><span class="biru">KEGIATAN</span></div>' +
+          '<div class="kecil">KEPALA KANTOR WILAYAH<br />DIREKTORAT JENDERAL PEMASYARAKATAN BENGKULU</div>' +
+        '</div>' +
+        '<div class="sepekan-sampul-periode">' + esc(teksPeriode()) + '</div>' +
+        '<div class="sepekan-hex-luar" style="left:36px; top:520px; width:430px; height:430px; background:#0A2540;">' +
+          '<div class="sepekan-hex-tengah"><div class="sepekan-hex-dalam"><img src="' + esc(state.fotoPotret || FOTO_POTRET_TEMPLATE) + '" alt="Foto Kakanwil" /></div></div>' +
+        '</div>' +
+        '<div class="sepekan-hex-luar" style="left:430px; top:700px; width:330px; height:330px; background:#0A2540;">' +
+          '<div class="sepekan-hex-tengah"><div class="sepekan-hex-dalam"><img src="' + esc(state.fotoLapangan || FOTO_LAPANGAN_TEMPLATE) + '" alt="Foto kegiatan" /></div></div>' +
+        '</div>' +
+        '<div class="sepekan-sampul-kaki"></div>' +
+      '</div>';
+    }
+
+    // ---------- Pratinjau ----------
+    function renderPratinjau() {
+      const wadah = $('sp-pratinjau');
+      if (!wadah) return;
+      const halaman = bagiHalaman(susunBlok());
+      let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
+      halaman.forEach((hals, i) => {
+        html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman"><div class="sepekan-isi">' +
+          hals.map((b) => b.html).join('') + '</div></div></div>';
+      });
+      wadah.innerHTML = html;
+      sesuaikanSkala();
+    }
+    function sesuaikanSkala() {
+      const wadah = $('sp-pratinjau');
+      if (!wadah) return;
+      const lebar = Math.min(794, wadah.clientWidth || 794);
+      const skala = lebar / 794;
+      wadah.querySelectorAll('.sepekan-bungkus').forEach((b) => {
+        const hal = b.querySelector('.sepekan-halaman');
+        if (!hal) return;
+        hal.style.transform = 'scale(' + skala + ')';
+        b.style.width = (794 * skala) + 'px';
+        b.style.height = (1123 * skala) + 'px';
+      });
+    }
+    window.addEventListener('resize', () => { sesuaikanSkala(); });
+
+    // ---------- Unduh PDF ----------
+    let sedangUnduh = false;
+    async function unduhPdf() {
+      if (sedangUnduh) return;
+      const btn = $('sp-unduh');
+      if (!window.html2canvas || !window.jspdf) {
+        showStatus('Pustaka PDF belum termuat — periksa koneksi lalu segarkan halaman.', false);
+        return;
+      }
+      bacaFormKeState();
+      renderPratinjau();
+      sedangUnduh = true;
+      if (btn) { btn.disabled = true; btn.textContent = 'Membuat PDF…'; }
+      showStatus('Membuat PDF laporan…', true);
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const halamanEls = Array.from(document.querySelectorAll('#sp-pratinjau .sepekan-halaman'));
+        for (let i = 0; i < halamanEls.length; i++) {
+          const el = halamanEls[i];
+          const canvas = await window.html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+          const img = canvas.toDataURL('image/jpeg', 0.92);
+          if (i > 0) pdf.addPage('a4', 'portrait');
+          pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
+          if (btn) btn.textContent = 'Membuat PDF… ' + (i + 1) + '/' + halamanEls.length;
+        }
+        pdf.save(namaBerkas());
+        showStatus('PDF laporan sepekan berhasil diunduh (' + halamanEls.length + ' halaman).', true);
+      } catch (e) {
+        showStatus('Gagal membuat PDF: ' + (e && e.message ? e.message : 'galat'), false);
+      } finally {
+        sedangUnduh = false;
+        if (btn) { btn.disabled = false; btn.textContent = '⬇ Unduh PDF'; }
+      }
+    }
+
+    // ---------- Event form ----------
+    function hubungkanForm() {
+      ['sp-mulai', 'sp-akhir', 'sp-ttd', 'sp-latar', 'sp-maksud', 'sp-ruang', 'sp-peserta', 'sp-tindak', 'sp-penutup'].forEach((id) => {
+        const el = $(id);
+        if (!el) return;
+        el.addEventListener('input', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
+        el.addEventListener('change', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
+      });
+      // Foto sampul
+      $('sp-input-potret').addEventListener('change', async (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        try { state.fotoPotret = await berkasKeDataUrl(f, 1200); $('sp-foto-potret').src = state.fotoPotret; simpanDraf(); renderPratinjau(); showStatus('Foto 1 sampul diganti.', true); }
+        catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
+        e.target.value = '';
+      });
+      $('sp-input-lapangan').addEventListener('change', async (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        try { state.fotoLapangan = await berkasKeDataUrl(f, 1200); $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); showStatus('Foto 2 sampul diganti.', true); }
+        catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
+        e.target.value = '';
+      });
+      $('sp-reset-potret').addEventListener('click', () => { state.fotoPotret = FOTO_POTRET_TEMPLATE; $('sp-foto-potret').src = state.fotoPotret; simpanDraf(); renderPratinjau(); });
+      $('sp-reset-lapangan').addEventListener('click', () => { state.fotoLapangan = FOTO_LAPANGAN_TEMPLATE; $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); });
+      // Hari & kegiatan (delegasi klik + input)
+      const wadah = $('sp-hari-list');
+      wadah.addEventListener('click', (e) => {
+        const t = e.target;
+        const hapusHari = t.closest('[data-hapus-hari]');
+        if (hapusHari) { state.hari.splice(Number(hapusHari.dataset.hapusHari), 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
+        const hapusKeg = t.closest('[data-hapus-kegiatan]');
+        if (hapusKeg) { const [hi, ki] = hapusKeg.dataset.hapusKegiatan.split(':').map(Number); state.hari[hi].kegiatan.splice(ki, 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
+        const hapusFoto = t.closest('[data-hapus-foto]');
+        if (hapusFoto) { const [hi, ki, fi] = hapusFoto.dataset.hapusFoto.split(':').map(Number); state.hari[hi].kegiatan[ki].foto.splice(fi, 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
+        const tambahKeg = t.closest('[data-tambah-kegiatan]');
+        if (tambahKeg) { const hi = Number(tambahKeg.dataset.tambahKegiatan); state.hari[hi].kegiatan.push({ judul: '', narasi: '', foto: [] }); renderHari(); simpanDraf(); renderPratinjau(); return; }
+      });
+      wadah.addEventListener('change', async (e) => {
+        const t = e.target;
+        if (t.matches('[data-tanggal-hari]')) { const hi = Number(t.dataset.tanggalHari); state.hari[hi].tanggal = t.value; renderHari(); simpanDraf(); renderPratinjau(); return; }
+        if (t.matches('[data-tambah-foto]')) {
+          const [hi, ki] = t.dataset.tambahFoto.split(':').map(Number);
+          const f = t.files && t.files[0];
+          if (!f) return;
+          try { const url = await berkasKeDataUrl(f, 1000); state.hari[hi].kegiatan[ki].foto.push(url); renderHari(); simpanDraf(); renderPratinjau(); }
+          catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
+          t.value = '';
+          return;
+        }
+      });
+      wadah.addEventListener('input', (e) => {
+        const t = e.target;
+        if (t.matches('[data-judul-kegiatan]')) { const [hi, ki] = t.dataset.judulKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].judul = t.value; simpanDraf(); renderPratinjau(); return; }
+        if (t.matches('[data-narasi-kegiatan]')) { const [hi, ki] = t.dataset.narasiKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].narasi = t.value; simpanDraf(); renderPratinjau(); return; }
+      });
+      $('sp-tambah-hari').addEventListener('click', () => {
+        const terakhir = state.hari[state.hari.length - 1];
+        let tglBaru = '';
+        if (terakhir && terakhir.tanggal) {
+          const d = parseTgl(terakhir.tanggal);
+          if (d) { d.setDate(d.getDate() + 1); tglBaru = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        }
+        state.hari.push({ tanggal: tglBaru, kegiatan: [{ judul: '', narasi: '', foto: [] }] });
+        renderHari(); simpanDraf(); renderPratinjau();
+      });
+      // Aksi
+      $('sp-unduh').addEventListener('click', unduhPdf);
+      $('sp-lihat').addEventListener('click', () => { renderPratinjau(); const el = $('sp-pratinjau-bagian'); if (el) el.scrollIntoView({ behavior: 'smooth' }); });
+      $('sp-reset-template').addEventListener('click', () => {
+        if (!confirm('Kembalikan semua isi ke template laporan 02–07 November 2026? Draf saat ini akan diganti.')) return;
+        state = klon(TEMPLATE);
+        tulisStateKeForm(); simpanDraf(); renderPratinjau();
+        showStatus('Isi dikembalikan ke template.', true);
+      });
+      $('sp-bersihkan').addEventListener('click', () => {
+        if (!confirm('Bersihkan draf laporan sepekan ini? Isi akan kembali kosong kecuali template dasar.')) return;
+        try { localStorage.removeItem(KUNCI_DRAF); } catch {}
+        state = klon(TEMPLATE);
+        state.hari = [];
+        tulisStateKeForm(); renderPratinjau();
+        showStatus('Draf dibersihkan.', true);
+      });
+    }
+
+    // ---------- Init ----------
+    window.__kelolaSetelahLogin = () => { /* aplikasi ini tidak memuat data server */ };
+    tulisStateKeForm();
+    hubungkanForm();
+    renderPratinjau();
+  </script>
+</BaseLayout>
