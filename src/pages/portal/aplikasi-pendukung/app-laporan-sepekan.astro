@@ -289,6 +289,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-kolase-madu { position: relative; width: 100%; margin: 0 0 14px 0; }
     .sepekan-madu-hex { position: absolute; overflow: hidden; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
     .sepekan-madu-hex img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Slot kolase tanpa foto: hanya garis tepi (kerangka) — latar dongker
+       tipis di luar, segi enam putih di dalam. */
+    .sepekan-madu-kosong { background: rgba(10, 37, 64, 0.16); }
+    .sepekan-madu-kosong-dalam { position: absolute; inset: 5px; background: #ffffff; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
     .sepekan-hex-baris { display: flex; gap: 18px; margin: 0 0 14px 0; }
     .sepekan-hexbab { position: relative; flex: 1 1 0; height: 230px; }
     .sepekan-hexbab-luar { position: absolute; inset: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
@@ -1070,36 +1074,40 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       };
       // Kolase SARANG LEBAH di bawah Peserta (Nov 2026, atas permintaan
       // Bos Besar): foto-foto kegiatan dalam segi enam (pointy-top)
-      // berangkai seperti sarang madu — 2 baris berselang-seling, tiap
-      // segi enam berbagi sisi dengan tetangganya. 1 foto per kegiatan
-      // (foto pertama), maksimal 10 foto. Geometri: segi enam jari-jari
-      // s=50 (lebar 87, tinggi 100); sebaris berjarak 87 (berbagi sisi
-      // tegak); baris 2 digeser 43 ke kanan + 75 ke bawah (berbagi sisi
-      // miring); klaster diratakan tengah.
+      // berangkai seperti sarang madu — 3 baris berselang-seling (4+3+3),
+      // tiap segi enam berbagi sisi dengan tetangganya. 1 foto per
+      // kegiatan (foto pertama), maksimal 10 foto; kerangka 10 slot
+      // selalu tampil (slot kosong = garis tepi) walau foto belum ada.
       const tambahKolaseMadu = () => {
+        // KERANGKA kolase selalu tampil (Nov 2026, atas permintaan Bos
+        // Besar): 10 slot segi enam berukuran proporsional mengisi area
+        // kosong di bawah Peserta — 3 baris berselang-seling (4+3+3)
+        // supaya tiap segi enam cukup besar dan kolase memenuhi area.
+        // Foto (maks 10, 1 per kegiatan) mengisi slotnya; slot tanpa
+        // foto tampil sebagai garis tepi (outline) supaya kerangka tetap
+        // ada walau foto belum diunggah.
         const foto = fotoSepekan.slice(0, 10);
-        if (!foto.length) return;
-        // DIPERBESAR (Nov 2026, atas permintaan Bos Besar): ukuran segi
-        // enam dihitung dinamis agar kolase mengisi area kosong halaman
-        // — target tinggi kolase ~500px, dibatasi lebar halaman 701px.
-        // Makin sedikit foto, makin besar tiap segi enamnya (1 foto =
-        // segi enam raksasa di tengah halaman). Batas s 50–220.
-        const n1 = Math.ceil(foto.length / 2), n2 = foto.length - n1;
-        const sTinggi = n2 ? 500 / 3.5 : 500 / 2;
-        const sLebar = 701 / (Math.max(n1, n2 + 0.5) * 1.732);
+        const BARIS = [4, 3, 3];
+        const JUMLAH_SLOT = 10;
+        const sTinggi = 500 / (2 + (BARIS.length - 1) * 1.5);
+        const lebarSatuan = Math.max.apply(null, BARIS.map((n, r) => n + (r % 2 ? 0.5 : 0)));
+        const sLebar = 701 / (lebarSatuan * 1.732);
         const s = Math.max(50, Math.min(220, Math.floor(Math.min(sTinggi, sLebar))));
         const W = Math.floor(1.732 * s), H = 2 * s, dx = W, dy = Math.floor(1.5 * s), offX = Math.floor(0.866 * s);
-        const kanan1 = n1 ? W + (n1 - 1) * dx : 0;
-        const kanan2 = n2 ? W + offX + (n2 - 1) * dx : 0;
-        const geserX = Math.round((701 - Math.max(kanan1, kanan2)) / 2);
-        const tinggi = n2 ? H + dy : H;
+        const lebarKlaster = Math.max.apply(null, BARIS.map((n, r) => (r % 2 ? offX : 0) + n * W));
+        const geserX = Math.round((701 - lebarKlaster) / 2);
+        const tinggi = H + (BARIS.length - 1) * dy;
         let sel = '';
-        foto.forEach((f, i) => {
-          const baris = i < n1 ? 0 : 1;
-          const k = baris === 0 ? i : i - n1;
-          const cx = W / 2 + k * dx + (baris === 1 ? offX : 0) + geserX;
-          const cy = H / 2 + baris * dy;
-          sel += '<div class="sepekan-madu-hex" style="left:' + Math.round(cx - W / 2) + 'px;top:' + Math.round(cy - H / 2) + 'px;width:' + W + 'px;height:' + H + 'px"><img src="' + esc(f) + '" alt="" /></div>';
+        let idx = 0;
+        BARIS.forEach((n, r) => {
+          for (let k = 0; k < n; k++) {
+            const cx = W / 2 + k * dx + (r % 2 ? offX : 0) + geserX;
+            const cy = H / 2 + r * dy;
+            const gaya = 'left:' + Math.round(cx - W / 2) + 'px;top:' + Math.round(cy - H / 2) + 'px;width:' + W + 'px;height:' + H + 'px';
+            if (idx < foto.length) sel += '<div class="sepekan-madu-hex" style="' + gaya + '"><img src="' + esc(foto[idx]) + '" alt="" /></div>';
+            else sel += '<div class="sepekan-madu-hex sepekan-madu-kosong" style="' + gaya + '"><div class="sepekan-madu-kosong-dalam"></div></div>';
+            idx++;
+          }
         });
         const html = '<div class="sepekan-kolase-madu" style="height:' + tinggi + 'px">' + sel + '</div>';
         blok.push({ tipe: 'kolase-kecil', html, tinggi: ukurBlok(html) });
@@ -1115,7 +1123,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // segi enam kuning di bawah Peserta) DIHAPUS 10 Nov 2026 atas
       // permintaan Bos Besar. Kolase kecil di bawah Peserta tetap ada.
       tambahBab('Maksud & Tujuan', TEMPLATE.maksud, undefined, 'maksud');
-      tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
+      tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan', 'ruang-lingkup');
       tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
       tambahKolaseMadu();
       // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
@@ -1193,7 +1201,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (b.grup && !grupMulai.has(b.grup)) {
           grupMulai.add(b.grup);
           const adalahKegiatan = String(b.grup).indexOf('keg-') === 0;
-          if (kini.length && (adalahKegiatan || tinggi + totalGrup[b.grup] > TINGGI_ISI)) {
+          // Ruang Lingkup juga selalu mulai di halaman baru (Nov 2026,
+          // atas permintaan Bos Besar: 'turunkan saja ruang lingkup ke
+          // halaman selanjutnya').
+          const mulaiBaru = adalahKegiatan || b.grup === 'ruang-lingkup';
+          if (kini.length && (mulaiBaru || tinggi + totalGrup[b.grup] > TINGGI_ISI)) {
             halaman.push(kini);
             kini = [];
             tinggi = 0;
