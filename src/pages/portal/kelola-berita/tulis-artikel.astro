@@ -82,13 +82,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <span id="user-name"></span>
         </span>
         <span class="flex-1"></span>
-        <a href="/portal/kelola-berita/tulis/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Tulis Berita Baru</a>
+        <a href="/portal/kelola-berita/tulis/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Buat Berita Baru</a>
         <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
       </div>
       <!-- Formulir tulis/ubah berita -->
       <section id="form-section" class="hidden pt-8" aria-label="Formulir berita">
         <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2 dark:border-white">
-          <h2 id="form-title" class="text-xl font-black uppercase tracking-tight">Tulis Berita Baru</h2>
+          <h2 id="form-title" class="text-xl font-black uppercase tracking-tight">Buat Berita Baru</h2>
         </div>
         <div id="draf-banner" class="mb-3 hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-700 dark:bg-amber-900/30">
           <p class="font-bold">Ada draf tersimpan otomatis <span id="draf-banner-waktu" class="font-medium"></span></p>
@@ -316,7 +316,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('f-foto-preview').src = '';
       $('f-foto-saat-ini').classList.add('hidden');
       $('f-foto-saat-ini').textContent = '';
-      $('form-title').textContent = 'Tulis Berita Baru';
+      $('form-title').textContent = 'Buat Berita Baru';
       $('btn-save').textContent = 'Simpan Berita';
       const ba = $('btn-antrean');
       if (ba) ba.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
