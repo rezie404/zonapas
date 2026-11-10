@@ -69,6 +69,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </section>
 
     <div id="app" class="hidden">
+      <input type="date" id="sp-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;" />
       <div id="sp-editor">
       <div class="mt-6 flex flex-wrap items-center gap-3">
         <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
@@ -86,15 +87,24 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div class="mt-3 flex flex-wrap items-end gap-3">
           <label class="min-w-0 flex-1">
             <span class="block text-sm font-bold">Tanggal mulai</span>
-            <input id="sp-mulai" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+            <span class="mt-1 flex items-center gap-1">
+              <input id="sp-mulai" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" class="sp-tgl w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal mulai dari kalender">📅</button>
+            </span>
           </label>
           <label class="min-w-0 flex-1">
             <span class="block text-sm font-bold">Tanggal akhir</span>
-            <input id="sp-akhir" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+            <span class="mt-1 flex items-center gap-1">
+              <input id="sp-akhir" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" class="sp-tgl w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal akhir dari kalender">📅</button>
+            </span>
           </label>
           <label class="min-w-0 flex-1">
             <span class="block text-sm font-bold">Tanggal tanda tangan</span>
-            <input id="sp-ttd" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+            <span class="mt-1 flex items-center gap-1">
+              <input id="sp-ttd" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" class="sp-tgl w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal tanda tangan dari kalender">📅</button>
+            </span>
           </label>
         </div>
         <p id="sp-periode-teks" class="mt-3 text-sm font-bold text-[#0A2540] dark:text-white"></p>
@@ -332,6 +342,43 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
       if (!m) return null;
       return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+    // Format tanggal DD/MM/YYYY (Nov 2026): <input type="date"> bawaan
+    // menampilkan MM/DD/YYYY di HP Bos Besar (mengikuti lokal perangkat,
+    // bukan lang halaman). Supaya selalu DD/MM/YYYY, kolom tanggal kini
+    // berupa teks + tombol kalender (pemilih date bawaan yang disembunyikan).
+    function isoKeDMY(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+      if (!m) return '';
+      return m[3] + '/' + m[2] + '/' + m[1];
+    }
+    function dmyKeIso(str) {
+      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(str || '').trim());
+      if (!m) return null;
+      const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return null;
+      const dt = new Date(y, mo - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+      return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    // Sisipkan '/' otomatis selagi mengetik angka (DD/MM/YYYY).
+    function formatKetikDMY(el) {
+      const digit = el.value.replace(/\D/g, '').slice(0, 8);
+      let keluar = digit;
+      if (digit.length > 4) keluar = digit.slice(0, 2) + '/' + digit.slice(2, 4) + '/' + digit.slice(4);
+      else if (digit.length > 2) keluar = digit.slice(0, 2) + '/' + digit.slice(2);
+      el.value = keluar;
+    }
+    // Pemilih kalender bawaan (satu untuk semua kolom tanggal). Inputnya
+    // disembunyikan di luar layar (bukan display:none) supaya showPicker
+    // tetap bisa dibuka.
+    let targetKalender = null;
+    function bukaKalender(elTeks) {
+      const pemilih = $('sp-pemilih-tanggal');
+      if (!pemilih || !elTeks) return;
+      targetKalender = elTeks;
+      pemilih.value = dmyKeIso(elTeks.value) || '';
+      try { pemilih.showPicker(); } catch { try { pemilih.focus(); pemilih.click(); } catch {} }
     }
     function labelHari(str) {
       const d = parseTgl(str);
@@ -787,9 +834,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     // ---------- Form: isi <-> state ----------
     function tulisStateKeForm() {
-      $('sp-mulai').value = state.mulai || '';
-      $('sp-akhir').value = state.akhir || '';
-      $('sp-ttd').value = state.ttd || '';
+      $('sp-mulai').value = isoKeDMY(state.mulai);
+      $('sp-akhir').value = isoKeDMY(state.akhir);
+      $('sp-ttd').value = isoKeDMY(state.ttd);
       $('sp-foto-potret').src = state.fotoPotret || FOTO_POTRET_TEMPLATE;
       $('sp-foto-lapangan').src = state.fotoLapangan || FOTO_LAPANGAN_TEMPLATE;
       const p = $('sp-periode-teks');
@@ -797,9 +844,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       renderHari();
     }
     function bacaFormKeState() {
-      state.mulai = $('sp-mulai').value || state.mulai;
-      state.akhir = $('sp-akhir').value || state.akhir;
-      state.ttd = $('sp-ttd').value || state.ttd;
+      // Hanya timpa bila ketikan sudah jadi tanggal DD/MM/YYYY yang sah;
+      // ketikan separuh (mis. '09/1') tidak menimpa state lama.
+      const m = dmyKeIso($('sp-mulai').value); if (m) state.mulai = m;
+      const a = dmyKeIso($('sp-akhir').value); if (a) state.akhir = a;
+      const t = dmyKeIso($('sp-ttd').value); if (t) state.ttd = t;
       const p = $('sp-periode-teks');
       if (p) p.textContent = teksPeriode() ? 'Periode: ' + teksPeriode() : '';
     }
@@ -833,7 +882,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
           '<div class="flex flex-wrap items-center gap-3">' +
             '<label class="flex-1"><span class="block text-sm font-bold">Tanggal kegiatan</span>' +
-              '<input type="date" data-tanggal-hari="' + hi + '" value="' + esc(h.tanggal) + '" class="mt-1 w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>' +
+              '<span class="mt-1 flex max-w-xs items-center gap-1"><input type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" data-tanggal-hari="' + hi + '" value="' + esc(isoKeDMY(h.tanggal)) + '" class="sp-tgl w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />' +
+              '<button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal kegiatan dari kalender">📅</button></span></label>' +
             '<span class="text-sm font-bold text-[#0A2540] dark:text-white">' + esc(labelHari(h.tanggal)) + '</span>' +
             '<button type="button" data-tarik-hari="' + esc(h.tanggal) + '" class="rounded-lg bg-[#0A2540] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Hari Ini</button>' +
             '<button type="button" data-hapus-hari="' + hi + '" class="text-xs font-bold text-red-600 hover:underline">Hapus hari</button>' +
@@ -1326,8 +1376,24 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       ['sp-mulai', 'sp-akhir', 'sp-ttd'].forEach((id) => {
         const el = $(id);
         if (!el) return;
-        el.addEventListener('input', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
+        el.addEventListener('input', () => { formatKetikDMY(el); bacaFormKeState(); simpanDraf(); renderPratinjau(); });
         el.addEventListener('change', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
+      });
+      // Tombol kalender (📅) di semua kolom tanggal + hasil pilihan kalender.
+      document.addEventListener('click', (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest('[data-buka-kalender]') : null;
+        if (!btn) return;
+        const wadah = btn.closest('label') || btn.parentElement;
+        const input = wadah ? wadah.querySelector('.sp-tgl') : null;
+        if (input) bukaKalender(input);
+      });
+      const pemilihTgl = $('sp-pemilih-tanggal');
+      if (pemilihTgl) pemilihTgl.addEventListener('change', () => {
+        if (!targetKalender || !pemilihTgl.value) { targetKalender = null; return; }
+        targetKalender.value = isoKeDMY(pemilihTgl.value);
+        targetKalender.dispatchEvent(new Event('input', { bubbles: true }));
+        targetKalender.dispatchEvent(new Event('change', { bubbles: true }));
+        targetKalender = null;
       });
       // Potong foto (crop)
       spCropPasangGestur();
@@ -1373,7 +1439,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       wadah.addEventListener('change', async (e) => {
         const t = e.target;
-        if (t.matches('[data-tanggal-hari]')) { const hi = Number(t.dataset.tanggalHari); state.hari[hi].tanggal = t.value; renderHari(); simpanDraf(); renderPratinjau(); return; }
+        if (t.matches('[data-tanggal-hari]')) { const hi = Number(t.dataset.tanggalHari); const iso = dmyKeIso(t.value); if (iso) { state.hari[hi].tanggal = iso; } renderHari(); simpanDraf(); renderPratinjau(); return; }
         if (t.matches('[data-tambah-foto]')) {
           const [hi, ki] = t.dataset.tambahFoto.split(':').map(Number);
           const f = t.files && t.files[0];
@@ -1386,6 +1452,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       wadah.addEventListener('input', (e) => {
         const t = e.target;
+        if (t.matches('[data-tanggal-hari]')) { formatKetikDMY(t); return; }
         if (t.matches('[data-judul-kegiatan]')) { const [hi, ki] = t.dataset.judulKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].judul = t.value; simpanDraf(); renderPratinjau(); return; }
         if (t.matches('[data-narasi-kegiatan]')) { const [hi, ki] = t.dataset.narasiKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].narasi = t.value; simpanDraf(); renderPratinjau(); return; }
       });
