@@ -704,28 +704,32 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       tambahBab('Maksud & Tujuan', state.maksud);
       tambahBab('Ruang Lingkup', state.ruang);
       tambahBab('Peserta', state.peserta);
-      // Hasil per hari
+      // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
+      // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
+      // hari ikut grup kegiatan pertama hari itu.
       for (const h of state.hari) {
         if (!h.kegiatan.length) continue;
+        const grupHari = 'keg-' + (h.tanggal || '') + '-0';
         const htmlHari = '<div class="sepekan-pita-hasil">HASIL YANG DICAPAI</div><p class="sepekan-tanggal-hari">' + esc(labelHari(h.tanggal)) + '</p>';
-        blok.push({ tipe: 'hari', html: htmlHari, tinggi: ukurBlok(htmlHari) });
-        for (const k of h.kegiatan) {
-          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) continue;
+        blok.push({ tipe: 'hari', html: htmlHari, tinggi: ukurBlok(htmlHari), grup: grupHari });
+        h.kegiatan.forEach((k, ki) => {
+          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+          const grup = 'keg-' + (h.tanggal || '') + '-' + ki;
           const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
-          blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul) });
+          blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul), grup });
           const fotos = (k.foto || []).filter(Boolean);
           if (fotos.length >= 1) {
             // Foto pertama SEBELUM narasi dimulai.
             const htmlFoto1 = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[0]) + '" alt="" /></div>';
-            blok.push({ tipe: 'foto', html: htmlFoto1, tinggi: ukurBlok(htmlFoto1) });
+            blok.push({ tipe: 'foto', html: htmlFoto1, tinggi: ukurBlok(htmlFoto1), grup });
           }
-          blok.push(...blokNarasi2Kol(k.narasi));
+          for (const nb of blokNarasi2Kol(k.narasi)) blok.push({ ...nb, grup });
           if (fotos.length >= 2) {
             // Foto kedua SETELAH narasi.
             const htmlFoto2 = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[1]) + '" alt="" /></div>';
-            blok.push({ tipe: 'foto', html: htmlFoto2, tinggi: ukurBlok(htmlFoto2) });
+            blok.push({ tipe: 'foto', html: htmlFoto2, tinggi: ukurBlok(htmlFoto2), grup });
           }
-        }
+        });
       }
       // Tindak lanjut
       if ((state.tindak || []).length) {
@@ -747,9 +751,25 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       let kini = [];
       let tinggi = 0;
       const JAGA = ['judul', 'hari', 'judul-kegiatan']; // jangan yatim di ujung halaman
+      // Total tinggi tiap grup kegiatan (1 kegiatan = 1 halaman).
+      const totalGrup = {};
+      for (const b of blok) if (b.grup) totalGrup[b.grup] = (totalGrup[b.grup] || 0) + b.tinggi;
+      const grupMulai = new Set();
       for (let i = 0; i < blok.length; i++) {
         const b = blok[i];
         const berikut = blok[i + 1];
+        // Bila blok pertama sebuah grup kegiatan tidak muat bersama
+        // seluruh grupnya di sisa halaman, pindahkan seluruh grup ke
+        // halaman baru. Kegiatan yang lebih tinggi dari 1 halaman tetap
+        // mengalir (tidak bisa dihindari), tapi mulai dari atas halaman.
+        if (b.grup && !grupMulai.has(b.grup)) {
+          grupMulai.add(b.grup);
+          if (kini.length && tinggi + totalGrup[b.grup] > TINGGI_ISI) {
+            halaman.push(kini);
+            kini = [];
+            tinggi = 0;
+          }
+        }
         // Tanda tangan (ttd) harus satu halaman dengan paragraf penutup
         // sebelumnya. Bila tidak muat, pindahkan paragraf penutup (dan
         // judul bab bila ikut yatim) ke halaman berikut, supaya tanda
