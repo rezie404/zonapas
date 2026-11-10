@@ -500,6 +500,7 @@
       // di sana, pindahkan ke foto terpisah (bila belum ada) — total tetap
       // maks. 1 foto, selebihnya ditolak seperti sebelumnya.
       const kota = bacaKotaForm();
+      if (!kota) throw new Error('Kota wajib diisi. Pilih kabupaten/kota, atau pilih Lainnya lalu ketik nama kotanya.');
       const isi = pisahkanFotoIsi($('f-isi').value);
       const fotoTempel = isi.foto;
       if ((fotoIsi ? 1 : 0) + fotoTempel.length > 1) throw new Error('Foto badan narasi hanya boleh 1 foto. Hapus foto yang ada dulu bila ingin menggantinya.');
@@ -1042,9 +1043,9 @@
     function aturKotaForm(kota) {
       const pilih = $('f-kota'), lain = $('f-kota-lain');
       if (!pilih) return;
-      const k = String(kota || '').trim();
-      if (!k) { pilih.value = ''; if (lain) lain.value = ''; }
-      else if (DAFTAR_KOTA_BENGKULU.includes(k)) { pilih.value = k; if (lain) lain.value = ''; }
+      // Kolom Kota tidak boleh kosong — kota kosong kembali ke bawaan.
+      const k = String(kota || '').trim() || 'Bengkulu';
+      if (DAFTAR_KOTA_BENGKULU.includes(k)) { pilih.value = k; if (lain) lain.value = ''; }
       else { pilih.value = 'lainnya'; if (lain) lain.value = k; }
       perbaruiInputKotaLain();
     }

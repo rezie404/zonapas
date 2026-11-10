@@ -161,10 +161,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
                 <option value="Kepahiang">Kepahiang</option>
                 <option value="Bengkulu Tengah">Bengkulu Tengah</option>
                 <option value="lainnya">Lainnya (ketik sendiri)</option>
-                <option value="">— Tanpa awalan kota —</option>
               </select>
               <input id="f-kota-lain" placeholder="Ketik nama kota lain, contoh: Curup" class="mt-2 hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Pilih kabupaten/kota di Provinsi Bengkulu (Bengkulu menjadi bawaan). Nama kota tampil di awal narasi dengan huruf tebal (contoh: <b>Bengkulu</b> – …), sebelum narasi inti. Bila kotanya tidak ada di daftar, pilih "Lainnya" lalu ketik sendiri.</p>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kolom ini wajib diisi — pilih kabupaten/kota di Provinsi Bengkulu (Bengkulu menjadi bawaan). Nama kota tampil di awal narasi dengan huruf tebal (contoh: <b>Bengkulu</b> – …), sebelum narasi inti. Bila kotanya tidak ada di daftar, pilih "Lainnya" lalu ketik sendiri.</p>
             </div>
             <div class="md:col-span-2">
               <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
@@ -278,7 +277,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=14"></script>
+  <script is:inline src="/kelola-umum.js?v=15"></script>
   <script>
 
 
