@@ -1138,10 +1138,28 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         return;
       }
       try {
-        const file = await gh('/contents/src/content/berita/' + encodeURIComponent(slug) + '.md?ref=main');
-        const text = b64decodeUnicode(file.content || '');
-        const parsed = parseFrontmatter(text);
-        const a = { slug, path: file.path, sha: file.sha, data: parsed.data, body: parsed.body };
+        // Muat lewat Worker dulu (same-origin). Memanggil api.github.com
+        // langsung dari browser sering gagal total di HP Bos Besar
+        // ("Failed to fetch") sehingga artikel tidak bisa dibuka untuk
+        // diedit. Bila Worker gagal, kembali ke gh() langsung.
+        let a = null;
+        try {
+          const d = await workerGet('/redaksi/api/artikel-terbit');
+          const daftar = (d && d.ok && Array.isArray(d.articles)) ? d.articles : [];
+          const ketemu = daftar.find((x) => x.slug === slug);
+          if (ketemu) {
+            const parsed = parseFrontmatter(ketemu.content || '');
+            a = { slug, path: ketemu.path, sha: ketemu.sha, data: parsed.data, body: parsed.body };
+          }
+        } catch (e) {
+          console.warn('Muat artikel via Worker gagal, coba GitHub langsung:', e);
+        }
+        if (!a) {
+          const file = await gh('/contents/src/content/berita/' + encodeURIComponent(slug) + '.md?ref=main');
+          const text = b64decodeUnicode(file.content || '');
+          const parsed = parseFrontmatter(text);
+          a = { slug, path: file.path, sha: file.sha, data: parsed.data, body: parsed.body };
+        }
 editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '', authorImage: a.data.authorImage || '' };
         $('f-judul').value = normalisasiJudul(a.data.title || '');
         $('f-kategori').value = a.data.category || '';
