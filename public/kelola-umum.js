@@ -556,18 +556,40 @@
 
 
     async function loadArticles() {
-      const list = await gh('/contents/src/content/berita?ref=main');
-      const files = (Array.isArray(list) ? list : []).filter((f) => f.type === 'file' && f.name.endsWith('.md'));
+      // Muat daftar lewat Worker dulu (same-origin). Memanggil api.github.com
+      // langsung dari browser sering gagal total di HP Bos Besar
+      // ("Failed to fetch") sehingga daftar berita tidak pernah tampil.
+      // Bila Worker gagal, kembali ke gh() langsung (perilaku lama).
+      let viaWorker = null;
+      try {
+        const d = await workerGet('/redaksi/api/artikel-terbit');
+        if (d && d.ok && Array.isArray(d.articles)) viaWorker = d.articles;
+      } catch (e) {
+        console.warn('Daftar berita via Worker gagal, coba GitHub langsung:', e);
+      }
       const loaded = [];
-      for (const f of files) {
-        try {
-          const file = await gh('/contents/src/content/berita/' + encodeURIComponent(f.name) + '?ref=main');
-          const text = b64decodeUnicode(file.content || '');
-          const parsed = parseFrontmatter(text);
-          const slug = f.name.replace(/\.md$/, '');
-          loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data, body: parsed.body });
-        } catch (e) {
-          console.warn('Gagal memuat ' + f.name, e);
+      if (viaWorker) {
+        for (const f of viaWorker) {
+          try {
+            const parsed = parseFrontmatter(f.content || '');
+            loaded.push({ slug: f.slug, path: f.path, sha: f.sha, data: parsed.data, body: parsed.body });
+          } catch (e) {
+            console.warn('Gagal memuat ' + f.slug, e);
+          }
+        }
+      } else {
+        const list = await gh('/contents/src/content/berita?ref=main');
+        const files = (Array.isArray(list) ? list : []).filter((f) => f.type === 'file' && f.name.endsWith('.md'));
+        for (const f of files) {
+          try {
+            const file = await gh('/contents/src/content/berita/' + encodeURIComponent(f.name) + '?ref=main');
+            const text = b64decodeUnicode(file.content || '');
+            const parsed = parseFrontmatter(text);
+            const slug = f.name.replace(/\.md$/, '');
+            loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data, body: parsed.body });
+          } catch (e) {
+            console.warn('Gagal memuat ' + f.name, e);
+          }
         }
       }
       loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
