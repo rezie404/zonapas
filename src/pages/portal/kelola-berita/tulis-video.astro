@@ -276,6 +276,29 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     });
 
 
+    // ---------- Jaga sesi selama unggah video ----------
+    // Aturan logout paksa 10 menit TIDAK berlaku saat sedang mengunggah
+    // video ZonaPasTV: olah ffmpeg + unggah resumable bisa memakan waktu
+    // lebih dari 10 menit tanpa klik/ketik, dan logout di tengah jalan
+    // akan menggagalkan unggahan (halaman pindah ke /masuk/ dan sesi
+    // server ikut kedaluwarsa). Selama unggah berjalan, segarkan
+    // penanda aktivitas (localStorage, dibaca cekIdle di header) dan
+    // sentuh server (/redaksi/api/me, memperbarui last_seen_at) tiap
+    // 2 menit. Berhenti otomatis saat unggah selesai/gagal (finally).
+    let jagaSesiTimer = null;
+    function sentuhAktivitasUnggah() {
+      try { localStorage.setItem('zonapas-aktivitas-terakhir', String(Date.now())); } catch (e) {}
+      try { fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(function () {}); } catch (e) {}
+    }
+    function mulaiJagaSesi() {
+      berhentiJagaSesi();
+      sentuhAktivitasUnggah();
+      jagaSesiTimer = setInterval(sentuhAktivitasUnggah, 2 * 60 * 1000);
+    }
+    function berhentiJagaSesi() {
+      if (jagaSesiTimer) { clearInterval(jagaSesiTimer); jagaSesiTimer = null; }
+    }
+
     // ---------- Unggah video ke YouTube (resumable upload) ----------
     // Alur: minta access token (1 jam) ke Worker -> buka sesi resumable di
     // YouTube -> unggah per potongan 8 MB dengan bilah progres -> YouTube
@@ -550,6 +573,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!youtubeTerhubung) { showStatus('YouTube belum terhubung. Hubungkan channel YouTube dulu lewat tombol di atas formulir.', false); return; }
       btn.disabled = true;
       btn.textContent = 'Mengolah video…';
+      mulaiJagaSesi();
       try {
         const slugDasar = slugify(judul);
         const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
@@ -629,6 +653,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       } catch (err) {
         showStatus('Gagal mengunggah video: ' + err.message, false);
       } finally {
+        berhentiJagaSesi();
         btn.disabled = false;
         btn.textContent = 'Unggah ke YouTube';
       }
