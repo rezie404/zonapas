@@ -617,17 +617,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     function blokNarasi2Kol(teks) {
       // Narasi kegiatan ditata 2 kolom seperti koran (lihat template):
-      // teks dibagi rata ke kolom kiri dan kanan. Tiap blok adalah satu
-      // kelompok kalimat yang muat 1 halaman. Awal paragraf tetap
-      // menjorok (tab 28px); sambungan tidak menjorok.
+      // teks dibagi rata ke kolom kiri dan kanan. Tiap paragraf jadi
+      // blok 2-kolom sendiri (tidak digabung lintas paragraf) supaya
+      // paginator bisa mengisi halaman rapat — tidak ada halaman
+      // tanggung yang kosong. Awal paragraf tetap menjorok (tab 28px);
+      // sambungan tidak menjorok. Paragraf yang terlalu panjang dipecah
+      // per kalimat.
       const keluar = [];
       const paragraf = String(teks || '').split(/\n\s*\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
-      const satuan = []; // { teks, awal }
-      for (const p of paragraf) {
-        const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
-        kal.forEach((k, i) => satuan.push({ teks: k.trim(), awal: i === 0 }));
-      }
-      if (!satuan.length) return keluar;
       const buatHtml = (list) => {
         const total = list.reduce((a, s) => a + s.teks.length + 1, 0);
         let kiri = [], kanan = [], n = 0;
@@ -638,16 +635,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const renderKol = (arr) => arr.map((s) => '<p class="sepekan-paragraf' + (s.awal ? '' : ' lanjutan') + '">' + esc(s.teks) + '</p>').join('');
         return '<div class="sepekan-2kol"><div class="sepekan-2kol-kol">' + renderKol(kiri) + '</div><div class="sepekan-2kol-kol">' + renderKol(kanan) + '</div></div>';
       };
-      let buf = [];
-      for (const s of satuan) {
-        const coba = buf.concat([s]);
-        const h = ukurBlok(buatHtml(coba));
-        if (h > TINGGI_ISI && buf.length) {
-          keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
-          buf = [s];
-        } else { buf = coba; }
+      for (const p of paragraf) {
+        const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
+        const satuan = kal.map((k, i) => ({ teks: k.trim(), awal: i === 0 }));
+        let buf = [];
+        for (const s of satuan) {
+          const coba = buf.concat([s]);
+          const h = ukurBlok(buatHtml(coba));
+          if (h > TINGGI_ISI && buf.length) {
+            keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+            buf = [s];
+          } else { buf = coba; }
+        }
+        if (buf.length) keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
       }
-      if (buf.length) keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
       return keluar;
     }
     function blokJudulBab(judul) {
@@ -674,14 +675,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) continue;
           const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
           blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul) });
-          blok.push(...blokNarasi2Kol(k.narasi));
           const fotos = (k.foto || []).filter(Boolean);
-          if (fotos.length === 1) {
-            const htmlFoto = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[0]) + '" alt="" /></div>';
-            blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto) });
-          } else if (fotos.length >= 2) {
-            const htmlFoto = '<div class="sepekan-foto-baris"><div class="sepekan-foto-dua"><img src="' + esc(fotos[0]) + '" alt="" /></div><div class="sepekan-foto-dua"><img src="' + esc(fotos[1]) + '" alt="" /></div></div>';
-            blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto) });
+          if (fotos.length >= 1) {
+            // Foto pertama SEBELUM narasi dimulai.
+            const htmlFoto1 = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[0]) + '" alt="" /></div>';
+            blok.push({ tipe: 'foto', html: htmlFoto1, tinggi: ukurBlok(htmlFoto1) });
+          }
+          blok.push(...blokNarasi2Kol(k.narasi));
+          if (fotos.length >= 2) {
+            // Foto kedua SETELAH narasi.
+            const htmlFoto2 = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[1]) + '" alt="" /></div>';
+            blok.push({ tipe: 'foto', html: htmlFoto2, tinggi: ukurBlok(htmlFoto2) });
           }
         }
       }
