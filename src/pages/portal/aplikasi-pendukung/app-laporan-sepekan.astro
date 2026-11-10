@@ -942,6 +942,82 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return keluar;
     }
     function blokNarasi2Kol(teks, judulCanva) {
+      // Narasi kegiatan ditata 2 kolom seperti koran dalam SATU blok:
+      // kolom kiri (blok biru: judul + awal narasi) diisi sampai bawah
+      // dulu (penuh), baru sisanya naik ke atas kolom kanan. (Ralat Nov
+      // 2026 atas permintaan Bos Besar: sebelumnya narasi dipecah jadi
+      // beberapa baris 2-kolom (chunk), sehingga alurnya terbaca
+      // zig-zag — kiri-kanan-kiri-kanan — bukan aliran kolom koran
+      // kiri-penuh lalu kanan. Foto kini DI BAWAH narasi, bukan di atas.)
+      // Bila narasi sangat panjang (blok 2-kolom > 700px, tidak muat 1
+      // halaman F4 bersama foto), dipakai cara chunk (beberapa baris
+      // 2-kolom) supaya tetap bisa mengalir.
+      const paragraf = String(teks || '').split(/\n\s*\n/).map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const satuan = []; // { teks, para, awal }
+      paragraf.forEach((p, pi) => {
+        const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
+        kal.forEach((k, i) => satuan.push({ teks: k.trim(), para: pi, awal: i === 0 }));
+      });
+      if (!satuan.length) return [];
+      // Kalimat dari paragraf yang sama digabung jadi satu <p> supaya
+      // teks mengalir natural. Awal paragraf tetap menjorok (tab 28px);
+      // sambungan tidak menjorok.
+      const renderKol = (arr) => {
+        const groups = [];
+        for (const s of arr) {
+          const last = groups[groups.length - 1];
+          if (last && last.para === s.para) last.kalimat.push(s.teks);
+          else groups.push({ para: s.para, awal: s.awal, kalimat: [s.teks] });
+        }
+        return groups.map((g) => '<p class="sepekan-paragraf' + (g.awal ? '' : ' lanjutan') + '">' + esc(g.kalimat.join(' ')) + '</p>').join('');
+      };
+      // Satu kalimat yang sangat panjang dibelah di batas kata supaya
+      // kedua kolom tetap terisi.
+      let pakai = satuan;
+      if (satuan.length === 1 && satuan[0].teks.length > 200) {
+        const t = satuan[0].teks;
+        const tengah = Math.floor(t.length / 2);
+        const sp = t.indexOf(' ', tengah);
+        const potong = sp > 0 ? sp : tengah;
+        pakai = [
+          { teks: t.slice(0, potong).trim(), para: satuan[0].para, awal: satuan[0].awal },
+          { teks: t.slice(potong).trim(), para: satuan[0].para, awal: false },
+        ];
+      }
+      const judul = judulCanva || '(Tanpa judul)';
+      const tinggiJudul = ukurBlok('<div style="width:290px"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3></div>') + 12;
+      // Tinggi kotak kolom kiri = padding atas 16 + judul (+margin 12)
+      // + narasi + padding bawah 18. Lebar isi kiri 290px, kanan 360px.
+      const ukurKiri = (arr) => {
+        if (!arr.length) return tinggiJudul + 34;
+        return tinggiJudul + ukurBlok('<div class="sepekan-kegiatan-narasi-putih" style="width:290px">' + renderKol(arr) + '</div>') + 34;
+      };
+      const ukurKanan = (arr) => {
+        if (!arr.length) return 0;
+        return ukurBlok('<div class="sepekan-kegiatan-narasi" style="width:360px">' + renderKol(arr) + '</div>');
+      };
+      // Binary search: selisih (kiri - kanan) monoton naik terhadap
+      // pisah. Cari pisah dgn selisih paling dekat 0 (kolom seimbang).
+      const selisih = (p) => ukurKiri(pakai.slice(0, p)) - ukurKanan(pakai.slice(p));
+      let pisah = pakai.length, lo = 0, hi = pakai.length;
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (selisih(mid) <= 0) { pisah = mid; lo = mid + 1; }
+        else { hi = mid - 1; }
+      }
+      let terbaik = pisah, bedaTerbaik = Math.abs(selisih(pisah));
+      if (pisah + 1 <= pakai.length && Math.abs(selisih(pisah + 1)) < bedaTerbaik) { terbaik = pisah + 1; bedaTerbaik = Math.abs(selisih(pisah + 1)); }
+      if (pisah - 1 >= 0 && Math.abs(selisih(pisah - 1)) < bedaTerbaik) { terbaik = pisah - 1; }
+      pisah = terbaik;
+      if (pisah < 1 && pakai.length > 1) pisah = 1;
+      const kiri = pakai.slice(0, pisah);
+      const kanan = pakai.slice(pisah);
+      const htmlSatu = '<div class="sepekan-kegiatan"><div class="sepekan-kegiatan-kiri"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3><div class="sepekan-kegiatan-narasi-putih">' + renderKol(kiri) + '</div></div><div class="sepekan-kegiatan-kanan"><div class="sepekan-kegiatan-narasi">' + renderKol(kanan) + '</div></div></div>';
+      const tinggiSatu = ukurBlok(htmlSatu);
+      if (tinggiSatu <= 700) return [{ tipe: 'paragraf', html: htmlSatu, tinggi: tinggiSatu }];
+      return blokNarasi2KolChunk(teks, judulCanva);
+    }
+    function blokNarasi2KolChunk(teks, judulCanva) {
       // Narasi kegiatan ditata 2 kolom seperti koran (lihat template):
       // kalimat diakumulasi terus-menerus (lintas paragraf) jadi kelompok
       // yang muat ~380px, lalu tiap kelompok dibagi ke kolom kiri dan
@@ -1076,19 +1152,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Bos Besar): foto-foto kegiatan dalam segi enam (pointy-top)
       // berangkai seperti sarang madu — 3 baris berselang-seling (4+3+3),
       // tiap segi enam berbagi sisi dengan tetangganya. 1 foto per
-      // kegiatan (foto pertama), maksimal 10 foto; kerangka 10 slot
+      // kegiatan (foto pertama), maksimal 11 foto; kerangka 11 slot
       // selalu tampil (slot kosong = garis tepi) walau foto belum ada.
       const tambahKolaseMadu = () => {
         // KERANGKA kolase selalu tampil (Nov 2026, atas permintaan Bos
-        // Besar): 10 slot segi enam berukuran proporsional mengisi area
-        // kosong di bawah Peserta — 3 baris berselang-seling (4+3+3)
+        // Besar): 11 slot segi enam berukuran proporsional mengisi area
+        // kosong di bawah Peserta — 3 baris berselang-seling (4+3+4)
         // supaya tiap segi enam cukup besar dan kolase memenuhi area.
-        // Foto (maks 10, 1 per kegiatan) mengisi slotnya; slot tanpa
+        // Foto (maks 11, 1 per kegiatan) mengisi slotnya; slot tanpa
         // foto tampil sebagai garis tepi (outline) supaya kerangka tetap
         // ada walau foto belum diunggah.
-        const foto = fotoSepekan.slice(0, 10);
-        const BARIS = [4, 3, 3];
-        const JUMLAH_SLOT = 10;
+        const foto = fotoSepekan.slice(0, 11);
+        const BARIS = [4, 3, 4];
+        const JUMLAH_SLOT = 11;
         const sTinggi = 500 / (2 + (BARIS.length - 1) * 1.5);
         const lebarSatuan = Math.max.apply(null, BARIS.map((n, r) => n + (r % 2 ? 0.5 : 0)));
         const sLebar = 701 / (lebarSatuan * 1.732);
@@ -1138,7 +1214,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
           const grup = 'keg-' + (h.tanggal || '') + '-' + ki;
           const fotos = (k.foto || []).filter(Boolean).slice(0, 2);
-          // Foto maks 2, keduanya rapi DI ATAS narasi. 1 foto tampil
+          // Foto maks 2, keduanya rapi DI BAWAH narasi. 1 foto tampil
           // tunggal, 2 foto berdampingan kecil.
           const htmlFotoGrup = (daftar) => {
             if (!daftar.length) return '';
@@ -1147,18 +1223,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           };
           const htmlFoto = htmlFotoGrup(fotos);
           const narasiBlok = blokNarasi2Kol(k.narasi, k.judul || '(Tanpa judul)');
-          // Foto + judul (blok narasi pertama) digabung jadi SATU blok
-          // supaya judul dan foto tidak terpisah halaman (Nov 2026, atas
-          // permintaan Bos Besar). Paginator tidak pernah membelah satu
-          // blok; lanjutan narasi (blok berikut) boleh mengalir.
-          if (htmlFoto && narasiBlok.length) {
-            const gabung = htmlFoto + narasiBlok[0].html;
-            blok.push({ tipe: 'foto', html: gabung, tinggi: ukurBlok(gabung), grup });
-            for (const nb of narasiBlok.slice(1)) blok.push({ ...nb, grup });
-          } else {
-            if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
-            for (const nb of narasiBlok) blok.push({ ...nb, grup });
-          }
+          // Urutan kegiatan: narasi 2 kolom dulu (satu blok: judul +
+          // narasi, kolom kiri penuh lalu kanan), FOTO DI BAWAH narasi
+          // (Nov 2026, atas permintaan Bos Besar: 'foto letak dibawah
+          // narasi saja'). Seluruh kegiatan satu grup supaya tetap
+          // sehalaman bila muat.
+          for (const nb of narasiBlok) blok.push({ ...nb, grup });
+          if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
         });
       }
       // Tindak lanjut
