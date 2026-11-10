@@ -164,7 +164,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <!-- Pratinjau (halaman sendiri saat ?pratinjau=1) -->
       <section id="sp-pratinjau-bagian" class="mt-8" aria-label="Pratinjau laporan">
         <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Pratinjau Laporan</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tampilan di bawah ini sama dengan isi PDF yang diunduh (ukuran A4 per halaman).</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tampilan di bawah ini sama dengan isi PDF yang diunduh (ukuran F4 per halaman).</p>
         <div id="sp-pratinjau" class="mt-4 flex flex-col items-center gap-6"></div>
       </section>
     </div>
@@ -218,13 +218,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // dokumen iframe terisolasi saat membuat PDF (tanpa Tailwind sama sekali).
     const CSS_LAPORAN = `.sepekan-bungkus { position: relative; overflow: hidden; }
     .sepekan-halaman {
-      width: 794px; height: 1123px; position: relative; overflow: hidden;
+      width: 813px; height: 1247px; position: relative; overflow: hidden;
       background: #ffffff; color: #0A2540;
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
       box-shadow: 0 4px 24px rgba(5, 21, 46, 0.25);
       flex: none; transform-origin: top left;
     }
-    .sepekan-isi { padding: 118px 56px 48px 56px; height: 1123px; box-sizing: border-box; position: relative; z-index: 1; }
+    .sepekan-isi { padding: 118px 56px 48px 56px; height: 1247px; box-sizing: border-box; position: relative; z-index: 1; }
     .sepekan-latar { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
     .sepekan-latar-titik { position: absolute; left: 0; right: 0; top: 0; height: 118px; background-image: radial-gradient(circle, rgba(30, 64, 175, 0.12) 1.5px, transparent 1.6px); background-size: 22px 22px; }
     /* Header halaman bab (Nov 2026): segi enam emboss di tengah kepala
@@ -245,7 +245,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
        tengah, pola titik seluruh halaman, garis emas kiri, segitiga biru
        kanan atas + segitiga kuning kanan bawah, logo Kemenimipas tetap
        kanan atas di atas segitiga biru. Ukuran dikonversi dari cqw
-       (lebar halaman 794px; filter drop-shadow dilepas agar konsisten
+       (lebar halaman 813px; filter drop-shadow dilepas agar konsisten
        di pratinjau dan PDF html2canvas). */
     .sepekan-latar-hasil { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
     .sepekan-hasil-dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(27, 95, 193, 0.20) 1.3px, transparent 1.4px); background-size: 18px 18px; background-position: 10px 10px; }
@@ -328,7 +328,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-sampul-kaki { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #0A2540; }
     .sepekan-sampul-kaki::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: #FFCC00; }
     /* Pengukur tinggi blok (tersembunyi, lebar sama dengan area isi) */
-    #sp-ukur { position: fixed; left: 0; top: 0; width: 682px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
+    #sp-ukur { position: fixed; left: 0; top: 0; width: 701px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
     (function suntikCssLaporan() {
       const st = document.createElement('style');
       st.setAttribute('data-sepekan', '');
@@ -894,11 +894,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }).join('');
     }
 
-    // ---------- Paginator: bagi blok isi ke halaman A4 ----------
-    // Halaman A4 @96dpi = 794 x 1123 px. Area isi: padding 118px atas
-    // (ruang logo + pita), 48px bawah, 56px kiri/kanan ->
-    // lebar 682px, tinggi 957px.
-    const TINGGI_ISI = 957;
+    // ---------- Paginator: bagi blok isi ke halaman F4 ----------
+    // Halaman F4 @96dpi = 813 x 1247 px (215 x 330 mm). Area isi:
+    // padding 118px atas (ruang logo + pita), 48px bawah,
+    // 56px kiri/kanan -> lebar 701px, tinggi 1081px.
+    const TINGGI_ISI = 1081;
     let elUkur = null;
     function ukurBlok(html) {
       if (!elUkur) {
@@ -1016,11 +1016,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const buatHtmlCanva = (list, judul) => {
         // Kelompok pertama ala template: judul + awal narasi di blok biru
         // (kiri), lanjutan narasi di kolom kanan. Ukur tinggi judul pada
-        // lebar isi blok biru (282px) + margin bawah 12px, lalu pisah
-        // narasi dgn lebar kolom kiri 282 (bukan 332) agar isi kolom kiri
+        // lebar isi blok biru (290px) + margin bawah 12px, lalu pisah
+        // narasi dgn lebar kolom kiri 290 (bukan 341) agar isi kolom kiri
         // (judul + narasi) tetap muat dalam batas chunk.
-        const tinggiJudul = ukurBlok('<div style="width:282px"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3></div>') + 12;
-        const html2kol = buatHtml(list, 282, tinggiJudul);
+        const tinggiJudul = ukurBlok('<div style="width:290px"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3></div>') + 12;
+        const html2kol = buatHtml(list, 290, tinggiJudul);
         const m = html2kol.match(/^<div class="sepekan-2kol"><div class="sepekan-2kol-kol">([\s\S]*?)<\/div><div class="sepekan-2kol-kol">([\s\S]*?)<\/div><\/div>$/);
         if (!m) return html2kol;
         return '<div class="sepekan-kegiatan"><div class="sepekan-kegiatan-kiri"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3><div class="sepekan-kegiatan-narasi-putih">' + m[1] + '</div></div><div class="sepekan-kegiatan-kanan"><div class="sepekan-kegiatan-narasi">' + m[2] + '</div></div></div>';
@@ -1029,17 +1029,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       for (const s of satuan) {
         const coba = buf.concat([s]);
         const pertama = keluar.length === 0 && judulCanva;
-        const htmlCoba = pertama ? buatHtmlCanva(coba, judulCanva) : buatHtml(coba, 332, 0);
+        const htmlCoba = pertama ? buatHtmlCanva(coba, judulCanva) : buatHtml(coba, 341, 0);
         const h = ukurBlok(htmlCoba);
         if (h > CHUNK_MAX && buf.length) {
-          const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf, 332, 0);
+          const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf, 341, 0);
           keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) });
           buf = [s];
         } else { buf = coba; }
       }
       if (buf.length) {
         const pertama = keluar.length === 0 && judulCanva;
-        const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf, 332, 0);
+        const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf, 341, 0);
         keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) });
       }
       return keluar;
@@ -1081,17 +1081,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (!foto.length) return;
         // DIPERBESAR (Nov 2026, atas permintaan Bos Besar): ukuran segi
         // enam dihitung dinamis agar kolase mengisi area kosong halaman
-        // — target tinggi kolase ~500px, dibatasi lebar halaman 682px.
+        // — target tinggi kolase ~500px, dibatasi lebar halaman 701px.
         // Makin sedikit foto, makin besar tiap segi enamnya (1 foto =
         // segi enam raksasa di tengah halaman). Batas s 50–220.
         const n1 = Math.ceil(foto.length / 2), n2 = foto.length - n1;
         const sTinggi = n2 ? 500 / 3.5 : 500 / 2;
-        const sLebar = 682 / (Math.max(n1, n2 + 0.5) * 1.732);
+        const sLebar = 701 / (Math.max(n1, n2 + 0.5) * 1.732);
         const s = Math.max(50, Math.min(220, Math.floor(Math.min(sTinggi, sLebar))));
         const W = Math.floor(1.732 * s), H = 2 * s, dx = W, dy = Math.floor(1.5 * s), offX = Math.floor(0.866 * s);
         const kanan1 = n1 ? W + (n1 - 1) * dx : 0;
         const kanan2 = n2 ? W + offX + (n2 - 1) * dx : 0;
-        const geserX = Math.round((682 - Math.max(kanan1, kanan2)) / 2);
+        const geserX = Math.round((701 - Math.max(kanan1, kanan2)) / 2);
         const tinggi = n2 ? H + dy : H;
         let sel = '';
         foto.forEach((f, i) => {
@@ -1246,10 +1246,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           '<div class="kecil">KEPALA KANTOR WILAYAH<br />DIREKTORAT JENDERAL PEMASYARAKATAN BENGKULU</div>' +
         '</div>' +
         '<div class="sepekan-sampul-periode">' + esc(teksPeriode()) + '</div>' +
-        '<div class="sepekan-hex-luar" style="left:36px; top:520px; width:430px; height:430px; background:#0A2540;">' +
+        '<div class="sepekan-hex-luar" style="left:36px; top:582px; width:430px; height:430px; background:#0A2540;">' +
           '<div class="sepekan-hex-tengah"><div class="sepekan-hex-dalam"><img src="' + esc(state.fotoPotret || FOTO_POTRET_TEMPLATE) + '" alt="Foto Kakanwil" /></div></div>' +
         '</div>' +
-        '<div class="sepekan-hex-luar" style="left:430px; top:700px; width:330px; height:330px; background:#0A2540;">' +
+        '<div class="sepekan-hex-luar" style="left:430px; top:762px; width:330px; height:330px; background:#0A2540;">' +
           '<div class="sepekan-hex-tengah"><div class="sepekan-hex-dalam"><img src="' + esc(state.fotoLapangan || FOTO_LAPANGAN_TEMPLATE) + '" alt="Foto kegiatan" /></div></div>' +
         '</div>' +
         '<div class="sepekan-sampul-kaki"></div>' +
@@ -1282,14 +1282,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function sesuaikanSkala() {
       const wadah = $('sp-pratinjau');
       if (!wadah) return;
-      const lebar = Math.min(794, wadah.clientWidth || 794);
-      const skala = lebar / 794;
+      const lebar = Math.min(813, wadah.clientWidth || 813);
+      const skala = lebar / 813;
       wadah.querySelectorAll('.sepekan-bungkus').forEach((b) => {
         const hal = b.querySelector('.sepekan-halaman');
         if (!hal) return;
         hal.style.transform = 'scale(' + skala + ')';
-        b.style.width = (794 * skala) + 'px';
-        b.style.height = (1123 * skala) + 'px';
+        b.style.width = (813 * skala) + 'px';
+        b.style.height = (1247 * skala) + 'px';
       });
     }
     window.addEventListener('resize', () => { sesuaikanSkala(); });
@@ -1325,7 +1325,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       let frame = null;
       try {
         // Klon halaman pratinjau yang terlihat; hapus transform skala
-        // tampilan supaya tiap halaman berukuran A4 penuh di iframe.
+        // tampilan supaya tiap halaman berukuran F4 penuh di iframe.
         const bungkus = Array.from(document.querySelectorAll('#sp-pratinjau .sepekan-bungkus'));
         if (!bungkus.length) throw new Error('Halaman laporan kosong.');
         const klonHtml = bungkus.map((b) => {
@@ -1336,7 +1336,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }).join('');
         frame = document.createElement('iframe');
         frame.setAttribute('aria-hidden', 'true');
-        frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;visibility:visible;';
+        frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:813px;height:1247px;border:0;visibility:visible;';
         document.body.appendChild(frame);
         const docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
           '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">' +
@@ -1350,14 +1350,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         try { await fdoc.fonts.ready; } catch {}
         await new Promise((r) => setTimeout(r, 300));
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const pdf = new jsPDF({ unit: 'mm', format: [215, 330], orientation: 'portrait' });
         const halamanEls = Array.from(fdoc.querySelectorAll('.sepekan-halaman'));
         if (!halamanEls.length) throw new Error('Halaman laporan kosong.');
         for (let i = 0; i < halamanEls.length; i++) {
           const canvas = await window.html2canvas(halamanEls[i], { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
           const img = canvas.toDataURL('image/jpeg', 0.92);
-          if (i > 0) pdf.addPage('a4', 'portrait');
-          pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
+          if (i > 0) pdf.addPage([215, 330], 'portrait');
+          pdf.addImage(img, 'JPEG', 0, 0, 215, 330);
           if (btn) btn.textContent = 'Membuat PDF… ' + (i + 1) + '/' + halamanEls.length;
         }
         pdf.save(namaBerkas());
@@ -1495,7 +1495,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Setelah login, #app baru terlihat — hitung ulang skala pratinjau
     // dengan lebar wadah yang sebenarnya. Tanpa ini, sesuaikanSkala yang
     // jalan saat init mengukur wadah tersembunyi (clientWidth 0) lalu
-    // memakai skala 1, sehingga halaman A4 794px meluber dan pratinjau
+    // memakai skala 1, sehingga halaman F4 813px meluber dan pratinjau
     // terpotong kiri-kanan di HP (Nov 2026).
     window.__kelolaSetelahLogin = () => { sesuaikanSkala(); };
     // Mode pratinjau (?pratinjau=1): sembunyikan editor + kepala halaman,
