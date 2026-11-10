@@ -206,6 +206,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-isi { padding: 118px 56px 48px 56px; height: 1123px; box-sizing: border-box; position: relative; z-index: 1; }
     .sepekan-latar { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
     .sepekan-latar-titik { position: absolute; left: 0; right: 0; top: 0; height: 118px; background-image: radial-gradient(circle, rgba(30, 64, 175, 0.12) 1.5px, transparent 1.6px); background-size: 22px 22px; }
+    /* Header halaman bab (Nov 2026): garis ganda tipis di tengah kepala
+       halaman (dongker + emas) supaya tidak kosong, tetap simpel dan
+       tidak penuh. Hanya di LATAR bab; halaman Hasil sudah punya pita. */
+    .sepekan-latar-garis-biru { position: absolute; top: 52px; left: 100px; right: 180px; height: 2px; background: #1E40AF; }
+    .sepekan-latar-garis-kuning { position: absolute; top: 58px; left: 100px; right: 180px; height: 3px; background: #FFCC00; }
     .sepekan-latar-logo-kuning { position: absolute; top: 0; right: 0; width: 138px; height: 110px; background: #FFCC00; clip-path: polygon(32% 0, 100% 0, 100% 100%, 0 100%); }
     .sepekan-latar-logo { position: absolute; top: 8px; right: 16px; width: 90px; height: 90px; }
     .sepekan-latar-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -1148,7 +1153,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
-      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-titik"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div><div class="sepekan-latar-logo-kuning"></div><div class="sepekan-latar-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-segitiga-bawah-kuning"></div><div class="sepekan-latar-segitiga-bawah-biru"></div><div class="sepekan-latar-bawah"></div></div>';
+      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-titik"></div><div class="sepekan-latar-garis-biru"></div><div class="sepekan-latar-garis-kuning"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div><div class="sepekan-latar-logo-kuning"></div><div class="sepekan-latar-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-segitiga-bawah-kuning"></div><div class="sepekan-latar-segitiga-bawah-biru"></div><div class="sepekan-latar-bawah"></div></div>';
       // Latar khusus halaman Hasil (Motif 1 Emboss Segi Enam) — halaman
       // bab lain tetap memakai LATAR. Watermark lambang tetap ada.
       const LATAR_HASIL = '<div class="sepekan-latar-hasil"><div class="sepekan-hasil-dots"></div><div class="sepekan-hasil-header"></div><div class="sepekan-hasil-header-hex"></div><div class="sepekan-hasil-stripe"></div><div class="sepekan-hasil-emboss"></div><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-hasil-tri-biru"></div><div class="sepekan-hasil-tri-kuning"></div><div class="sepekan-hasil-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div></div>';
