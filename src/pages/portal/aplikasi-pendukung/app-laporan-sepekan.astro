@@ -880,11 +880,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Narasi kegiatan ditata 2 kolom seperti koran (lihat template):
       // kalimat diakumulasi terus-menerus (lintas paragraf) jadi kelompok
       // yang muat ~380px, lalu tiap kelompok dibagi ke kolom kiri dan
-      // kanan pada titik pisah antar kalimat yang PALING SEIMBANG
-      // (selisih karakter terkecil) — jadi kedua kolom terisi rata dan
-      // tidak ada kolom kanan yang kosong. Kalimat dari paragraf yang
-      // sama digabung jadi satu <p> supaya teks mengalir natural. Awal
-      // paragraf tetap menjorok (tab 28px); sambungan tidak menjorok.
+      // kanan dgn alur koran: kolom kiri diisi narasi sampai bawah dulu,
+      // baru sisanya naik ke atas kolom kanan. (Sebelumnya dibagi rata /
+      // seimbang; diralat Nov 2026 atas permintaan Bos Besar.)
+      // Kalimat dari paragraf yang sama digabung jadi satu <p> supaya
+      // teks mengalir natural. Awal paragraf tetap menjorok (tab 28px);
+      // sambungan tidak menjorok.
       // Satu kalimat yang sangat panjang dibelah di batas kata supaya
       // kedua kolom tetap terisi.
       // Bila judulCanva diisi, kelompok PERTAMA ditata ala template:
@@ -899,7 +900,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         kal.forEach((k, i) => satuan.push({ teks: k.trim(), para: pi, awal: i === 0 }));
       });
       if (!satuan.length) return keluar;
-      const buatHtml = (list) => {
+      // Alur koran (Nov 2026, ralat atas permintaan Bos Besar): kolom kiri
+      // diisi narasi sampai bawah dulu, baru sisanya naik ke atas kolom
+      // kanan. Bukan lagi dibagi rata/seimbang seperti sebelumnya.
+      // lebarKiri = lebar isi kolom kiri (px); tinggiJudul = tinggi yang
+      // dipakai judul di kolom kiri (0 bila tanpa judul / blok polos).
+      const buatHtml = (list, lebarKiri, tinggiJudul) => {
         // Belah satu kalimat panjang (satu-satunya isi kelompok) di batas kata.
         let pakai = list;
         if (list.length === 1 && list[0].teks.length > 200) {
@@ -912,19 +918,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             { teks: t.slice(potong).trim(), para: list[0].para, awal: false },
           ];
         }
-        // Titik pisah paling seimbang (selisih karakter kiri-kanan terkecil).
-        const lens = pakai.map((s) => s.teks.length + 1);
-        const totalLen = lens.reduce((a, b) => a + b, 0);
-        let bestIdx = 0, bestDiff = Infinity, acc = 0;
-        for (let i = 0; i <= pakai.length; i++) {
-          if (i > 0) acc += lens[i - 1];
-          const diff = Math.abs(acc - (totalLen - acc));
-          if (diff <= bestDiff) { bestDiff = diff; bestIdx = i; }
-        }
-        if (bestIdx === 0 && pakai.length) bestIdx = 1;
-        if (bestIdx >= pakai.length && pakai.length > 1) bestIdx = pakai.length - 1;
-        const kiri = pakai.slice(0, bestIdx);
-        const kanan = pakai.slice(bestIdx);
+        // Cari titik pisah TERBESAR agar kolom kiri (pada lebar aslinya,
+        // ditambah tinggi judul bila ada) masih muat dalam batas chunk.
+        // Kalimat ditambah satu per satu ke kiri; begitu kalimat berikut
+        // membuat kolom kiri melampaui batas, sisanya masuk kolom kanan.
         const renderKol = (arr) => {
           const groups = [];
           for (const s of arr) {
@@ -934,13 +931,35 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           }
           return groups.map((g) => '<p class="sepekan-paragraf' + (g.awal ? '' : ' lanjutan') + '">' + esc(g.kalimat.join(' ')) + '</p>').join('');
         };
+        const batasKiri = CHUNK_MAX - (tinggiJudul || 0) - (tinggiJudul ? 34 : 0);
+        const ukurKiri = (arr) => {
+          if (!arr.length) return 0;
+          const bungkus = tinggiJudul ? 'sepekan-kegiatan-narasi-putih' : 'sepekan-2kol-kol';
+          return ukurBlok('<div class="' + bungkus + '" style="width:' + lebarKiri + 'px">' + renderKol(arr) + '</div>');
+        };
+        // Binary search (tinggi kolom kiri monoton naik): cari pisah
+        // terbesar agar kolom kiri masih muat dalam batas.
+        let pisah = pakai.length, lo = 1, hi = pakai.length;
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          if (ukurKiri(pakai.slice(0, mid)) <= batasKiri) { pisah = mid; lo = mid + 1; }
+          else { hi = mid - 1; }
+        }
+        if (pisah < 1) pisah = 1;
+        if (pisah >= pakai.length && pakai.length > 1) pisah = pakai.length - 1;
+        const kiri = pakai.slice(0, pisah);
+        const kanan = pakai.slice(pisah);
+
         return '<div class="sepekan-2kol"><div class="sepekan-2kol-kol">' + renderKol(kiri) + '</div><div class="sepekan-2kol-kol">' + renderKol(kanan) + '</div></div>';
       };
       const buatHtmlCanva = (list, judul) => {
         // Kelompok pertama ala template: judul + awal narasi di blok biru
-        // (kiri), lanjutan narasi di kolom kanan. Pakai logika pisah yang
-        // sama dengan buatHtml, lalu bungkus ulang.
-        const html2kol = buatHtml(list);
+        // (kiri), lanjutan narasi di kolom kanan. Ukur tinggi judul pada
+        // lebar isi blok biru (282px) + margin bawah 12px, lalu pisah
+        // narasi dgn lebar kolom kiri 282 (bukan 332) agar isi kolom kiri
+        // (judul + narasi) tetap muat dalam batas chunk.
+        const tinggiJudul = ukurBlok('<div style="width:282px"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3></div>') + 12;
+        const html2kol = buatHtml(list, 282, tinggiJudul);
         const m = html2kol.match(/^<div class="sepekan-2kol"><div class="sepekan-2kol-kol">([\s\S]*?)<\/div><div class="sepekan-2kol-kol">([\s\S]*?)<\/div><\/div>$/);
         if (!m) return html2kol;
         return '<div class="sepekan-kegiatan"><div class="sepekan-kegiatan-kiri"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3><div class="sepekan-kegiatan-narasi-putih">' + m[1] + '</div></div><div class="sepekan-kegiatan-kanan"><div class="sepekan-kegiatan-narasi">' + m[2] + '</div></div></div>';
@@ -948,17 +967,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       let buf = [];
       for (const s of satuan) {
         const coba = buf.concat([s]);
-        const h = ukurBlok(buatHtml(coba));
+        const pertama = keluar.length === 0 && judulCanva;
+        const htmlCoba = pertama ? buatHtmlCanva(coba, judulCanva) : buatHtml(coba, 332, 0);
+        const h = ukurBlok(htmlCoba);
         if (h > CHUNK_MAX && buf.length) {
-          const pertama = keluar.length === 0 && judulCanva;
-          const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf);
+          const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf, 332, 0);
           keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) });
           buf = [s];
         } else { buf = coba; }
       }
       if (buf.length) {
         const pertama = keluar.length === 0 && judulCanva;
-        const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf);
+        const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf, 332, 0);
         keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) });
       }
       return keluar;
@@ -1057,10 +1077,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             return '<div class="sepekan-foto-baris"><div class="sepekan-foto-satu"><img src="' + esc(daftar[0]) + '" alt="" /></div><div class="sepekan-foto-dua"><img src="' + esc(daftar[1]) + '" alt="" /></div></div>';
           };
           const htmlFoto = htmlFotoGrup(fotos);
-          if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
-          // Judul + narasi ala template: blok biru (judul kuning + awal
-          // narasi putih) di kiri, lanjutan narasi di kanan.
-          for (const nb of blokNarasi2Kol(k.narasi, k.judul || '(Tanpa judul)')) blok.push({ ...nb, grup });
+          const narasiBlok = blokNarasi2Kol(k.narasi, k.judul || '(Tanpa judul)');
+          // Foto + judul (blok narasi pertama) digabung jadi SATU blok
+          // supaya judul dan foto tidak terpisah halaman (Nov 2026, atas
+          // permintaan Bos Besar). Paginator tidak pernah membelah satu
+          // blok; lanjutan narasi (blok berikut) boleh mengalir.
+          if (htmlFoto && narasiBlok.length) {
+            const gabung = htmlFoto + narasiBlok[0].html;
+            blok.push({ tipe: 'foto', html: gabung, tinggi: ukurBlok(gabung), grup });
+            for (const nb of narasiBlok.slice(1)) blok.push({ ...nb, grup });
+          } else {
+            if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
+            for (const nb of narasiBlok) blok.push({ ...nb, grup });
+          }
         });
       }
       // Tindak lanjut
