@@ -158,7 +158,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Hasil yang Dicapai (per Hari)</h2>
           <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 2 foto. Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis dari berita ZonaPas Senin–Sabtu, atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 4 foto. Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis dari berita ZonaPas Senin–Sabtu, atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -241,6 +241,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-latar-kuning { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: #FFCC00; }
     .sepekan-latar-segitiga-biru { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 48px solid #1E40AF; border-left: 48px solid transparent; }
     .sepekan-latar-segitiga-kuning { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 48px solid #FFCC00; border-left: 48px solid transparent; }
+    .sepekan-latar-lambang { position: absolute; left: 50%; top: 50%; width: 430px; height: 430px; transform: translate(-50%, -50%); opacity: 0.14; }
+    .sepekan-latar-lambang img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .sepekan-latar-wajik { position: absolute; right: 0; top: 48px; bottom: 48px; width: 28px; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%3E%3Crect%20width='28'%20height='28'%20fill='%230A2540'/%3E%3Crect%20x='10'%20y='10'%20width='8'%20height='8'%20fill='%23FFCC00'%20transform='rotate(45%2014%2014)'/%3E%3C/svg%3E"); background-size: 28px 28px; background-repeat: repeat-y; }
     .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
     .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
     .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; text-indent: 28px; }
@@ -773,9 +776,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               '<input type="text" data-judul-kegiatan="' + hi + ':' + ki + '" value="' + esc(k.judul) + '" placeholder="Contoh: Apel Pagi Kanwil Ditjenpas Bengkulu" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>' +
             '<label class="mt-2 block"><span class="block text-xs font-bold">Narasi</span>' +
               '<textarea rows="5" data-narasi-kegiatan="' + hi + ':' + ki + '" placeholder="Tulis narasi kegiatan…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(k.narasi) + '</textarea></label>' +
-            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 2)</span>' +
+            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 4)</span>' +
               '<div class="mt-1 flex flex-wrap items-center gap-2">' + fotos +
-              (k.foto.filter(Boolean).length < 2 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
+              (k.foto.filter(Boolean).length < 4 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
               '</div></div></div>';
         }).join('');
         return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
@@ -931,17 +934,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
           blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul), grup });
           const fotos = (k.foto || []).filter(Boolean);
-          if (fotos.length >= 1) {
-            // Foto pertama SEBELUM narasi dimulai.
-            const htmlFoto1 = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[0]) + '" alt="" /></div>';
-            blok.push({ tipe: 'foto', html: htmlFoto1, tinggi: ukurBlok(htmlFoto1), grup });
-          }
+          // Foto disusun rapi: sebelum narasi foto ke-1 (dan foto ke-2
+          // bila ada 4 foto), sesudah narasi sisanya. 1 foto tampil
+          // tunggal, 2 foto berdampingan kecil.
+          const htmlFotoGrup = (daftar) => {
+            if (!daftar.length) return '';
+            if (daftar.length === 1) return '<div class="sepekan-foto-tunggal"><img src="' + esc(daftar[0]) + '" alt="" /></div>';
+            return '<div class="sepekan-foto-baris"><div class="sepekan-foto-satu"><img src="' + esc(daftar[0]) + '" alt="" /></div><div class="sepekan-foto-dua"><img src="' + esc(daftar[1]) + '" alt="" /></div></div>';
+          };
+          const sebelum = fotos.slice(0, fotos.length >= 4 ? 2 : 1);
+          const sesudah = fotos.slice(sebelum.length);
+          const htmlSebelum = htmlFotoGrup(sebelum);
+          if (htmlSebelum) blok.push({ tipe: 'foto', html: htmlSebelum, tinggi: ukurBlok(htmlSebelum), grup });
           for (const nb of blokNarasi2Kol(k.narasi)) blok.push({ ...nb, grup });
-          if (fotos.length >= 2) {
-            // Foto kedua SETELAH narasi.
-            const htmlFoto2 = '<div class="sepekan-foto-tunggal"><img src="' + esc(fotos[1]) + '" alt="" /></div>';
-            blok.push({ tipe: 'foto', html: htmlFoto2, tinggi: ukurBlok(htmlFoto2), grup });
-          }
+          const htmlSesudah = htmlFotoGrup(sesudah);
+          if (htmlSesudah) blok.push({ tipe: 'foto', html: htmlSesudah, tinggi: ukurBlok(htmlSesudah), grup });
         });
       }
       // Tindak lanjut
@@ -1051,7 +1058,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
-      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-titik"></div><div class="sepekan-latar-kuning"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div></div>';
+      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-titik"></div><div class="sepekan-latar-kuning"></div><div class="sepekan-latar-wajik"></div><div class="sepekan-latar-lambang"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div></div>';
       halaman.forEach((hals, i) => {
         html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman">' + LATAR + '<div class="sepekan-isi">' +
           hals.map((b) => b.html).join('') + '</div></div></div>';
