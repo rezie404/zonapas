@@ -8,14 +8,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 ---
 
 <BaseLayout
-  title="Laporan Sepekan"
+  title="Laporan Sepekan (Humas)"
   description="Susun Laporan Kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu per pekan dan unduh sebagai PDF — untuk Administrator dan akun yang ditunjuk."
 >
   <script type="application/json" id="kelola-data" set:html={JSON.stringify({ categoryColors, authors: authorInfoMap })} />
 
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
-      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Laporan Sepekan</h1>
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Laporan Sepekan (Humas)</h1>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
         Laporan Kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu per pekan. Isi periode, ganti foto sampul, tulis isi laporan, lalu unduh sebagai PDF mengikuti template laporan sepekan.
@@ -27,7 +27,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     <!-- Login -->
     <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
       <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
-      <h2 class="mt-3 text-lg font-bold">Masuk untuk membuka Laporan Sepekan</h2>
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk membuka Laporan Sepekan (Humas)</h2>
       <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
         Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Administrator — atau akun Google Penulis/Penyunting yang sudah ditunjuk Administrator.
       </p>
