@@ -259,7 +259,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=9"></script>
+  <script is:inline src="/kelola-umum.js?v=10"></script>
   <script>
 
 
@@ -1068,35 +1068,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const data = { ...d, image };
         let finalSlug = slug;
         let sha = editing ? editing.sha : undefined;
-        if (token && !editing) {
-          let n = 2;
-          while (true) {
-            try {
-              const existing = await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md?ref=main');
-              if (existing && existing.sha) { finalSlug = slug + '-' + n; n++; continue; }
-              break;
-            } catch (err) { break; }
-          }
-        }
         const md = buildMarkdown(data);
         const pesanSimpan = (editing ? 'Ubah berita: ' : 'Tambah berita: ') + title;
-        if (token) {
-          const payload = { message: pesanSimpan, content: b64encodeUnicode(md), branch: 'main' };
-          if (sha) payload.sha = sha;
-          await gh('/contents/src/content/berita/' + encodeURIComponent(finalSlug) + '.md', { method: 'PUT', body: JSON.stringify(payload) });
-        } else {
-          // Masuk lewat Google: tulis lewat Worker. 422 = slug sudah
-          // dipakai (cek di atas dilewati tanpa token) — coba slug
-          // berikutnya, maks. 3 percobaan.
-          let percobaan = 0;
-          while (true) {
-            try {
-              await githubTulis('src/content/berita/' + finalSlug + '.md', b64encodeUnicode(md), pesanSimpan, sha);
-              break;
-            } catch (err) {
-              if (!editing && err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slug + '-' + (percobaan + 1); continue; }
-              throw err;
-            }
+        // Selalu tulis lewat Worker (githubTulis, same-origin). PUT langsung
+        // ke api.github.com (gh()) sering gagal total di HP Bos Besar
+        // ("Failed to fetch"). 422 = slug sudah dipakai — coba slug
+        // berikutnya, maks. 3 percobaan.
+        let percobaan = 0;
+        while (true) {
+          try {
+            await githubTulis('src/content/berita/' + finalSlug + '.md', b64encodeUnicode(md), pesanSimpan, sha);
+            break;
+          } catch (err) {
+            if (!editing && err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slug + '-' + (percobaan + 1); continue; }
+            throw err;
           }
         }
         hapusDraf();

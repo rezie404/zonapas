@@ -1193,15 +1193,10 @@
       const slug = editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita');
       const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
       const base64 = dataUrl.split(',')[1];
-      if (token) {
-        await gh('/contents/public/images/' + encodeURIComponent(filename), {
-          method: 'PUT',
-          body: JSON.stringify({ message: 'Unggah gambar isi: ' + filename, content: base64, branch: 'main' }),
-        });
-      } else {
-        // Masuk lewat Google: tidak ada token GitHub di browser — tulis lewat Worker.
-        await githubTulis('public/images/' + filename, base64, 'Unggah gambar isi: ' + filename);
-      }
+      // Selalu lewat Worker (githubTulis, same-origin). PUT langsung ke
+      // api.github.com (gh()) sering gagal total di HP Bos Besar
+      // ("Failed to fetch") sehingga gambar tidak pernah terunggah.
+      await githubTulis('public/images/' + filename, base64, 'Unggah gambar isi: ' + filename);
       previewImgMap['/images/' + filename] = dataUrl;
       return '/images/' + filename;
     }
@@ -1262,15 +1257,10 @@
       const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
       const filename = 'cover-' + slug + '-' + stamp + '.jpg';
       const base64 = pendingCover.dataUrl.split(',')[1];
-      if (token) {
-        await gh('/contents/public/images/' + encodeURIComponent(filename), {
-          method: 'PUT',
-          body: JSON.stringify({ message: 'Unggah foto sampul: ' + filename, content: base64, branch: 'main' }),
-        });
-      } else {
-        // Masuk lewat Google: tidak ada token GitHub di browser — tulis lewat Worker.
-        await githubTulis('public/images/' + filename, base64, 'Unggah foto sampul: ' + filename);
-      }
+      // Selalu lewat Worker (githubTulis, same-origin). PUT langsung ke
+      // api.github.com (gh()) sering gagal total di HP Bos Besar
+      // ("Failed to fetch") sehingga foto sampul tidak pernah terunggah.
+      await githubTulis('public/images/' + filename, base64, 'Unggah foto sampul: ' + filename);
       return '/images/' + filename;
     }
 
