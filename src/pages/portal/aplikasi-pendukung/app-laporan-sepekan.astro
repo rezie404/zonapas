@@ -237,13 +237,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     .sepekan-isi { padding: 48px 56px 48px 56px; height: 1123px; box-sizing: border-box; position: relative; z-index: 1; }
     .sepekan-latar { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-    .sepekan-latar-titik { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(30, 64, 175, 0.08) 1.5px, transparent 1.6px); background-size: 24px 24px; }
-    .sepekan-latar-kuning { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: #FFCC00; }
-    .sepekan-latar-segitiga-biru { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 48px solid #1E40AF; border-left: 48px solid transparent; }
-    .sepekan-latar-segitiga-kuning { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 48px solid #FFCC00; border-left: 48px solid transparent; }
-    .sepekan-latar-lambang { position: absolute; left: 50%; top: 50%; width: 430px; height: 430px; transform: translate(-50%, -50%); opacity: 0.14; }
-    .sepekan-latar-lambang img { width: 100%; height: 100%; object-fit: contain; display: block; }
-    .sepekan-latar-wajik { position: absolute; right: 0; top: 48px; bottom: 48px; width: 28px; background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%3E%3Crect%20width='28'%20height='28'%20fill='%230A2540'/%3E%3Crect%20x='10'%20y='10'%20width='8'%20height='8'%20fill='%23FFCC00'%20transform='rotate(45%2014%2014)'/%3E%3C/svg%3E"); background-size: 28px 28px; background-repeat: repeat-y; }
+    .sepekan-latar-lingkaran { position: absolute; left: 50%; top: 50%; width: 440px; height: 440px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(30, 64, 175, 0.07) 0%, rgba(30, 64, 175, 0.03) 55%, transparent 72%); border: 2px solid rgba(255, 204, 0, 0.35); }
+    .sepekan-latar-lingkaran-dalam { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; border: 1px solid rgba(30, 64, 175, 0.20); }
+    .sepekan-latar-sudut { position: absolute; width: 52px; height: 52px; }
+    .sepekan-latar-sudut-tl { top: 0; left: 0; border-top: 4px solid #0A2540; border-left: 4px solid #0A2540; }
+    .sepekan-latar-sudut-tr { top: 0; right: 0; border-top: 4px solid #0A2540; border-right: 4px solid #0A2540; }
+    .sepekan-latar-sudut-bl { bottom: 0; left: 0; border-bottom: 4px solid #0A2540; border-left: 4px solid #0A2540; }
+    .sepekan-latar-sudut-br { bottom: 0; right: 0; border-bottom: 4px solid #0A2540; border-right: 4px solid #0A2540; }
+    .sepekan-latar-sudut-aksen { position: absolute; width: 12px; height: 12px; background: #FFCC00; transform: rotate(45deg); }
+    .sepekan-latar-sudut-aksen-tl { top: 14px; left: 14px; }
+    .sepekan-latar-sudut-aksen-tr { top: 14px; right: 14px; }
+    .sepekan-latar-sudut-aksen-bl { bottom: 14px; left: 14px; }
+    .sepekan-latar-sudut-aksen-br { bottom: 14px; right: 14px; }
     .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
     .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
     .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; text-indent: 28px; }
@@ -1058,7 +1063,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
-      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-titik"></div><div class="sepekan-latar-kuning"></div><div class="sepekan-latar-wajik"></div><div class="sepekan-latar-lambang"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div></div>';
+      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-lingkaran"></div><div class="sepekan-latar-lingkaran-dalam"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-tl"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-tr"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-bl"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-br"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-tl"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-tr"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-bl"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-br"></div></div>';
       halaman.forEach((hals, i) => {
         html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman">' + LATAR + '<div class="sepekan-isi">' +
           hals.map((b) => b.html).join('') + '</div></div></div>';
