@@ -149,8 +149,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             </div>
             <div class="md:col-span-2">
               <label for="f-kota" class="mb-1 block text-sm font-bold">Kota</label>
-              <input id="f-kota" value="Bengkulu" placeholder="contoh: Bengkulu" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Nama kota tampil di awal narasi dengan huruf tebal (contoh: <b>Bengkulu</b> – …), sebelum narasi inti. Kosongkan bila berita tidak memakai awalan kota.</p>
+              <select id="f-kota" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                <option value="Bengkulu" selected>Bengkulu</option>
+                <option value="Bengkulu Selatan">Bengkulu Selatan</option>
+                <option value="Rejang Lebong">Rejang Lebong</option>
+                <option value="Bengkulu Utara">Bengkulu Utara</option>
+                <option value="Kaur">Kaur</option>
+                <option value="Seluma">Seluma</option>
+                <option value="Mukomuko">Mukomuko</option>
+                <option value="Lebong">Lebong</option>
+                <option value="Kepahiang">Kepahiang</option>
+                <option value="Bengkulu Tengah">Bengkulu Tengah</option>
+                <option value="lainnya">Lainnya (ketik sendiri)</option>
+                <option value="">— Tanpa awalan kota —</option>
+              </select>
+              <input id="f-kota-lain" placeholder="Ketik nama kota lain, contoh: Curup" class="mt-2 hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Pilih kabupaten/kota di Provinsi Bengkulu (Bengkulu menjadi bawaan). Nama kota tampil di awal narasi dengan huruf tebal (contoh: <b>Bengkulu</b> – …), sebelum narasi inti. Bila kotanya tidak ada di daftar, pilih "Lainnya" lalu ketik sendiri.</p>
             </div>
             <div class="md:col-span-2">
               <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
@@ -264,7 +278,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=13"></script>
+  <script is:inline src="/kelola-umum.js?v=14"></script>
   <script>
 
 
@@ -284,7 +298,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('f-featured').checked = art.featured === true;
         $('f-breaking').checked = art.breaking === true;
         const kotaAwal = pisahkanKota(pisahkanFotoIsi(art.body || '').narasi);
-        $('f-kota').value = kotaAwal.kota || 'Bengkulu';
+        aturKotaForm(kotaAwal.kota || 'Bengkulu');
         const isiAwal = pisahkanFotoIsi(art.body || '');
         $('f-isi').value = kotaAwal.narasi;
         aturFotoIsi(isiAwal.foto[0] || '');
@@ -316,7 +330,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       pendingGambarIsi = [];
       aturFotoIsi('');
       $('form-berita').reset();
-      $('f-kota').value = 'Bengkulu';
+      aturKotaForm('Bengkulu');
       $('f-penulis').value = 'Rezie';
       $('f-keterangan').value = 'Dokumentasi kegiatan. (ZonaPas)';
       $('f-tanggal').value = todayISO();
@@ -347,7 +361,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return {
         waktu: Date.now(),
         judul: $('f-judul').value, kategori: $('f-kategori').value, tag: $('f-tag').value,
-        penulis: $('f-penulis').value, tanggal: $('f-tanggal').value, upt: $('f-upt').value, kota: $('f-kota').value,
+        penulis: $('f-penulis').value, tanggal: $('f-tanggal').value, upt: $('f-upt').value, kota: bacaKotaForm(),
         keterangan: $('f-keterangan').value, featured: $('f-featured').checked,
         breaking: $('f-breaking').checked, isi: $('f-isi').value,
       };
@@ -403,7 +417,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('f-penulis').value = d.penulis || '';
       $('f-tanggal').value = d.tanggal || '';
       $('f-upt').value = d.upt || '';
-      $('f-kota').value = d.kota === undefined ? 'Bengkulu' : d.kota;
+      aturKotaForm(d.kota === undefined ? 'Bengkulu' : d.kota);
       $('f-keterangan').value = d.keterangan || '';
       $('f-featured').checked = !!d.featured;
       $('f-breaking').checked = !!d.breaking;
@@ -1045,6 +1059,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
 
+    on('f-kota', 'change', perbaruiInputKotaLain);
     on('form-berita', 'submit', async (e) => {
       e.preventDefault();
       const btn = $('btn-save');
@@ -1189,7 +1204,7 @@ editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', b
         $('f-featured').checked = a.data.featured === true;
         $('f-breaking').checked = a.data.breaking === true;
         const kotaAwal = pisahkanKota(pisahkanFotoIsi(a.body || '').narasi);
-        $('f-kota').value = kotaAwal.kota || 'Bengkulu';
+        aturKotaForm(kotaAwal.kota || 'Bengkulu');
         const isiAwal = pisahkanFotoIsi(a.body || '');
         $('f-isi').value = kotaAwal.narasi;
         aturFotoIsi(isiAwal.foto[0] || '');

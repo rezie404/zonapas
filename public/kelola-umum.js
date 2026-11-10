@@ -1017,9 +1017,36 @@
       return teks;
     }
 
+    // Kabupaten/kota di Provinsi Bengkulu (1 kota + 9 kabupaten).
+    // Kolom Kota di formulir berupa dropdown berisi daftar ini (Bengkulu
+    // menjadi bawaan); bila kotanya tidak ada di daftar, pilih "Lainnya"
+    // lalu ketik sendiri di kolom yang muncul.
+    const DAFTAR_KOTA_BENGKULU = ['Bengkulu', 'Bengkulu Selatan', 'Rejang Lebong', 'Bengkulu Utara', 'Kaur', 'Seluma', 'Mukomuko', 'Lebong', 'Kepahiang', 'Bengkulu Tengah'];
+
     function bacaKotaForm() {
-      const el = $('f-kota');
-      return el ? el.value.trim() : '';
+      const pilih = $('f-kota');
+      if (!pilih) return '';
+      if (pilih.value === 'lainnya') {
+        const lain = $('f-kota-lain');
+        return lain ? lain.value.trim() : '';
+      }
+      return pilih.value.trim();
+    }
+
+    function perbaruiInputKotaLain() {
+      const pilih = $('f-kota'), lain = $('f-kota-lain');
+      if (!pilih || !lain) return;
+      lain.classList.toggle('hidden', pilih.value !== 'lainnya');
+    }
+
+    function aturKotaForm(kota) {
+      const pilih = $('f-kota'), lain = $('f-kota-lain');
+      if (!pilih) return;
+      const k = String(kota || '').trim();
+      if (!k) { pilih.value = ''; if (lain) lain.value = ''; }
+      else if (DAFTAR_KOTA_BENGKULU.includes(k)) { pilih.value = k; if (lain) lain.value = ''; }
+      else { pilih.value = 'lainnya'; if (lain) lain.value = k; }
+      perbaruiInputKotaLain();
     }
 
     function namaDariBarisFoto(baris) {
