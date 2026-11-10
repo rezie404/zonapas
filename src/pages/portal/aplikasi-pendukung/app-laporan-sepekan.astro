@@ -211,6 +211,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-latar-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .sepekan-latar-watermark { position: absolute; left: 50%; top: 50%; width: 420px; transform: translate(-50%, -50%); opacity: 0.10; }
     .sepekan-latar-watermark img { width: 100%; height: auto; display: block; }
+    /* Latar khusus halaman HASIL YANG DICAPAI — Motif 1 (Emboss Segi Enam)
+       dari Pilihan Background Laporan (Nov 2026): segi enam emboss di
+       tengah, pola titik seluruh halaman, garis emas kiri, segitiga biru
+       kanan atas + segitiga kuning kanan bawah, logo Kemenimipas tetap
+       kanan atas di atas segitiga biru. Ukuran dikonversi dari cqw
+       (lebar halaman 794px; filter drop-shadow dilepas agar konsisten
+       di pratinjau dan PDF html2canvas). */
+    .sepekan-latar-hasil { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    .sepekan-hasil-dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(27, 95, 193, 0.20) 1.3px, transparent 1.4px); background-size: 18px 18px; background-position: 10px 10px; }
+    .sepekan-hasil-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; background: #FFCC00; }
+    .sepekan-hasil-emboss { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%); width: 540px; height: 540px; background-repeat: no-repeat; background-position: center; background-size: contain; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpolygon points='100,8 180,54 180,146 100,192 20,146 20,54' fill='rgba(10,37,64,0.045)' stroke='rgba(10,37,64,0.13)' stroke-width='2.5'/%3E%3Cpolygon points='100,32 159,66 159,134 100,168 41,134 41,66' fill='none' stroke='rgba(255,204,0,0.55)' stroke-width='4'/%3E%3Cpolygon points='100,56 138,78 138,122 100,144 62,122 62,78' fill='rgba(10,37,64,0.05)' stroke='rgba(10,37,64,0.11)' stroke-width='2'/%3E%3Cpolygon points='100,80 117,90 117,110 100,120 83,110 83,90' fill='rgba(255,204,0,0.4)'/%3E%3C/svg%3E"); }
+    .sepekan-hasil-tri-biru { position: absolute; top: 0; right: 0; width: 135px; height: 135px; background: #1E40AF; clip-path: polygon(100% 0, 0 0, 100% 100%); }
+    .sepekan-hasil-tri-kuning { position: absolute; bottom: 0; right: 0; width: 135px; height: 135px; background: #FFCC00; clip-path: polygon(100% 0, 0 100%, 100% 100%); }
+    .sepekan-hasil-logo { position: absolute; top: 8px; right: 16px; width: 90px; height: 90px; }
+    .sepekan-hasil-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .sepekan-latar-segitiga-biru { position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 78px solid #1E40AF; border-right: 78px solid transparent; }
     .sepekan-latar-segitiga-kuning { position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 46px solid #FFCC00; border-right: 46px solid transparent; }
     .sepekan-latar-bawah { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #1E40AF; }
@@ -1136,8 +1151,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
       const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-titik"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div><div class="sepekan-latar-logo-kuning"></div><div class="sepekan-latar-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-segitiga-bawah-kuning"></div><div class="sepekan-latar-segitiga-bawah-biru"></div><div class="sepekan-latar-bawah"></div></div>';
+      // Latar khusus halaman Hasil (Motif 1 Emboss Segi Enam) — halaman
+      // bab lain tetap memakai LATAR. Watermark lambang tetap ada.
+      const LATAR_HASIL = '<div class="sepekan-latar-hasil"><div class="sepekan-hasil-dots"></div><div class="sepekan-hasil-stripe"></div><div class="sepekan-hasil-emboss"></div><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-hasil-tri-biru"></div><div class="sepekan-hasil-tri-kuning"></div><div class="sepekan-hasil-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div></div>';
       halaman.forEach((hals, i) => {
-        html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman">' + LATAR + '<div class="sepekan-isi">' +
+        // Halaman Hasil = ada blok kegiatan (grup 'keg-...') di halaman itu.
+        const isHasil = hals.some((b) => b.grup && String(b.grup).indexOf('keg-') === 0);
+        const latarPage = isHasil ? LATAR_HASIL : LATAR;
+        html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman">' + latarPage + '<div class="sepekan-isi">' +
           hals.map((b) => b.html).join('') + '</div></div></div>';
       });
       return html;
