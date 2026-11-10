@@ -937,30 +937,37 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function susunBlok() {
       const blok = [];
       // Foto kegiatan sepekan (untuk kolase + segi enam di halaman bab).
+      // Foto kegiatan sepekan: 1 foto per kegiatan (foto pertama saja),
+      // dipakai kolase Maksud & Tujuan dan segi enam bab (Nov 2026).
       const fotoSepekan = [];
       for (const h of state.hari) {
         for (const k of h.kegiatan || []) {
-          for (const f of (k.foto || []).filter(Boolean)) {
-            if (fotoSepekan.indexOf(f) < 0) fotoSepekan.push(f);
-          }
+          const f = (k.foto || []).find(Boolean);
+          if (f && fotoSepekan.indexOf(f) < 0) fotoSepekan.push(f);
         }
       }
-      const tambahBab = (judul, teks, varian) => {
+      const tambahBab = (judul, teks, varian, grup) => {
         if (!String(teks || '').trim()) return;
-        blok.push(blokJudulBab(judul, varian));
-        blok.push(...blokParagraf(teks));
+        const j = blokJudulBab(judul, varian);
+        if (grup) j.grup = grup;
+        blok.push(j);
+        for (const p of blokParagraf(teks)) { if (grup) p.grup = grup; blok.push(p); }
       };
-      const tambahKolase = (tinggiMaksud) => {
-        if (!fotoSepekan.length) return;
-        // Semua foto kegiatan (tanpa batas) di bawah narasi Maksud &
-        // Tujuan, mengisi sisa halaman supaya bab ini 1 halaman penuh.
-        const tinggiKolase = Math.max(200, TINGGI_ISI - (tinggiMaksud || 0) - 8);
+      const tambahKolase = (tinggiMaksud, grup) => {
+        // 1 foto per kegiatan, maksimal 10 foto, di bawah narasi Maksud &
+        // Tujuan; tinggi kolase mengisi sisa halaman supaya bab ini 1
+        // halaman penuh (foto mengecil bila banyak — grid 1fr per baris).
+        const fotoKolase = fotoSepekan.slice(0, 10);
+        if (!fotoKolase.length) return;
+        const tinggiKolase = Math.max(200, TINGGI_ISI - (tinggiMaksud || 0) - 16);
         let sel = '';
-        for (const f of fotoSepekan) {
+        for (const f of fotoKolase) {
           sel += '<div class="sepekan-kolase-sel"><img src="' + esc(f) + '" alt="" /></div>';
         }
         const html = '<div class="sepekan-kolase" style="height:' + tinggiKolase + 'px">' + sel + '</div>';
-        blok.push({ tipe: 'kolase', html, tinggi: ukurBlok(html) });
+        const b = { tipe: 'kolase', html, tinggi: ukurBlok(html) };
+        if (grup) b.grup = grup;
+        blok.push(b);
       };
       const tambahHexBaris = (foto, warna) => {
         if (!foto.length) return;
@@ -980,13 +987,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Peserta, Tindak Lanjut, Penutup) diambil TETAP dari TEMPLATE
       // (template laporan sebelumnya) — tidak lagi bisa diubah.
       tambahBab('Latar Belakang', TEMPLATE.latar);
-      // Maksud & Tujuan dibuat 1 halaman penuh: narasi + SEMUA foto
-      // kegiatan di bawahnya. Tinggi kolase dihitung dari sisa halaman.
+      // Maksud & Tujuan dibuat 1 halaman penuh: narasi + kolase foto
+      // (1 foto/kegiatan, maks 10). Seluruh bab ini satu grup 'maksud'
+      // supaya paginator memindahkannya utuh ke halaman baru bila tidak
+      // muat di sisa halaman sebelumnya (Nov 2026).
       const idxMaksud = blok.length;
-      tambahBab('Maksud & Tujuan', TEMPLATE.maksud);
+      tambahBab('Maksud & Tujuan', TEMPLATE.maksud, undefined, 'maksud');
       let tinggiMaksud = 0;
       for (let i = idxMaksud; i < blok.length; i++) tinggiMaksud += blok[i].tinggi;
-      tambahKolase(tinggiMaksud);
+      tambahKolase(tinggiMaksud, 'maksud');
       tambahHexBaris(fotoSepekan.slice(0, 2), '#1E40AF');
       tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
       tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
