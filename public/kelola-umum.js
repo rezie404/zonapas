@@ -499,17 +499,21 @@
       // Kotak narasi hanya berisi narasi: bila ada baris gambar yang ditempel
       // di sana, pindahkan ke foto terpisah (bila belum ada) — total tetap
       // maks. 1 foto, selebihnya ditolak seperti sebelumnya.
+      const kota = bacaKotaForm();
       const isi = pisahkanFotoIsi($('f-isi').value);
       const fotoTempel = isi.foto;
       if ((fotoIsi ? 1 : 0) + fotoTempel.length > 1) throw new Error('Foto badan narasi hanya boleh 1 foto. Hapus foto yang ada dulu bila ingin menggantinya.');
       let barisFoto = fotoIsi ? fotoIsi.baris : '';
       if (!barisFoto && fotoTempel.length === 1) { barisFoto = fotoTempel[0]; aturFotoIsi(barisFoto); }
-      const body = gabungkanFotoIsi(isi.narasi, barisFoto);
+      // Kota di awal narasi dengan huruf tebal; kotak isi tetap berisi
+      // narasi bersih (tanpa awalan kota) supaya tidak tampil ganda.
+      const narasi = terapkanKotaKeNarasi(isi.narasi, kota);
+      const body = gabungkanFotoIsi(narasi, barisFoto);
       if (hitungFotoBadan(body) > 1) throw new Error('Foto badan narasi hanya boleh 1 foto. Hapus foto yang lain bila ingin menggantinya.');
       $('f-isi').value = isi.narasi;
       const publishDate = $('f-tanggal').value;
       if (!title || !category || !isi.narasi.trim() || !publishDate) throw new Error('Judul, kategori, tanggal terbit, dan isi berita wajib diisi.');
-      const summary = ringkasanOtomatis(isi.narasi);
+      const summary = ringkasanOtomatis(narasi);
       const breakingChecked = $('f-breaking').checked;
       let breakingSince = '';
       if (breakingChecked) {
@@ -986,6 +990,36 @@
       const n = String(narasi || '').trim();
       if (!barisFoto) return n;
       return n ? n + '\n\n' + barisFoto : barisFoto;
+    }
+
+    // Kota di awal narasi (Nov 2026, atas permintaan Bos Besar): kolom
+    // "Kota" di formulir Tulis Berita; nama kota masuk ke awal narasi
+    // dengan huruf tebal, mis. "**Bengkulu** – ...", sebelum narasi inti.
+    // Awalan kota lama dihapus dulu supaya tidak ganda saat disimpan ulang.
+    function pisahkanKota(narasi) {
+      const teks = String(narasi || '');
+      let m = /^\s*\*\*([A-Z][^*.\n,;!?]{1,39})\*\*\s*[—–-]\s*/.exec(teks);
+      if (m) return { kota: m[1].trim(), narasi: teks.slice(m[0].length) };
+      m = /^\s*([A-Z][A-Za-zÀ-ÿ']{1,20})\s*[—–-]\s+/.exec(teks);
+      if (m) return { kota: m[1].trim(), narasi: teks.slice(m[0].length) };
+      return { kota: '', narasi: teks };
+    }
+
+    function terapkanKotaKeNarasi(narasi, kota) {
+      let teks = String(narasi || '').replace(/^\s+/, '');
+      teks = teks.replace(/^\*\*[A-Z][^*.\n,;!?]{1,39}\*\*\s*[—–-]\s*/, '');
+      const k = String(kota || '').trim();
+      if (k) {
+        const esc = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        teks = teks.replace(new RegExp('^' + esc + '\\s*[—–-]\\s*', 'i'), '');
+        return '**' + k + '** – ' + teks;
+      }
+      return teks;
+    }
+
+    function bacaKotaForm() {
+      const el = $('f-kota');
+      return el ? el.value.trim() : '';
     }
 
     function namaDariBarisFoto(baris) {
