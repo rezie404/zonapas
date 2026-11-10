@@ -89,21 +89,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <span class="block text-sm font-bold">Tanggal mulai</span>
             <span class="mt-1 flex items-center gap-1">
               <input id="sp-mulai" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" class="sp-tgl w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
-              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal mulai dari kalender">📅</button>
+              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal mulai dari kalender" data-target="sp-mulai">📅</button>
             </span>
           </label>
           <label class="min-w-0 flex-1">
             <span class="block text-sm font-bold">Tanggal akhir</span>
             <span class="mt-1 flex items-center gap-1">
               <input id="sp-akhir" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" class="sp-tgl w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
-              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal akhir dari kalender">📅</button>
+              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal akhir dari kalender" data-target="sp-akhir">📅</button>
             </span>
           </label>
           <label class="min-w-0 flex-1">
             <span class="block text-sm font-bold">Tanggal tanda tangan</span>
             <span class="mt-1 flex items-center gap-1">
               <input id="sp-ttd" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" class="sp-tgl w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
-              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal tanda tangan dari kalender">📅</button>
+              <button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal tanda tangan dari kalender" data-target="sp-ttd">📅</button>
             </span>
           </label>
         </div>
@@ -144,7 +144,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Hasil per hari">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Hasil yang Dicapai (per Hari)</h2>
-          <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
+          <span class="flex flex-wrap items-center gap-2">
+            <button id="sp-tutup-semua" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Tutup semua</button>
+            <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
+          </span>
         </div>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 4 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Sabtu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
@@ -866,7 +869,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     // ---------- Form hari & kegiatan ----------
+    // Label tombol "Tutup semua / Buka semua" mengikuti keadaan hari.
+    function perbaruiTombolTutupSemua() {
+      const btn = $('sp-tutup-semua');
+      if (!btn) return;
+      const ada = state.hari.length > 0;
+      const semuaTutup = ada && state.hari.every((h) => !!h.tutup);
+      btn.textContent = semuaTutup ? 'Buka semua' : 'Tutup semua';
+      btn.disabled = !ada;
+    }
     function renderHari() {
+      perbaruiTombolTutupSemua();
       const wadah = $('sp-hari-list');
       if (!wadah) return;
       wadah.innerHTML = state.hari.map((h, hi) => {
@@ -891,8 +904,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               (k.foto.filter(Boolean).length < 4 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
               '</div></div></div>';
         }).join('');
+        const tutup = !!h.tutup;
+        const jmlKeg = h.kegiatan.length;
         return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
           '<div class="flex flex-wrap items-center gap-3">' +
+            '<button type="button" data-tutup-hari="' + hi + '" class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="' + (tutup ? 'Buka' : 'Tutup') + ' hari">' + (tutup ? '▸ ' : '▾ ') + jmlKeg + ' kegiatan</button>' +
             '<label class="flex-1"><span class="block text-sm font-bold">Tanggal kegiatan</span>' +
               '<span class="mt-1 flex max-w-xs items-center gap-1"><input type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" data-tanggal-hari="' + hi + '" value="' + esc(isoKeDMY(h.tanggal)) + '" class="sp-tgl w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />' +
               '<button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal kegiatan dari kalender">📅</button></span></label>' +
@@ -900,8 +916,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             '<button type="button" data-tarik-hari="' + esc(h.tanggal) + '" class="rounded-lg bg-[#0A2540] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Hari Ini</button>' +
             '<button type="button" data-hapus-hari="' + hi + '" class="text-xs font-bold text-red-600 hover:underline">Hapus hari</button>' +
           '</div>' +
-          '<div class="mt-3 space-y-3">' + keg + '</div>' +
-          '<button type="button" data-tambah-kegiatan="' + hi + '" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">+ Tambah Kegiatan</button>' +
+          '<div class="mt-3 space-y-3 sp-isi-hari' + (tutup ? ' hidden' : '') + '">' + keg + '</div>' +
+          '<button type="button" data-tambah-kegiatan="' + hi + '" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800' + (tutup ? ' hidden' : '') + '">+ Tambah Kegiatan</button>' +
         '</article>';
       }).join('');
     }
@@ -1512,18 +1528,33 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       document.addEventListener('click', (e) => {
         const btn = e.target && e.target.closest ? e.target.closest('[data-buka-kalender]') : null;
         if (!btn) return;
-        const wadah = btn.closest('label') || btn.parentElement;
-        const input = wadah ? wadah.querySelector('.sp-tgl') : null;
+        let input = null;
+        if (btn.dataset && btn.dataset.target) input = $(btn.dataset.target);
+        if (!input) {
+          const wadah = btn.closest('label') || btn.parentElement;
+          input = wadah ? wadah.querySelector('.sp-tgl') : null;
+        }
         if (input) bukaKalender(input);
       });
       const pemilihTgl = $('sp-pemilih-tanggal');
-      if (pemilihTgl) pemilihTgl.addEventListener('change', () => {
+      // Terapkan pilihan kalender saat 'input' DAN 'change' (kalender bawaan
+      // di HP kadang hanya memicu salah satunya), dan sinkronkan state
+      // SECARA LANGSUNG — supaya tanggal yang dipilih tidak tertimpa lagi
+      // oleh tulisStateKeForm saat tarik otomatis selesai (Nov 2026:
+      // tanggal akhir 07/11 yang dipilih sempat kembali jadi 14/11).
+      function terapkanPilihanKalender() {
         if (!targetKalender || !pemilihTgl.value) { targetKalender = null; return; }
-        targetKalender.value = isoKeDMY(pemilihTgl.value);
-        targetKalender.dispatchEvent(new Event('input', { bubbles: true }));
-        targetKalender.dispatchEvent(new Event('change', { bubbles: true }));
+        const tgt = targetKalender;
+        tgt.value = isoKeDMY(pemilihTgl.value);
+        bacaFormKeState(); simpanDraf();
+        tgt.dispatchEvent(new Event('input', { bubbles: true }));
+        tgt.dispatchEvent(new Event('change', { bubbles: true }));
         targetKalender = null;
-      });
+      }
+      if (pemilihTgl) {
+        pemilihTgl.addEventListener('input', terapkanPilihanKalender);
+        pemilihTgl.addEventListener('change', terapkanPilihanKalender);
+      }
       // Potong foto (crop)
       spCropPasangGestur();
       // Foto sampul
@@ -1555,6 +1586,30 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const wadah = $('sp-hari-list');
       wadah.addEventListener('click', (e) => {
         const t = e.target;
+        const tutupHari = t.closest('[data-tutup-hari]');
+        if (tutupHari) {
+          const hi = Number(tutupHari.dataset.tutupHari);
+          const h = state.hari[hi];
+          if (h) {
+            h.tutup = !h.tutup;
+            simpanDraf();
+            // Toggle langsung di DOM (tanpa render ulang penuh) supaya
+            // posisi gulir tidak lompat; renderHari berikut akan memakai
+            // penanda h.tutup yang sama.
+            const kartu = tutupHari.closest('article');
+            if (kartu) {
+              const isi = kartu.querySelector('.sp-isi-hari');
+              const tambah = kartu.querySelector('[data-tambah-kegiatan]');
+              if (isi) isi.classList.toggle('hidden', !!h.tutup);
+              if (tambah) tambah.classList.toggle('hidden', !!h.tutup);
+              tutupHari.innerHTML = (h.tutup ? '▸ ' : '▾ ') + (h.kegiatan ? h.kegiatan.length : 0) + ' kegiatan';
+              tutupHari.setAttribute('aria-label', (h.tutup ? 'Buka' : 'Tutup') + ' hari');
+            }
+            perbaruiTombolTutupSemua();
+            renderPratinjau();
+          }
+          return;
+        }
         const tarikHari = t.closest('[data-tarik-hari]');
         if (tarikHari) { tarikBeritaMingguIni(tarikHari.dataset.tarikHari); return; }
         const hapusHari = t.closest('[data-hapus-hari]');
@@ -1585,6 +1640,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (t.matches('[data-tanggal-hari]')) { formatKetikDMY(t); return; }
         if (t.matches('[data-judul-kegiatan]')) { const [hi, ki] = t.dataset.judulKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].judul = t.value; simpanDraf(); renderPratinjau(); return; }
         if (t.matches('[data-narasi-kegiatan]')) { const [hi, ki] = t.dataset.narasiKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].narasi = t.value; simpanDraf(); renderPratinjau(); return; }
+      });
+      const btnTutupSemua = $('sp-tutup-semua');
+      if (btnTutupSemua) btnTutupSemua.addEventListener('click', () => {
+        const semuaTutup = state.hari.length > 0 && state.hari.every((h) => !!h.tutup);
+        state.hari.forEach((h) => { h.tutup = !semuaTutup; });
+        simpanDraf(); renderHari(); renderPratinjau(); perbaruiTombolTutupSemua();
       });
       $('sp-tambah-hari').addEventListener('click', () => {
         const terakhir = state.hari[state.hari.length - 1];
