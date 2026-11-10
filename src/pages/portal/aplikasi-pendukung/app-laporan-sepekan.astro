@@ -203,14 +203,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       box-shadow: 0 4px 24px rgba(5, 21, 46, 0.25);
       flex: none; transform-origin: top left;
     }
-    .sepekan-isi { padding: 48px 56px 48px 56px; height: 1123px; box-sizing: border-box; }
+    .sepekan-isi { padding: 48px 56px 48px 56px; height: 1123px; box-sizing: border-box; position: relative; z-index: 1; }
+    .sepekan-latar { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    .sepekan-latar-titik { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(30, 64, 175, 0.08) 1.5px, transparent 1.6px); background-size: 24px 24px; }
+    .sepekan-latar-kuning { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: #FFCC00; }
+    .sepekan-latar-segitiga-biru { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 48px solid #1E40AF; border-left: 48px solid transparent; }
+    .sepekan-latar-segitiga-kuning { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 48px solid #FFCC00; border-left: 48px solid transparent; }
     .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
     .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
     .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; text-indent: 28px; }
     .sepekan-paragraf.lanjutan { text-indent: 0; }
     .sepekan-butir { font-size: 15px; line-height: 1.6; text-align: justify; margin: 0 0 10px 0; color: #16233D; padding-left: 26px; position: relative; }
     .sepekan-butir .nomor { position: absolute; left: 0; top: 0; font-weight: 800; color: #0A2540; }
-    .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; }
+    .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
     .sepekan-tanggal-hari { font-size: 16px; font-weight: 800; color: #0A2540; margin: 0 0 14px 0; letter-spacing: 0.3px; }
     .sepekan-judul-kegiatan { font-size: 17px; font-weight: 800; line-height: 1.35; color: #0A2540; text-transform: uppercase; margin: 0 0 10px 0; padding-left: 12px; border-left: 6px solid #FFCC00; }
     .sepekan-2kol { display: flex; gap: 18px; margin: 0 0 14px 0; }
@@ -617,14 +622,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     function blokNarasi2Kol(teks) {
       // Narasi kegiatan ditata 2 kolom seperti koran (lihat template):
-      // teks dibagi rata ke kolom kiri dan kanan. Tiap paragraf jadi
-      // blok 2-kolom sendiri (tidak digabung lintas paragraf) supaya
-      // paginator bisa mengisi halaman rapat — tidak ada halaman
-      // tanggung yang kosong. Awal paragraf tetap menjorok (tab 28px);
-      // sambungan tidak menjorok. Paragraf yang terlalu panjang dipecah
-      // per kalimat.
+      // kalimat diakumulasi terus-menerus (lintas paragraf) jadi kelompok
+      // yang muat ~380px, lalu tiap kelompok dibagi rata ke kolom kiri
+      // dan kanan — jadi kedua kolom selalu terisi, tidak ada kolom kanan
+      // yang kosong. Kalimat dari paragraf yang sama digabung jadi satu
+      // <p> supaya teks mengalir natural. Awal paragraf tetap menjorok
+      // (tab 28px); sambungan tidak menjorok.
+      const CHUNK_MAX = 380;
       const keluar = [];
       const paragraf = String(teks || '').split(/\n\s*\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const satuan = []; // { teks, para, awal }
+      paragraf.forEach((p, pi) => {
+        const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
+        kal.forEach((k, i) => satuan.push({ teks: k.trim(), para: pi, awal: i === 0 }));
+      });
+      if (!satuan.length) return keluar;
       const buatHtml = (list) => {
         const total = list.reduce((a, s) => a + s.teks.length + 1, 0);
         let kiri = [], kanan = [], n = 0;
@@ -632,23 +644,27 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (n < total / 2) { kiri.push(s); n += s.teks.length + 1; }
           else kanan.push(s);
         }
-        const renderKol = (arr) => arr.map((s) => '<p class="sepekan-paragraf' + (s.awal ? '' : ' lanjutan') + '">' + esc(s.teks) + '</p>').join('');
+        const renderKol = (arr) => {
+          const groups = [];
+          for (const s of arr) {
+            const last = groups[groups.length - 1];
+            if (last && last.para === s.para) last.kalimat.push(s.teks);
+            else groups.push({ para: s.para, awal: s.awal, kalimat: [s.teks] });
+          }
+          return groups.map((g) => '<p class="sepekan-paragraf' + (g.awal ? '' : ' lanjutan') + '">' + esc(g.kalimat.join(' ')) + '</p>').join('');
+        };
         return '<div class="sepekan-2kol"><div class="sepekan-2kol-kol">' + renderKol(kiri) + '</div><div class="sepekan-2kol-kol">' + renderKol(kanan) + '</div></div>';
       };
-      for (const p of paragraf) {
-        const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
-        const satuan = kal.map((k, i) => ({ teks: k.trim(), awal: i === 0 }));
-        let buf = [];
-        for (const s of satuan) {
-          const coba = buf.concat([s]);
-          const h = ukurBlok(buatHtml(coba));
-          if (h > TINGGI_ISI && buf.length) {
-            keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
-            buf = [s];
-          } else { buf = coba; }
-        }
-        if (buf.length) keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+      let buf = [];
+      for (const s of satuan) {
+        const coba = buf.concat([s]);
+        const h = ukurBlok(buatHtml(coba));
+        if (h > CHUNK_MAX && buf.length) {
+          keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+          buf = [s];
+        } else { buf = coba; }
       }
+      if (buf.length) keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
       return keluar;
     }
     function blokJudulBab(judul) {
@@ -780,8 +796,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
+      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-titik"></div><div class="sepekan-latar-kuning"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div></div>';
       halaman.forEach((hals, i) => {
-        html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman"><div class="sepekan-isi">' +
+        html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman">' + LATAR + '<div class="sepekan-isi">' +
           hals.map((b) => b.html).join('') + '</div></div></div>';
       });
       return html;
