@@ -327,6 +327,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     async function muatVideoEdit() {
+      // Daftar video lewat Worker dulu (GET /redaksi/api/video-terbit):
+      // di HP Bos Besar api.github.com sering tidak terjangkau sehingga
+      // muat langsung (gh) gagal total dan daftar video tidak pernah
+      // tampil — Edit Video terasa "tidak respon". Fallback gh() bila
+      // Worker gagal (mis. token GitHub Worker belum dipasang).
+      try {
+        const res = await workerGet('/redaksi/api/video-terbit');
+        if (res && res.ok && Array.isArray(res.videos)) {
+          const loaded = [];
+          for (const v of res.videos) {
+            try {
+              const parsed = parseFrontmatter(v.content || '');
+              loaded.push({ slug: v.slug, path: v.path, sha: v.sha, data: parsed.data });
+            } catch (e) {
+              console.warn('Gagal memuat video ' + v.slug, e);
+            }
+          }
+          loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
+          videos = loaded;
+          renderVideoEditList();
+          return;
+        }
+      } catch (e) {
+        console.warn('Daftar video via Worker gagal, coba langsung.', e);
+      }
       let list;
       try {
         list = await gh('/contents/src/content/video?ref=main');
