@@ -975,22 +975,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         blok.push(j);
         for (const p of blokParagraf(teks)) { if (grup) p.grup = grup; blok.push(p); }
       };
-      const tambahKolase = (tinggiMaksud, grup) => {
-        // 1 foto per kegiatan, maksimal 10 foto, di bawah narasi Maksud &
-        // Tujuan; tinggi kolase mengisi sisa halaman supaya bab ini 1
-        // halaman penuh (foto mengecil bila banyak — grid 1fr per baris).
-        const fotoKolase = fotoSepekan.slice(0, 10);
-        if (!fotoKolase.length) return;
-        const tinggiKolase = Math.max(200, TINGGI_ISI - (tinggiMaksud || 0) - 16);
-        let sel = '';
-        for (const f of fotoKolase) {
-          sel += '<div class="sepekan-kolase-sel"><img src="' + esc(f) + '" alt="" /></div>';
-        }
-        const html = '<div class="sepekan-kolase" style="height:' + tinggiKolase + 'px">' + sel + '</div>';
-        const b = { tipe: 'kolase', html, tinggi: ukurBlok(html) };
-        if (grup) b.grup = grup;
-        blok.push(b);
-      };
       // Kolase kecil di bawah Peserta (Nov 2026, atas permintaan Bos Besar):
       // mengisi ruang kosong halaman Ruang Lingkup/Peserta. 1 foto per
       // kegiatan (foto pertama), maksimal 10 foto, tinggi tetap 180px.
@@ -1022,15 +1006,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Peserta, Tindak Lanjut, Penutup) diambil TETAP dari TEMPLATE
       // (template laporan sebelumnya) — tidak lagi bisa diubah.
       tambahBab('Latar Belakang', TEMPLATE.latar);
-      // Maksud & Tujuan dibuat 1 halaman penuh: narasi + kolase foto
-      // (1 foto/kegiatan, maks 10). Seluruh bab ini satu grup 'maksud'
-      // supaya paginator memindahkannya utuh ke halaman baru bila tidak
-      // muat di sisa halaman sebelumnya (Nov 2026).
-      const idxMaksud = blok.length;
+      // Maksud & Tujuan: hanya narasi (foto/kolase di bawah narasi
+      // DIHAPUS 10 Nov 2026 atas permintaan Bos Besar). Seluruh bab ini
+      // satu grup 'maksud' supaya judul + narasi tetap sehalaman.
       tambahBab('Maksud & Tujuan', TEMPLATE.maksud, undefined, 'maksud');
-      let tinggiMaksud = 0;
-      for (let i = idxMaksud; i < blok.length; i++) tinggiMaksud += blok[i].tinggi;
-      tambahKolase(tinggiMaksud, 'maksud');
       tambahHexBaris(fotoSepekan.slice(0, 2), '#1E40AF');
       tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
       tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
