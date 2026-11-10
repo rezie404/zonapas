@@ -93,7 +93,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <button id="sp-tarik" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Minggu Ini</button>
           <button id="sp-minggu-ini" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Set ke minggu ini</button>
         </div>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tarik Berita mengisi laporan dari berita ZonaPas pada periode di atas (Senin–Sabtu): judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Semua masih bisa diedit setelah ditarik.</p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan: saat aplikasi dibuka (bila belum ada draf) dan setiap kali periode diubah, berita Senin–Sabtu pada periode itu ditarik sendiri — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
       </section>
 
       <!-- Foto sampul -->
@@ -320,6 +320,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       } catch { return ''; }
     }
     let sedangTarik = false;
+    let periodeTerakhirTarik = '';
     async function tarikBeritaMingguIni() {
       if (sedangTarik) return;
       const btn = $('sp-tarik');
@@ -338,6 +339,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           .filter((a) => a.tgl && a.tgl >= mulai && a.tgl <= akhir && a.tgl.getDay() !== 0)
           .sort((x, y) => x.tgl - y.tgl);
         if (!artikel.length) {
+          periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
           showStatus('Tidak ada berita ZonaPas pada periode ' + teksPeriode() + ' (Senin–Sabtu).', false);
           return;
         }
@@ -352,6 +354,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             foto: a.image ? [a.image] : [],
           });
         });
+        periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
         state.hari = Object.keys(perHari).sort().map((k) => perHari[k]);
         const fotoBerita = artikel.filter((a) => a.image).map((a) => a.image);
         if (fotoBerita.length) {
@@ -382,6 +385,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       simpanDraf();
       renderPratinjau();
       showStatus('Periode diset ke minggu ini: ' + teksPeriode() + ' (Senin–Sabtu).', true);
+      tarikBeritaMingguIni();
+    }
+    // Tarik otomatis (debounce) bila tanggal periode diubah manual.
+    let timerTarikOtomatis = null;
+    function jadwalTarikOtomatis() {
+      clearTimeout(timerTarikOtomatis);
+      timerTarikOtomatis = setTimeout(() => {
+        bacaFormKeState();
+        const kunci = (state.mulai || '') + '|' + (state.akhir || '');
+        if (kunci === periodeTerakhirTarik) return;
+        const mulai = parseTgl(state.mulai), akhir = parseTgl(state.akhir);
+        if (!mulai || !akhir || akhir < mulai) return;
+        tarikBeritaMingguIni();
+      }, 800);
     }
 
     // ---------- Template bawaan (dari PDF laporan 02–07 Nov 2026) ----------
@@ -390,7 +407,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     const TEMPLATE = {
       mulai: '2026-11-02', akhir: '2026-11-07', ttd: '2026-11-07',
       fotoPotret: FOTO_POTRET_TEMPLATE, fotoLapangan: FOTO_LAPANGAN_TEMPLATE,
-      latar: 'Kantor Wilayah Direktorat Jenderal Pemasyarakatan (Kanwil Ditjenpas) Bengkulu adalah salah satu unit kerja dari Direktorat Jenderal Pemasyarakatan yang berada di bawah Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia.\n\nKanwil Ditjenpas Bengkulu memiliki tugas penting dalam pengelolaan dan pembinaan terhadap kegiatan yang berhubungan dengan sistem Pemasyarakatan di wilayah Provinsi Bengkulu. Dalam rangka memastikan kelancaran operasional dan mencapai tujuan strategis Ditjenpas, Kepala Kantor Wilayah Ditjenpas Bengkulu melakukan serangkaian kegiatan yang meliputi pemantauan, evaluasi, pembinaan, serta koordinasi dengan pihak terkait baik di tingkat daerah maupun pusat.\n\nDalam rangka melaksanakan fungsi pembinaan, pengawasan, serta koordinasi terhadap Unit Pelaksana Teknis (UPT) Pemasyarakatan di wilayah Bengkulu, Kepala Kantor Wilayah Ditjenpas Bengkulu beserta jajaran secara konsisten menjalankan beberapa agenda kegiatan. Pada pekan pertama bulan November 2026, sejumlah kegiatan dilaksanakan meliputi penguatan keamanan, pembinaan kepegawaian, peningkatan layanan kesehatan, serta pendampingan kunjungan kerja pejabat pusat. Seluruh rangkaian kegiatan ini merupakan bagian dari komitmen dalam mewujudkan pemasyarakatan yang aman, tertib, profesional, humanis, serta berorientasi pada pelayanan publik yang berkualitas.\n\nLaporan ini diharapkan dapat menjadi bahan evaluasi dalam rangka perencanaan kegiatan selanjutnya serta sebagai bentuk transparansi kepada seluruh pihak yang berkepentingan terhadap pengelolaan Pemasyarakatan di wilayah Bengkulu.',
+      latar: 'Kantor Wilayah Direktorat Jenderal Pemasyarakatan (Kanwil Ditjenpas) Bengkulu adalah salah satu unit kerja dari Direktorat Jenderal Pemasyarakatan yang berada di bawah Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia.\n\nKanwil Ditjenpas Bengkulu memiliki tugas penting dalam pengelolaan dan pembinaan terhadap kegiatan yang berhubungan dengan sistem Pemasyarakatan di wilayah Provinsi Bengkulu. Dalam rangka memastikan kelancaran operasional dan mencapai tujuan strategis Ditjenpas, Kepala Kantor Wilayah Ditjenpas Bengkulu melakukan serangkaian kegiatan yang meliputi pemantauan, evaluasi, pembinaan, serta koordinasi dengan pihak terkait baik di tingkat daerah maupun pusat.\n\nDalam rangka melaksanakan fungsi pembinaan, pengawasan, serta koordinasi terhadap Unit Pelaksana Teknis (UPT) Pemasyarakatan di wilayah Bengkulu, Kepala Kantor Wilayah Ditjenpas Bengkulu beserta jajaran secara konsisten menjalankan beberapa agenda kegiatan. Pada pekan ini, sejumlah kegiatan dilaksanakan meliputi penguatan keamanan, pembinaan kepegawaian, peningkatan layanan kesehatan, serta pendampingan kunjungan kerja pejabat pusat. Seluruh rangkaian kegiatan ini merupakan bagian dari komitmen dalam mewujudkan pemasyarakatan yang aman, tertib, profesional, humanis, serta berorientasi pada pelayanan publik yang berkualitas.\n\nLaporan ini diharapkan dapat menjadi bahan evaluasi dalam rangka perencanaan kegiatan selanjutnya serta sebagai bentuk transparansi kepada seluruh pihak yang berkepentingan terhadap pengelolaan Pemasyarakatan di wilayah Bengkulu.',
       maksud: 'Kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu dalam sepekan bertujuan untuk memastikan bahwa seluruh kegiatan operasional dan administratif di lingkungan pemasyarakatan di wilayah Bengkulu berjalan sesuai dengan peraturan perundang-undangan yang berlaku. Selain itu, kegiatan ini juga bertujuan untuk meningkatkan pelayanan kepada masyarakat dan klien pemasyarakatan serta mendukung pencapaian visi dan misi Direktorat Jenderal Pemasyarakatan.\n\nKegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu dalam sepekan memiliki tujuan yang menyeluruh untuk memperkuat sistem pemasyarakatan yang lebih transparan, akuntabel, dan berorientasi pada pembinaan yang efektif.',
       ruang: 'Ruang lingkup kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu dalam sepekan melibatkan berbagai aspek operasional, koordinasi, pengawasan, serta perencanaan yang mendalam untuk meningkatkan efektivitas dan kualitas layanan dalam sistem Pemasyarakatan di wilayah Bengkulu.',
       peserta: 'Peserta dalam kegiatan Kepala Kantor Wilayah Ditjenpas Bengkulu melibatkan berbagai pihak yang berkolaborasi untuk mendukung efektivitas dan keberhasilan sistem Pemasyarakatan. Selain pejabat struktural dan Pegawai Kantor Wilayah Ditjenpas, keterlibatan stakeholder terkait, UPT Pemasyarakatan, serta masyarakat juga penting untuk memastikan bahwa tujuan Pemasyarakatan tercapai secara menyeluruh.',
@@ -431,7 +448,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         return d;
       } catch { return null; }
     }
-    let state = muatDraf() || klon(TEMPLATE);
+    const drafTersimpan = muatDraf();
+    let state = drafTersimpan || klon(TEMPLATE);
     let timerSimpan = null;
     function simpanDraf() {
       clearTimeout(timerSimpan);
@@ -849,6 +867,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Tarik berita + periode minggu ini
       $('sp-tarik').addEventListener('click', tarikBeritaMingguIni);
       $('sp-minggu-ini').addEventListener('click', setMingguIni);
+      // Bila tanggal periode diubah manual, tarik berita periode baru otomatis.
+      ['sp-mulai', 'sp-akhir'].forEach((id) => {
+        const el = $(id);
+        if (el) el.addEventListener('change', jadwalTarikOtomatis);
+      });
       $('sp-reset-lapangan').addEventListener('click', () => { state.fotoLapangan = FOTO_LAPANGAN_TEMPLATE; $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); });
       // Hari & kegiatan (delegasi klik + input)
       const wadah = $('sp-hari-list');
@@ -915,6 +938,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     tulisStateKeForm();
     hubungkanForm();
     renderPratinjau();
+    // Bila belum ada draf tersimpan, isi laporan otomatis dari berita
+    // minggu berjalan (Senin–Sabtu) — tidak perlu mengetuk Tarik Berita.
+    // Draf yang sudah ada tidak disentuh supaya editan manual tidak tertimpa.
+    if (!drafTersimpan) {
+      setMingguIni();
+    }
     // Font web (Plus Jakarta Sans) bisa termuat setelah render pertama;
     // render ulang setelah font siap supaya paginasi memakai metrik font
     // yang benar dan pratinjau sama dengan PDF.
