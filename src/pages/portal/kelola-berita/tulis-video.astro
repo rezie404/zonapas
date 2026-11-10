@@ -156,7 +156,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Olah video ZonaPasTV (public/olah-video.mjs) — trim + intro/outro via
        ffmpeg.wasm; diekspos ke window.__olahVideo. -->
   <script type="module" src="/olah-video.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=10"></script>
+  <script is:inline src="/kelola-umum.js?v=11"></script>
   <script>
 
     // Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js).
@@ -170,6 +170,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         showStatus('YouTube berhasil terhubung. Silakan unggah video.', true);
         history.replaceState(null, '', location.pathname);
       }
+      el.textContent = 'Memeriksa status YouTube…';
       try {
         // Pakai workerGet (bukan fetch mentah): status harus ikut
         // terotentikasi lewat header X-GitHub-Token saat sesi berjalan
@@ -177,7 +178,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // cookie, sehingga di HP yang sesinya sudah lewat token, Worker
         // menolak (401) dan kotaknya keliru menampilkan "belum terhubung"
         // padahal YouTube sudah terhubung (07 Nov 2026).
-        const d = await workerGet('/redaksi/api/youtube/status');
+        // Batas 15 detik + tombol Coba lagi: tanpa batas, kotak pernah
+        // menggantung selamanya di "Memeriksa status YouTube…" saat
+        // koneksi HP macet (10 Nov 2026).
+        const d = await workerGet('/redaksi/api/youtube/status', { timeoutMs: 15000 });
         youtubeTerhubung = !!(d.ok && d.terhubung);
         if (youtubeTerhubung) {
           el.innerHTML = 'YouTube terhubung' + (d.channel_title ? ' — ' + esc(d.channel_title) : '') + '. Video yang diunggah tersimpan di channel YouTube.';
@@ -185,7 +189,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           el.innerHTML = 'YouTube belum terhubung. <a href="/redaksi/auth/youtube" class="font-bold underline">Hubungkan channel YouTube</a> dulu sebelum mengunggah video.';
         }
       } catch (e) {
-        el.textContent = 'Tidak bisa memeriksa status YouTube. Coba muat ulang halaman.';
+        el.innerHTML = 'Tidak bisa memeriksa status YouTube (' + esc(e.message || 'galat') + '). <button type="button" id="yt-coba-lagi" class="font-bold underline">Coba lagi</button>';
+        const b = $('yt-coba-lagi');
+        if (b) b.addEventListener('click', muatStatusYoutube);
       }
     }
 

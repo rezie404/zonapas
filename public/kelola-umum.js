@@ -261,22 +261,43 @@
 
     async function workerApi(path, options) {
       const opts = options || {};
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['X-GitHub-Token'] = token;
-      const res = await fetch(path, {
-        ...opts,
-        credentials: 'same-origin',
-        headers: { ...headers, ...(opts.headers || {}) },
-      });
-      let data = null;
-      try { data = await res.json(); } catch (e) {}
-      if (!res.ok) {
-        const msg = (data && (data.error || data.message)) || ('Worker mengembalikan status ' + res.status);
-        const err = new Error(msg);
-        err.status = res.status;
-        throw err;
+      // Batas waktu supaya permintaan tidak menggantung selamanya bila
+      // koneksi HP macet (pernah: kotak "Memeriksa status YouTube…"
+      // di ZonaPasTV tidak pernah berubah karena fetch menggantung).
+      // Default 60 detik; pemanggil bisa mengesampingkan lewat
+      // opts.timeoutMs (mis. cek status yang harus cepat).
+      const timeoutMs = opts.timeoutMs || 60000;
+      const { timeoutMs: _buang, ...fetchOpts } = opts;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['X-GitHub-Token'] = token;
+        const res = await fetch(path, {
+          ...fetchOpts,
+          signal: controller.signal,
+          credentials: 'same-origin',
+          headers: { ...headers, ...(fetchOpts.headers || {}) },
+        });
+        let data = null;
+        try { data = await res.json(); } catch (e) {}
+        if (!res.ok) {
+          const msg = (data && (data.error || data.message)) || ('Worker mengembalikan status ' + res.status);
+          const err = new Error(msg);
+          err.status = res.status;
+          throw err;
+        }
+        return data || {};
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          const err = new Error('Permintaan ke server habis waktu (lebih dari ' + Math.round(timeoutMs / 1000) + ' detik). Periksa koneksi lalu coba lagi.');
+          err.status = 0;
+          throw err;
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
       }
-      return data || {};
     }
 
 
@@ -287,8 +308,8 @@
     }
 
 
-    async function workerGet(path) {
-      return workerApi(path, { method: 'GET' });
+    async function workerGet(path, opts) {
+      return workerApi(path, { method: 'GET', ...(opts || {}) });
     }
 
 
