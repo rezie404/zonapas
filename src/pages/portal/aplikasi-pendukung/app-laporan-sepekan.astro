@@ -158,7 +158,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Hasil yang Dicapai (per Hari)</h2>
           <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 4 foto. Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis dari berita ZonaPas Senin–Sabtu, atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 2 foto. Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis dari berita ZonaPas Senin–Sabtu, atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -781,9 +781,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               '<input type="text" data-judul-kegiatan="' + hi + ':' + ki + '" value="' + esc(k.judul) + '" placeholder="Contoh: Apel Pagi Kanwil Ditjenpas Bengkulu" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" /></label>' +
             '<label class="mt-2 block"><span class="block text-xs font-bold">Narasi</span>' +
               '<textarea rows="5" data-narasi-kegiatan="' + hi + ':' + ki + '" placeholder="Tulis narasi kegiatan…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(k.narasi) + '</textarea></label>' +
-            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 4)</span>' +
+            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 2)</span>' +
               '<div class="mt-1 flex flex-wrap items-center gap-2">' + fotos +
-              (k.foto.filter(Boolean).length < 4 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
+              (k.foto.filter(Boolean).length < 2 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
               '</div></div></div>';
         }).join('');
         return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
@@ -938,22 +938,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const grup = 'keg-' + (h.tanggal || '') + '-' + ki;
           const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
           blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul), grup });
-          const fotos = (k.foto || []).filter(Boolean);
-          // Foto disusun rapi: sebelum narasi foto ke-1 (dan foto ke-2
-          // bila ada 4 foto), sesudah narasi sisanya. 1 foto tampil
+          const fotos = (k.foto || []).filter(Boolean).slice(0, 2);
+          // Foto maks 2, keduanya rapi DI ATAS narasi. 1 foto tampil
           // tunggal, 2 foto berdampingan kecil.
           const htmlFotoGrup = (daftar) => {
             if (!daftar.length) return '';
             if (daftar.length === 1) return '<div class="sepekan-foto-tunggal"><img src="' + esc(daftar[0]) + '" alt="" /></div>';
             return '<div class="sepekan-foto-baris"><div class="sepekan-foto-satu"><img src="' + esc(daftar[0]) + '" alt="" /></div><div class="sepekan-foto-dua"><img src="' + esc(daftar[1]) + '" alt="" /></div></div>';
           };
-          const sebelum = fotos.slice(0, fotos.length >= 4 ? 2 : 1);
-          const sesudah = fotos.slice(sebelum.length);
-          const htmlSebelum = htmlFotoGrup(sebelum);
-          if (htmlSebelum) blok.push({ tipe: 'foto', html: htmlSebelum, tinggi: ukurBlok(htmlSebelum), grup });
+          const htmlFoto = htmlFotoGrup(fotos);
+          if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
           for (const nb of blokNarasi2Kol(k.narasi)) blok.push({ ...nb, grup });
-          const htmlSesudah = htmlFotoGrup(sesudah);
-          if (htmlSesudah) blok.push({ tipe: 'foto', html: htmlSesudah, tinggi: ukurBlok(htmlSesudah), grup });
         });
       }
       // Tindak lanjut
