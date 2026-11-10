@@ -235,7 +235,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-sampul-kaki { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #0A2540; }
     .sepekan-sampul-kaki::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: #FFCC00; }
     /* Pengukur tinggi blok (tersembunyi, lebar sama dengan area isi) */
-    #sp-ukur { position: absolute; left: -9999px; top: 0; width: 682px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
+    #sp-ukur { position: fixed; left: 0; top: 0; width: 682px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
     (function suntikCssLaporan() {
       const st = document.createElement('style');
       st.setAttribute('data-sepekan', '');
@@ -540,6 +540,33 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       for (let i = 0; i < blok.length; i++) {
         const b = blok[i];
         const berikut = blok[i + 1];
+        // Tanda tangan (ttd) harus satu halaman dengan paragraf penutup
+        // sebelumnya. Bila tidak muat, pindahkan paragraf penutup (dan
+        // judul bab bila ikut yatim) ke halaman berikut, supaya tanda
+        // tangan tidak sendirian di halaman kosong.
+        if (b.tipe === 'ttd' && kini.length && tinggi + b.tinggi > TINGGI_ISI) {
+          const pindah = [];
+          while (kini.length > 0) {
+            const terakhir = kini[kini.length - 1];
+            pindah.unshift(terakhir);
+            kini.pop();
+            tinggi -= terakhir.tinggi;
+            if (kini.length === 0) break;
+            // Bila yang tersisa adalah judul bab, pindahkan juga (jangan yatim).
+            if (!JAGA.includes(kini[kini.length - 1].tipe)) break;
+          }
+          // Jangan dorong halaman kosong: bila halaman saat ini habis
+          // dipindahkan, batalkan pemindahan (tanda tangan tetap pindah
+          // sendiri, tapi halaman sebelumnya tidak kosong).
+          if (kini.length === 0) {
+            kini = pindah;
+            tinggi = pindah.reduce((a, x) => a + x.tinggi, 0);
+          } else {
+            halaman.push(kini);
+            kini = pindah;
+            tinggi = pindah.reduce((a, x) => a + x.tinggi, 0);
+          }
+        }
         // Bila blok ini harus dijaga bersama blok berikut, pastikan keduanya muat.
         const butuh = JAGA.includes(b.tipe) && berikut ? b.tinggi + berikut.tinggi : b.tinggi;
         if (kini.length && tinggi + butuh > TINGGI_ISI) {
@@ -609,10 +636,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     window.addEventListener('resize', () => { sesuaikanSkala(); });
 
     // ---------- Unduh PDF ----------
-    // PDF dibuat dari dokumen iframe TERISOLASI (srcdoc) yang hanya memuat
-    // CSS_LAPORAN (hex) — TANPA Tailwind. Ini menghindari galat html2canvas
-    // "unsupported color function oklch" yang muncul bila halaman laporan
-    // dirender di dalam halaman situs (Tailwind 4 memakai oklch).
+    // PDF dibuat dari KLON halaman pratinjau yang sedang terlihat (bukan
+    // membangun ulang), supaya jumlah halaman dan isi PDF SELALU sama
+    // dengan pratinjau. Klon dirender di dokumen iframe TERISOLASI
+    // (srcdoc) yang hanya memuat CSS_LAPORAN (hex) + font Plus Jakarta
+    // Sans yang sama — TANPA Tailwind. Ini menghindari galat html2canvas
+    // "unsupported color function oklch" dan perbedaan paginasi akibat
+    // font yang belum termuat saat pratinjau pertama dirender.
     let sedangUnduh = false;
     function tungguGambar(doc) {
       const imgs = Array.from(doc.querySelectorAll('img'));
@@ -635,20 +665,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       showStatus('Membuat PDF laporan…', true);
       let frame = null;
       try {
-        // Bangun dokumen iframe terisolasi berisi halaman laporan.
+        // Klon halaman pratinjau yang terlihat; hapus transform skala
+        // tampilan supaya tiap halaman berukuran A4 penuh di iframe.
+        const bungkus = Array.from(document.querySelectorAll('#sp-pratinjau .sepekan-bungkus'));
+        if (!bungkus.length) throw new Error('Halaman laporan kosong.');
+        const klonHtml = bungkus.map((b) => {
+          const k = b.cloneNode(true);
+          const hal = k.querySelector('.sepekan-halaman');
+          if (hal) hal.style.transform = '';
+          return k.outerHTML;
+        }).join('');
         frame = document.createElement('iframe');
         frame.setAttribute('aria-hidden', 'true');
         frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;visibility:visible;';
         document.body.appendChild(frame);
-        const docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + CSS_LAPORAN + '</style></head>' +
-          '<body style="margin:0;background:#ffffff;">' + htmlLaporan() + '</body></html>';
+        const docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+          '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">' +
+          '<style>' + CSS_LAPORAN + '</style></head>' +
+          '<body style="margin:0;background:#ffffff;">' + klonHtml + '</body></html>';
         frame.srcdoc = docHtml;
         await new Promise((res) => { frame.onload = res; setTimeout(res, 8000); });
         const fdoc = frame.contentDocument;
         if (!fdoc) throw new Error('Dokumen PDF tidak bisa dibuat.');
         await tungguGambar(fdoc);
-        // Beri waktu font termuat di iframe.
-        await new Promise((r) => setTimeout(r, 400));
+        try { await fdoc.fonts.ready; } catch {}
+        await new Promise((r) => setTimeout(r, 300));
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
         const halamanEls = Array.from(fdoc.querySelectorAll('.sepekan-halaman'));
@@ -761,5 +802,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     tulisStateKeForm();
     hubungkanForm();
     renderPratinjau();
+    // Font web (Plus Jakarta Sans) bisa termuat setelah render pertama;
+    // render ulang setelah font siap supaya paginasi memakai metrik font
+    // yang benar dan pratinjau sama dengan PDF.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { renderPratinjau(); }).catch(() => {});
+    }
   </script>
 </BaseLayout>
