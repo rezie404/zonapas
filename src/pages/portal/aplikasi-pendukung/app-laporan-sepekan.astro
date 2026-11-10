@@ -209,13 +209,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-latar-kuning { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: #FFCC00; }
     .sepekan-latar-segitiga-biru { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 48px solid #1E40AF; border-left: 48px solid transparent; }
     .sepekan-latar-segitiga-kuning { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-bottom: 48px solid #FFCC00; border-left: 48px solid transparent; }
-    .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
+    .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 18px 0; text-transform: uppercase; background: #FFCC00; display: inline-block; padding: 6px 18px 6px 14px; border-left: 8px solid #1E40AF; }
     .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
     .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; text-indent: 28px; }
     .sepekan-paragraf.lanjutan { text-indent: 0; }
     .sepekan-butir { font-size: 15px; line-height: 1.6; text-align: justify; margin: 0 0 10px 0; color: #16233D; padding-left: 26px; position: relative; }
     .sepekan-butir .nomor { position: absolute; left: 0; top: 0; font-weight: 800; color: #0A2540; }
-    .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
+    .sepekan-pita-hasil { background: linear-gradient(to right, #1E40AF 0 12px, #FFCC00 12px 100%); color: #0A2540; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
     .sepekan-tanggal-hari { font-size: 16px; font-weight: 800; color: #0A2540; margin: 0 0 14px 0; letter-spacing: 0.3px; }
     .sepekan-judul-kegiatan { font-size: 17px; font-weight: 800; line-height: 1.35; color: #0A2540; text-transform: uppercase; margin: 0 0 10px 0; padding-left: 12px; border-left: 6px solid #FFCC00; }
     .sepekan-2kol { display: flex; gap: 18px; margin: 0 0 14px 0; }
@@ -668,7 +668,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return keluar;
     }
     function blokJudulBab(judul) {
-      const html = '<h2 class="sepekan-judul-bab">' + esc(judul) + '</h2><div class="sepekan-garis-kuning"></div>';
+      const html = '<h2 class="sepekan-judul-bab">' + esc(judul) + '</h2>';
       return { tipe: 'judul', html, tinggi: ukurBlok(html) };
     }
     function susunBlok() {
