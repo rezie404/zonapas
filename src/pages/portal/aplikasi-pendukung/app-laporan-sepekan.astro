@@ -176,11 +176,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </div>
   </div>
 
-  <!-- ====== Gaya template laporan (WARNA HEX — JANGAN pakai utilitas Tailwind di sini:
-       html2canvas tidak memahami warna oklch Tailwind 4, jadi seluruh gaya halaman
-       laporan ditulis manual dengan hex) ====== -->
-  <style>
-    .sepekan-bungkus { position: relative; overflow: hidden; }
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
+  <script is:inline src="/kelola-umum.js?v=8"></script>
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const HARI_NAMA = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+    const BULAN_NAMA = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+    const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    // Gaya template laporan (WARNA HEX SAJA — html2canvas tidak memahami
+    // warna oklch Tailwind 4). Disuntik sebagai <style> global agar berlaku
+    // untuk halaman pratinjau yang dibuat dinamis, dan dipakai juga di
+    // dokumen iframe terisolasi saat membuat PDF (tanpa Tailwind sama sekali).
+    const CSS_LAPORAN = `.sepekan-bungkus { position: relative; overflow: hidden; }
     .sepekan-halaman {
       width: 794px; height: 1123px; position: relative; overflow: hidden;
       background: #ffffff; color: #0A2540;
@@ -225,18 +235,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-sampul-kaki { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #0A2540; }
     .sepekan-sampul-kaki::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: #FFCC00; }
     /* Pengukur tinggi blok (tersembunyi, lebar sama dengan area isi) */
-    #sp-ukur { position: absolute; left: -9999px; top: 0; width: 682px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
-  </style>
+    #sp-ukur { position: absolute; left: -9999px; top: 0; width: 682px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
+    (function suntikCssLaporan() {
+      const st = document.createElement('style');
+      st.setAttribute('data-sepekan', '');
+      st.textContent = CSS_LAPORAN;
+      document.head.appendChild(st);
+    })();
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
-  <script is:inline src="/kelola-umum.js?v=8"></script>
-  <script type="module">
-    const $ = (id) => document.getElementById(id);
-    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    const HARI_NAMA = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
-    const BULAN_NAMA = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
-    const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     // ---------- Tanggal ----------
     function parseTgl(str) {
@@ -572,16 +578,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     // ---------- Pratinjau ----------
-    function renderPratinjau() {
-      const wadah = $('sp-pratinjau');
-      if (!wadah) return;
+    function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
       halaman.forEach((hals, i) => {
         html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman"><div class="sepekan-isi">' +
           hals.map((b) => b.html).join('') + '</div></div></div>';
       });
-      wadah.innerHTML = html;
+      return html;
+    }
+    function renderPratinjau() {
+      const wadah = $('sp-pratinjau');
+      if (!wadah) return;
+      wadah.innerHTML = htmlLaporan();
       sesuaikanSkala();
     }
     function sesuaikanSkala() {
@@ -600,7 +609,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     window.addEventListener('resize', () => { sesuaikanSkala(); });
 
     // ---------- Unduh PDF ----------
+    // PDF dibuat dari dokumen iframe TERISOLASI (srcdoc) yang hanya memuat
+    // CSS_LAPORAN (hex) — TANPA Tailwind. Ini menghindari galat html2canvas
+    // "unsupported color function oklch" yang muncul bila halaman laporan
+    // dirender di dalam halaman situs (Tailwind 4 memakai oklch).
     let sedangUnduh = false;
+    function tungguGambar(doc) {
+      const imgs = Array.from(doc.querySelectorAll('img'));
+      return Promise.all(imgs.map((im) => {
+        if (im.complete && im.naturalWidth) return Promise.resolve();
+        return new Promise((res) => { im.onload = res; im.onerror = res; setTimeout(res, 4000); });
+      }));
+    }
     async function unduhPdf() {
       if (sedangUnduh) return;
       const btn = $('sp-unduh');
@@ -613,13 +633,28 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       sedangUnduh = true;
       if (btn) { btn.disabled = true; btn.textContent = 'Membuat PDF…'; }
       showStatus('Membuat PDF laporan…', true);
+      let frame = null;
       try {
+        // Bangun dokumen iframe terisolasi berisi halaman laporan.
+        frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;visibility:visible;';
+        document.body.appendChild(frame);
+        const docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + CSS_LAPORAN + '</style></head>' +
+          '<body style="margin:0;background:#ffffff;">' + htmlLaporan() + '</body></html>';
+        frame.srcdoc = docHtml;
+        await new Promise((res) => { frame.onload = res; setTimeout(res, 8000); });
+        const fdoc = frame.contentDocument;
+        if (!fdoc) throw new Error('Dokumen PDF tidak bisa dibuat.');
+        await tungguGambar(fdoc);
+        // Beri waktu font termuat di iframe.
+        await new Promise((r) => setTimeout(r, 400));
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-        const halamanEls = Array.from(document.querySelectorAll('#sp-pratinjau .sepekan-halaman'));
+        const halamanEls = Array.from(fdoc.querySelectorAll('.sepekan-halaman'));
+        if (!halamanEls.length) throw new Error('Halaman laporan kosong.');
         for (let i = 0; i < halamanEls.length; i++) {
-          const el = halamanEls[i];
-          const canvas = await window.html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+          const canvas = await window.html2canvas(halamanEls[i], { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
           const img = canvas.toDataURL('image/jpeg', 0.92);
           if (i > 0) pdf.addPage('a4', 'portrait');
           pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
@@ -630,6 +665,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       } catch (e) {
         showStatus('Gagal membuat PDF: ' + (e && e.message ? e.message : 'galat'), false);
       } finally {
+        if (frame) frame.remove();
         sedangUnduh = false;
         if (btn) { btn.disabled = false; btn.textContent = '⬇ Unduh PDF'; }
       }
