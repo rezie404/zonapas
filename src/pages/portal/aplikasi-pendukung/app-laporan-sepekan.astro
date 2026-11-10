@@ -89,12 +89,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         </div>
         <p id="sp-periode-teks" class="mt-3 text-sm font-bold text-[#0A2540] dark:text-white"></p>
         <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Periode dan tanggal tanda tangan tampil di sampul dan di bagian penutup laporan.</p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <button id="sp-tarik" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Minggu Ini</button>
+          <button id="sp-minggu-ini" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Set ke minggu ini</button>
+        </div>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tarik Berita mengisi laporan dari berita ZonaPas pada periode di atas (Senin–Sabtu): judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Semua masih bisa diedit setelah ditarik.</p>
       </section>
 
       <!-- Foto sampul -->
       <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Foto sampul">
         <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Foto Sampul</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Dua foto di sampul laporan. Foto 1 (potret) di segi enam besar kiri, Foto 2 (kegiatan) di segi enam kanan. Ketuk foto untuk menggantinya.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Dua foto di sampul laporan. Foto 1 (potret) di segi enam besar kiri, Foto 2 (kegiatan) di segi enam kanan. Ketuk foto untuk menggantinya. Bila menarik berita minggu ini, kedua foto ini otomatis terisi dari foto berita ZonaPas.</p>
         <div class="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
             <p class="mb-1 text-sm font-bold">Foto 1 — Potret Kakanwil</p>
@@ -153,7 +158,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Hasil yang Dicapai (per Hari)</h2>
           <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 2 foto. Hari pertama sudah terisi contoh dari template — ubah atau hapus seperlunya.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 2 foto. Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis dari berita ZonaPas Senin–Sabtu, atau isi manual — contoh dari template bisa diubah atau dihapus.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -201,7 +206,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-isi { padding: 48px 56px 48px 56px; height: 1123px; box-sizing: border-box; }
     .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
     .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
-    .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; }
+    .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; text-indent: 28px; }
+    .sepekan-paragraf.lanjutan { text-indent: 0; }
     .sepekan-butir { font-size: 15px; line-height: 1.6; text-align: justify; margin: 0 0 10px 0; color: #16233D; padding-left: 26px; position: relative; }
     .sepekan-butir .nomor { position: absolute; left: 0; top: 0; font-weight: 800; color: #0A2540; }
     .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; }
@@ -277,6 +283,105 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const d = parseTgl(state.ttd);
       if (!d) return '';
       return 'Bengkulu, ' + String(d.getDate()).padStart(2, '0') + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    // ---------- Tarik Berita Minggu Ini ----------
+    // Laporan sepekan diambil dari berita ZonaPas (Senin–Sabtu). Sumber:
+    // /search-index.json (judul, tanggal, foto sampul) + halaman tiap
+    // artikel untuk narasinya (#article-body p). Foto sampul laporan
+    // ikut terisi dari foto berita. Semua hasil tarikan masih bisa diedit.
+    const BULAN_INDEKS = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, May: 4, Jun: 5, Jul: 6, Agu: 7, Aug: 7, Sep: 8, Okt: 9, Oct: 9, Nov: 10, Des: 11, Dec: 11 };
+    function parseTanggalIndeks(str) {
+      const m = /^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})$/.exec(String(str || '').trim());
+      if (!m) return null;
+      const bln = BULAN_INDEKS[m[2]];
+      if (bln === undefined) return null;
+      return new Date(Number(m[3]), bln, Number(m[1]));
+    }
+    function fmtTglIso(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    async function ambilNarasiArtikel(url) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return '';
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const paras = Array.from(doc.querySelectorAll('#article-body p'))
+          .map((p) => p.textContent.replace(/\s+/g, ' ').trim())
+          .filter((t) => t.length > 0);
+        let teks = paras.slice(0, 3).join('\n\n');
+        if (teks.length > 1500) {
+          teks = teks.slice(0, 1500);
+          const titik = teks.lastIndexOf('. ');
+          if (titik > 800) teks = teks.slice(0, titik + 1);
+        }
+        return teks;
+      } catch { return ''; }
+    }
+    let sedangTarik = false;
+    async function tarikBeritaMingguIni() {
+      if (sedangTarik) return;
+      const btn = $('sp-tarik');
+      bacaFormKeState();
+      const mulai = parseTgl(state.mulai), akhir = parseTgl(state.akhir);
+      if (!mulai || !akhir || akhir < mulai) { showStatus('Isi dulu periode yang benar (tanggal mulai s/d akhir).', false); return; }
+      sedangTarik = true;
+      if (btn) { btn.disabled = true; btn.textContent = 'Menarik berita…'; }
+      showStatus('Menarik berita ZonaPas ' + teksPeriode() + ' (Senin–Sabtu)…', true);
+      try {
+        const res = await fetch('/search-index.json');
+        if (!res.ok) throw new Error('Indeks berita tidak bisa dimuat.');
+        const indeks = await res.json();
+        const artikel = indeks
+          .map((a) => ({ ...a, tgl: parseTanggalIndeks(a.date) }))
+          .filter((a) => a.tgl && a.tgl >= mulai && a.tgl <= akhir && a.tgl.getDay() !== 0)
+          .sort((x, y) => x.tgl - y.tgl);
+        if (!artikel.length) {
+          showStatus('Tidak ada berita ZonaPas pada periode ' + teksPeriode() + ' (Senin–Sabtu).', false);
+          return;
+        }
+        const narasiList = await Promise.all(artikel.map((a) => ambilNarasiArtikel(a.url)));
+        const perHari = {};
+        artikel.forEach((a, i) => {
+          const kunci = fmtTglIso(a.tgl);
+          if (!perHari[kunci]) perHari[kunci] = { tanggal: kunci, kegiatan: [] };
+          perHari[kunci].kegiatan.push({
+            judul: a.title,
+            narasi: narasiList[i] || a.summary || '',
+            foto: a.image ? [a.image] : [],
+          });
+        });
+        state.hari = Object.keys(perHari).sort().map((k) => perHari[k]);
+        const fotoBerita = artikel.filter((a) => a.image).map((a) => a.image);
+        if (fotoBerita.length) {
+          state.fotoPotret = fotoBerita[0];
+          if (fotoBerita.length > 1) state.fotoLapangan = fotoBerita[1];
+        }
+        simpanDraf();
+        tulisStateKeForm();
+        renderPratinjau();
+        showStatus('Berhasil menarik ' + artikel.length + ' berita dari ' + state.hari.length + ' hari (' + teksPeriode() + '). Judul, narasi, dan foto kegiatan terisi dari berita ZonaPas; foto sampul juga dari foto berita. Semua masih bisa diedit.', true);
+      } catch (e) {
+        showStatus('Gagal menarik berita: ' + (e && e.message ? e.message : 'galat'), false);
+      } finally {
+        sedangTarik = false;
+        if (btn) { btn.disabled = false; btn.textContent = '📥 Tarik Berita Minggu Ini'; }
+      }
+    }
+    function setMingguIni() {
+      const kini = new Date();
+      const senin = new Date(kini);
+      senin.setDate(kini.getDate() - ((kini.getDay() + 6) % 7));
+      const sabtu = new Date(senin);
+      sabtu.setDate(senin.getDate() + 5);
+      state.mulai = fmtTglIso(senin);
+      state.akhir = fmtTglIso(sabtu);
+      state.ttd = fmtTglIso(sabtu);
+      tulisStateKeForm();
+      simpanDraf();
+      renderPratinjau();
+      showStatus('Periode diset ke minggu ini: ' + teksPeriode() + ' (Senin–Sabtu).', true);
     }
 
     // ---------- Template bawaan (dari PDF laporan 02–07 Nov 2026) ----------
@@ -462,23 +567,28 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function blokParagraf(teks) {
       // Pecah jadi paragraf (baris kosong), lalu pecah paragraf yang terlalu
       // panjang jadi kelompok kalimat agar tidak ada blok yang melebihi 1 halaman.
+      // Baris pertama tiap paragraf menjorok ke dalam (tab, 28px) seperti
+      // template; sambungan paragraf di halaman berikut TIDAK menjorok.
       const keluar = [];
+      const buatHtml = (t, indent) => '<p class="sepekan-paragraf' + (indent ? '' : ' lanjutan') + '">' + esc(t) + '</p>';
       const paragraf = String(teks || '').split(/\n\s*\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
       for (const p of paragraf) {
-        const html = '<p class="sepekan-paragraf">' + esc(p) + '</p>';
+        const html = buatHtml(p, true);
         if (ukurBlok(html) <= TINGGI_ISI) { keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) }); continue; }
         // Paragraf terlalu panjang: pecah per kalimat.
         const kalimat = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
         let buf = '';
+        let pertama = true;
         for (const k of kalimat) {
           const coba = (buf ? buf + ' ' : '') + k.trim();
-          const h = ukurBlok('<p class="sepekan-paragraf">' + esc(coba) + '</p>');
+          const h = ukurBlok(buatHtml(coba, pertama));
           if (h > TINGGI_ISI && buf) {
-            keluar.push({ tipe: 'paragraf', html: '<p class="sepekan-paragraf">' + esc(buf) + '</p>', tinggi: ukurBlok('<p class="sepekan-paragraf">' + esc(buf) + '</p>') });
+            keluar.push({ tipe: 'paragraf', html: buatHtml(buf, pertama), tinggi: ukurBlok(buatHtml(buf, pertama)) });
             buf = k.trim();
+            pertama = false;
           } else { buf = coba; }
         }
-        if (buf) keluar.push({ tipe: 'paragraf', html: '<p class="sepekan-paragraf">' + esc(buf) + '</p>', tinggi: ukurBlok('<p class="sepekan-paragraf">' + esc(buf) + '</p>') });
+        if (buf) keluar.push({ tipe: 'paragraf', html: buatHtml(buf, pertama), tinggi: ukurBlok(buatHtml(buf, pertama)) });
       }
       return keluar;
     }
@@ -736,6 +846,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         e.target.value = '';
       });
       $('sp-reset-potret').addEventListener('click', () => { state.fotoPotret = FOTO_POTRET_TEMPLATE; $('sp-foto-potret').src = state.fotoPotret; simpanDraf(); renderPratinjau(); });
+      // Tarik berita + periode minggu ini
+      $('sp-tarik').addEventListener('click', tarikBeritaMingguIni);
+      $('sp-minggu-ini').addEventListener('click', setMingguIni);
       $('sp-reset-lapangan').addEventListener('click', () => { state.fotoLapangan = FOTO_LAPANGAN_TEMPLATE; $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); });
       // Hari & kegiatan (delegasi klik + input)
       const wadah = $('sp-hari-list');
