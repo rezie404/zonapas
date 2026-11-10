@@ -411,6 +411,8 @@
       if (tombolAntreanHub) tombolAntreanHub.classList.toggle('hidden', peran === 'penulis');
       const kartuVideo = $('kartu-tulis-video');
       if (kartuVideo) kartuVideo.classList.toggle('hidden', peran !== 'admin');
+      const kartuEditVideo = $('kartu-edit-video');
+      if (kartuEditVideo) kartuEditVideo.classList.toggle('hidden', peran !== 'admin');
     }
 
 
@@ -813,6 +815,7 @@
       }
       if ((pathHalaman === '/portal/aplikasi-pendukung' || pathHalaman.indexOf('/portal/aplikasi-pendukung/') === 0) && !bisaAksesPendamping()) { window.location.href = '/portal/'; return; }
       if (pathHalaman === '/portal/kelola-berita/tulis-video' && peran !== 'admin') { window.location.href = '/portal/kelola-berita/'; return; }
+      if (pathHalaman === '/portal/kelola-berita/edit-video' && peran !== 'admin') { window.location.href = '/portal/kelola-berita/edit/'; return; }
       // Hook halaman (script modul) bisa belum jalan saat sesi cookie
       // terverifikasi lebih dulu — tunda sampai DOMContentLoaded bila
       // dokumen masih dimuat (script modul selalu jalan sebelum event itu).

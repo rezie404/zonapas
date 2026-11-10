@@ -259,7 +259,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=11"></script>
+  <script is:inline src="/kelola-umum.js?v=12"></script>
   <script>
 
 
@@ -411,7 +411,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const dariAntrean = !!editingAntrean;
       const sedangEdit = !!editing;
       resetForm();
-      window.location.href = dariAntrean ? '/portal/kelola-berita/antrean/' : (sedangEdit ? '/portal/kelola-berita/edit/' : '/portal/kelola-berita/tulis/');
+      window.location.href = dariAntrean ? '/portal/kelola-berita/antrean/' : (sedangEdit ? '/portal/kelola-berita/edit-artikel/' : '/portal/kelola-berita/tulis/');
     });
 
 
@@ -1092,7 +1092,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // halaman Edit setelah redirect (selalu beri konfirmasi bahwa
         // berita sudah diisi setelah berhasil mempublish).
         try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: 'Berita "' + title + '" sudah diisi dan berhasil diterbitkan. Berita tampil di situs setelah rebuild sekitar 1–2 menit.' })); } catch {}
-        window.location.href = '/portal/kelola-berita/edit/';
+        window.location.href = '/portal/kelola-berita/edit-artikel/';
       } catch (err) {
         // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
         if (err && (err.status === 403 || err.status === 404)) {
@@ -1142,7 +1142,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // bisaTerbitLangsung().
       if (peran !== 'admin') {
         showStatus('Hanya Administrator yang bisa mengubah berita yang sudah publish.', false);
-        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit/'; }, 2000);
+        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit-artikel/'; }, 2000);
         return;
       }
       try {
@@ -1195,7 +1195,7 @@ editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', b
         tawarkanDraf();
       } catch (err) {
         showStatus('Artikel tidak ditemukan: ' + err.message, false);
-        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit/'; }, 2000);
+        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit-artikel/'; }, 2000);
       }
     }
 
