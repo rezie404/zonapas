@@ -995,20 +995,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const html = '<div class="sepekan-kolase" style="height:180px">' + sel + '</div>';
         blok.push({ tipe: 'kolase-kecil', html, tinggi: ukurBlok(html) });
       };
-      const tambahHexBaris = (foto, warna) => {
-        if (!foto.length) return;
-        let sel = '';
-        for (const f of foto) {
-          sel += '<div class="sepekan-hexbab"><div class="sepekan-hexbab-luar" style="background:' + warna + '"></div><div class="sepekan-hexbab-dalam"><img src="' + esc(f) + '" alt="" /></div></div>';
-        }
-        const html = '<div class="sepekan-hex-baris">' + sel + '</div>';
-        blok.push({ tipe: 'hex', html, tinggi: ukurBlok(html) });
-      };
-      const tambahHexKanan = (foto) => {
-        if (!foto) return;
-        const html = '<div class="sepekan-hexbab sepekan-hexbab-kanan"><div class="sepekan-hexbab-luar" style="background:#FFCC00"></div><div class="sepekan-hexbab-dalam"><img src="' + esc(foto) + '" alt="" /></div></div>';
-        blok.push({ tipe: 'hex', html, tinggi: ukurBlok(html) });
-      };
       // Isi bab (Latar Belakang, Maksud & Tujuan, Ruang Lingkup,
       // Peserta, Tindak Lanjut, Penutup) diambil TETAP dari TEMPLATE
       // (template laporan sebelumnya) — tidak lagi bisa diubah.
@@ -1016,11 +1002,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Maksud & Tujuan: hanya narasi (foto/kolase di bawah narasi
       // DIHAPUS 10 Nov 2026 atas permintaan Bos Besar). Seluruh bab ini
       // satu grup 'maksud' supaya judul + narasi tetap sehalaman.
+      // 2 foto segi enam di bab (baris biru di atas Ruang Lingkup +
+      // segi enam kuning di bawah Peserta) DIHAPUS 10 Nov 2026 atas
+      // permintaan Bos Besar. Kolase kecil di bawah Peserta tetap ada.
       tambahBab('Maksud & Tujuan', TEMPLATE.maksud, undefined, 'maksud');
-      tambahHexBaris(fotoSepekan.slice(0, 2), '#1E40AF');
       tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
       tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
-      tambahHexKanan(fotoSepekan[2] || fotoSepekan[0]);
       tambahKolaseKecil();
       // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
       // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
