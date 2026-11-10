@@ -29,6 +29,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     <!-- Status -->
     <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
 
+    <!-- Konfirmasi kirim antrean (ditampilkan sekali setelah redirect dari Tulis Artikel) -->
+    <div id="konfirmasi-terbit" class="mt-4 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm font-medium text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" role="status"></div>
+
     <!-- Login -->
     <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
       <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
@@ -138,7 +141,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
 
     // Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js).
-    window.__kelolaSetelahLogin = () => { muatAntrean(); muatModerasi(); };
+    window.__kelolaSetelahLogin = () => {
+      // Konfirmasi kirim antrean: tampilkan sekali pesan yang disimpan
+      // Tulis Artikel sebelum redirect (berita sudah diisi + terkirim).
+      try {
+        const raw = sessionStorage.getItem('zonapas-konfirmasi-berita');
+        if (raw) {
+          sessionStorage.removeItem('zonapas-konfirmasi-berita');
+          const info = JSON.parse(raw);
+          const el = $('konfirmasi-terbit');
+          if (el && info && info.teks) { el.textContent = info.teks; el.classList.remove('hidden'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+        }
+      } catch {}
+      muatAntrean(); muatModerasi();
+    };
     // Diekspos untuk simpanAntrean di kelola-umum.js (fungsi modul bukan global).
     window.__kelolaMuatAntrean = muatAntrean;
 

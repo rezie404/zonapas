@@ -1046,6 +1046,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // Mode edit antrean: simpan selalu lewat Worker, bukan GitHub langsung.
         if (editingAntrean) {
           await simpanAntrean(editingAntrean.id, false);
+          try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: 'Berita "' + normalisasiJudul($('f-judul').value) + '" sudah diisi dan berhasil diperbarui di antrean.' })); } catch {}
           window.location.href = '/portal/kelola-berita/antrean/';
           return;
         }
@@ -1053,6 +1054,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // alihkan ke antrean, jangan pernah PUT GitHub.
         if (!bisaTerbitLangsung()) {
           await simpanAntrean(null, true);
+          try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: 'Berita "' + normalisasiJudul($('f-judul').value) + '" sudah diisi dan berhasil dikirim ke antrean untuk persetujuan.' })); } catch {}
           window.location.href = '/portal/kelola-berita/antrean/';
           return;
         }
@@ -1086,6 +1088,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
         hapusDraf();
         resetForm();
+        // Konfirmasi terbit: simpan pesan untuk ditampilkan sekali di
+        // halaman Edit setelah redirect (selalu beri konfirmasi bahwa
+        // berita sudah diisi setelah berhasil mempublish).
+        try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: 'Berita "' + title + '" sudah diisi dan berhasil diterbitkan. Berita tampil di situs setelah rebuild sekitar 1–2 menit.' })); } catch {}
         window.location.href = '/portal/kelola-berita/edit/';
       } catch (err) {
         // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
@@ -1115,6 +1121,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // Cek typo dulu; "Perbaiki dulu" membatalkan pengiriman.
         if (!(await cekTypoSebelumSimpan())) return;
         await simpanAntrean(editingAntrean ? editingAntrean.id : null, true);
+        // Konfirmasi kirim antrean: tampilkan sekali di halaman Antrean.
+        try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: 'Berita "' + normalisasiJudul($('f-judul').value) + '" sudah diisi dan berhasil dikirim ke antrean untuk persetujuan.' })); } catch {}
         window.location.href = '/portal/kelola-berita/antrean/';
       } catch (err) {
         showStatus('Gagal mengirim ke antrean: ' + err.message, false);
