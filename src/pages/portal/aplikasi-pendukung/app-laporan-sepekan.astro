@@ -632,6 +632,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let state = drafTersimpan || klon(TEMPLATE);
     // Isi bab dari draf lama dibuang — bab kini TETAP dari TEMPLATE.
     ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
+    // Normalisasi periode (Nov 2026): laporan ini mingguan (Senin–Sabtu).
+    // Bila draf lama memuat periode lebih dari 7 hari (mis. 02–14 karena
+    // tanggal akhir sempat tertinggal di Sabtu minggu berjalan), kembalikan
+    // tanggal akhir ke Sabtu pada minggu yang sama dengan tanggal mulai.
+    // (Perbaikan atas laporan Bos Besar: "dipilih 2-7, hasilnya malah 2-14".)
+    (function normalisasiPeriode() {
+      const m = parseTgl(state.mulai), a = parseTgl(state.akhir);
+      if (!m || !a) return;
+      const selisihHari = Math.round((a - m) / 86400000);
+      if (selisihHari <= 6) return;
+      const sabtu = new Date(m);
+      sabtu.setDate(m.getDate() + ((6 - m.getDay() + 7) % 7));
+      state.akhir = fmtTglIso(sabtu);
+    })();
     let timerSimpan = null;
     function simpanDraf() {
       clearTimeout(timerSimpan);
