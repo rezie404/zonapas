@@ -203,29 +203,44 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       box-shadow: 0 4px 24px rgba(5, 21, 46, 0.25);
       flex: none; transform-origin: top left;
     }
-    .sepekan-isi { padding: 48px 56px 48px 56px; height: 1123px; box-sizing: border-box; position: relative; z-index: 1; }
+    .sepekan-isi { padding: 118px 56px 48px 56px; height: 1123px; box-sizing: border-box; position: relative; z-index: 1; }
     .sepekan-latar { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-    .sepekan-latar-lingkaran { position: absolute; left: 50%; top: 50%; width: 440px; height: 440px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(30, 64, 175, 0.07) 0%, rgba(30, 64, 175, 0.03) 55%, transparent 72%); border: 2px solid rgba(255, 204, 0, 0.35); }
-    .sepekan-latar-lingkaran-dalam { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; border: 1px solid rgba(30, 64, 175, 0.20); }
-    .sepekan-latar-sudut { position: absolute; width: 52px; height: 52px; }
-    .sepekan-latar-sudut-tl { top: 0; left: 0; border-top: 4px solid #0A2540; border-left: 4px solid #0A2540; }
-    .sepekan-latar-sudut-tr { top: 0; right: 0; border-top: 4px solid #0A2540; border-right: 4px solid #0A2540; }
-    .sepekan-latar-sudut-bl { bottom: 0; left: 0; border-bottom: 4px solid #0A2540; border-left: 4px solid #0A2540; }
-    .sepekan-latar-sudut-br { bottom: 0; right: 0; border-bottom: 4px solid #0A2540; border-right: 4px solid #0A2540; }
-    .sepekan-latar-sudut-aksen { position: absolute; width: 12px; height: 12px; background: #FFCC00; transform: rotate(45deg); }
-    .sepekan-latar-sudut-aksen-tl { top: 14px; left: 14px; }
-    .sepekan-latar-sudut-aksen-tr { top: 14px; right: 14px; }
-    .sepekan-latar-sudut-aksen-bl { bottom: 14px; left: 14px; }
-    .sepekan-latar-sudut-aksen-br { bottom: 14px; right: 14px; }
-    .sepekan-judul-bab { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #0A2540; margin: 0 0 6px 0; text-transform: uppercase; }
-    .sepekan-garis-kuning { width: 72px; height: 6px; background: #FFCC00; border-radius: 3px; margin: 0 0 18px 0; }
+    .sepekan-latar-titik { position: absolute; left: 0; right: 0; top: 0; height: 118px; background-image: radial-gradient(circle, rgba(30, 64, 175, 0.12) 1.5px, transparent 1.6px); background-size: 22px 22px; }
+    .sepekan-latar-logo-kuning { position: absolute; top: 0; right: 0; width: 138px; height: 110px; background: #FFCC00; clip-path: polygon(32% 0, 100% 0, 100% 100%, 0 100%); }
+    .sepekan-latar-logo { position: absolute; top: 8px; right: 16px; width: 90px; height: 90px; }
+    .sepekan-latar-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .sepekan-latar-segitiga-biru { position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 78px solid #1E40AF; border-right: 78px solid transparent; }
+    .sepekan-latar-segitiga-kuning { position: absolute; top: 0; left: 0; width: 0; height: 0; border-top: 46px solid #FFCC00; border-right: 46px solid transparent; }
+    .sepekan-latar-bawah { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #1E40AF; }
+    .sepekan-latar-segitiga-bawah-kuning { position: absolute; bottom: 10px; right: 0; width: 0; height: 0; border-bottom: 60px solid #FFCC00; border-left: 60px solid transparent; }
+    .sepekan-latar-segitiga-bawah-biru { position: absolute; bottom: 10px; right: 0; width: 0; height: 0; border-bottom: 34px solid #1E40AF; border-left: 34px solid transparent; }
+    .sepekan-pita-bab { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 18px -56px; clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); text-transform: uppercase; }
+    .sepekan-pita-bab-kanan { margin-left: auto; width: 62%; }
+    .sepekan-pita-bab-kiri { width: 56%; }
     .sepekan-paragraf { font-size: 15px; line-height: 1.65; text-align: justify; margin: 0 0 14px 0; color: #16233D; text-indent: 28px; }
     .sepekan-paragraf.lanjutan { text-indent: 0; }
     .sepekan-butir { font-size: 15px; line-height: 1.6; text-align: justify; margin: 0 0 10px 0; color: #16233D; padding-left: 26px; position: relative; }
     .sepekan-butir .nomor { position: absolute; left: 0; top: 0; font-weight: 800; color: #0A2540; }
     .sepekan-pita-hasil { background: #1E40AF; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px; padding: 10px 22px; margin: 0 -56px 12px -56px; clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
     .sepekan-tanggal-hari { font-size: 16px; font-weight: 800; color: #0A2540; margin: 0 0 14px 0; letter-spacing: 0.3px; }
-    .sepekan-judul-kegiatan { font-size: 17px; font-weight: 800; line-height: 1.35; color: #0A2540; text-transform: uppercase; margin: 0 0 10px 0; padding-left: 12px; border-left: 6px solid #FFCC00; }
+    .sepekan-kegiatan { display: flex; margin: 0 0 14px 0; }
+    .sepekan-kegiatan-kiri { flex: 0 0 46%; background: #0A2540; padding: 16px 16px 18px 16px; box-sizing: border-box; }
+    .sepekan-kegiatan-judul { font-size: 17px; font-weight: 800; line-height: 1.35; color: #FFCC00; text-transform: uppercase; margin: 0 0 12px 0; }
+    .sepekan-kegiatan-narasi-putih .sepekan-paragraf { color: #ffffff; margin: 0 0 10px 0; }
+    .sepekan-kegiatan-narasi-putih .sepekan-paragraf:last-child { margin-bottom: 0; }
+    .sepekan-kegiatan-kanan { flex: 1 1 0; min-width: 0; padding: 0 0 0 18px; box-sizing: border-box; }
+    .sepekan-kegiatan-narasi .sepekan-paragraf { margin: 0 0 10px 0; }
+    .sepekan-kegiatan-narasi .sepekan-paragraf:last-child { margin-bottom: 0; }
+    .sepekan-kolase { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 6px; margin: 0 0 14px 0; }
+    .sepekan-kolase img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sepekan-kolase-sel { height: 150px; overflow: hidden; }
+    .sepekan-kolase-sel-lebar { height: 150px; overflow: hidden; }
+    .sepekan-hex-baris { display: flex; gap: 18px; margin: 0 0 14px 0; }
+    .sepekan-hexbab { position: relative; flex: 1 1 0; height: 230px; }
+    .sepekan-hexbab-luar { position: absolute; inset: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+    .sepekan-hexbab-dalam { position: absolute; inset: 6px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); overflow: hidden; }
+    .sepekan-hexbab-dalam img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sepekan-hexbab-kanan { margin: 0 0 14px auto; width: 260px; height: 220px; }
     .sepekan-2kol { display: flex; gap: 18px; margin: 0 0 14px 0; }
     .sepekan-2kol-kol { flex: 1 1 0; min-width: 0; }
     .sepekan-2kol-kol .sepekan-paragraf { margin: 0 0 10px 0; }
@@ -758,9 +773,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
     // ---------- Paginator: bagi blok isi ke halaman A4 ----------
-    // Halaman A4 @96dpi = 794 x 1123 px. Area isi: padding 48px atas/bawah,
-    // 56px kiri/kanan -> lebar 682px, tinggi 1027px.
-    const TINGGI_ISI = 1027;
+    // Halaman A4 @96dpi = 794 x 1123 px. Area isi: padding 118px atas
+    // (ruang logo + pita), 48px bawah, 56px kiri/kanan ->
+    // lebar 682px, tinggi 957px.
+    const TINGGI_ISI = 957;
     let elUkur = null;
     function ukurBlok(html) {
       if (!elUkur) {
@@ -799,7 +815,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       return keluar;
     }
-    function blokNarasi2Kol(teks) {
+    function blokNarasi2Kol(teks, judulCanva) {
       // Narasi kegiatan ditata 2 kolom seperti koran (lihat template):
       // kalimat diakumulasi terus-menerus (lintas paragraf) jadi kelompok
       // yang muat ~380px, lalu tiap kelompok dibagi ke kolom kiri dan
@@ -810,6 +826,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // paragraf tetap menjorok (tab 28px); sambungan tidak menjorok.
       // Satu kalimat yang sangat panjang dibelah di batas kata supaya
       // kedua kolom tetap terisi.
+      // Bila judulCanva diisi, kelompok PERTAMA ditata ala template:
+      // kolom kiri = blok biru berisi judul (kuning) + awal narasi
+      // (putih), kolom kanan = lanjutan narasi (gelap).
       const CHUNK_MAX = 380;
       const keluar = [];
       const paragraf = String(teks || '').split(/\n\s*\n/).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
@@ -856,36 +875,88 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         };
         return '<div class="sepekan-2kol"><div class="sepekan-2kol-kol">' + renderKol(kiri) + '</div><div class="sepekan-2kol-kol">' + renderKol(kanan) + '</div></div>';
       };
+      const buatHtmlCanva = (list, judul) => {
+        // Kelompok pertama ala template: judul + awal narasi di blok biru
+        // (kiri), lanjutan narasi di kolom kanan. Pakai logika pisah yang
+        // sama dengan buatHtml, lalu bungkus ulang.
+        const html2kol = buatHtml(list);
+        const m = html2kol.match(/^<div class="sepekan-2kol"><div class="sepekan-2kol-kol">([\s\S]*?)<\/div><div class="sepekan-2kol-kol">([\s\S]*?)<\/div><\/div>$/);
+        if (!m) return html2kol;
+        return '<div class="sepekan-kegiatan"><div class="sepekan-kegiatan-kiri"><h3 class="sepekan-kegiatan-judul">' + esc(judul) + '</h3><div class="sepekan-kegiatan-narasi-putih">' + m[1] + '</div></div><div class="sepekan-kegiatan-kanan"><div class="sepekan-kegiatan-narasi">' + m[2] + '</div></div></div>';
+      };
       let buf = [];
       for (const s of satuan) {
         const coba = buf.concat([s]);
         const h = ukurBlok(buatHtml(coba));
         if (h > CHUNK_MAX && buf.length) {
-          keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+          const pertama = keluar.length === 0 && judulCanva;
+          const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf);
+          keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) });
           buf = [s];
         } else { buf = coba; }
       }
-      if (buf.length) keluar.push({ tipe: 'paragraf', html: buatHtml(buf), tinggi: ukurBlok(buatHtml(buf)) });
+      if (buf.length) {
+        const pertama = keluar.length === 0 && judulCanva;
+        const html = pertama ? buatHtmlCanva(buf, judulCanva) : buatHtml(buf);
+        keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) });
+      }
       return keluar;
     }
-    function blokJudulBab(judul) {
-      const html = '<h2 class="sepekan-judul-bab">' + esc(judul) + '</h2><div class="sepekan-garis-kuning"></div>';
+    function blokJudulBab(judul, varian) {
+      const kelas = 'sepekan-pita-bab' + (varian === 'kanan' ? ' sepekan-pita-bab-kanan' : varian === 'kiri' ? ' sepekan-pita-bab-kiri' : '');
+      const html = '<div class="' + kelas + '">' + esc(judul) + '</div>';
       return { tipe: 'judul', html, tinggi: ukurBlok(html) };
     }
     function susunBlok() {
       const blok = [];
-      const tambahBab = (judul, teks) => {
+      // Foto kegiatan sepekan (untuk kolase + segi enam di halaman bab).
+      const fotoSepekan = [];
+      for (const h of state.hari) {
+        for (const k of h.kegiatan || []) {
+          for (const f of (k.foto || []).filter(Boolean)) {
+            if (fotoSepekan.indexOf(f) < 0) fotoSepekan.push(f);
+          }
+        }
+      }
+      const tambahBab = (judul, teks, varian) => {
         if (!String(teks || '').trim()) return;
-        blok.push(blokJudulBab(judul));
+        blok.push(blokJudulBab(judul, varian));
         blok.push(...blokParagraf(teks));
+      };
+      const tambahKolase = () => {
+        if (!fotoSepekan.length) return;
+        const ambil = fotoSepekan.slice(0, 9);
+        let sel = '';
+        for (let i = 0; i < ambil.length; i++) {
+          sel += '<div class="sepekan-kolase-sel"><img src="' + esc(ambil[i]) + '" alt="" /></div>';
+        }
+        const html = '<div class="sepekan-kolase">' + sel + '</div>';
+        blok.push({ tipe: 'kolase', html, tinggi: ukurBlok(html) });
+      };
+      const tambahHexBaris = (foto, warna) => {
+        if (!foto.length) return;
+        let sel = '';
+        for (const f of foto) {
+          sel += '<div class="sepekan-hexbab"><div class="sepekan-hexbab-luar" style="background:' + warna + '"></div><div class="sepekan-hexbab-dalam"><img src="' + esc(f) + '" alt="" /></div></div>';
+        }
+        const html = '<div class="sepekan-hex-baris">' + sel + '</div>';
+        blok.push({ tipe: 'hex', html, tinggi: ukurBlok(html) });
+      };
+      const tambahHexKanan = (foto) => {
+        if (!foto) return;
+        const html = '<div class="sepekan-hexbab sepekan-hexbab-kanan"><div class="sepekan-hexbab-luar" style="background:#FFCC00"></div><div class="sepekan-hexbab-dalam"><img src="' + esc(foto) + '" alt="" /></div></div>';
+        blok.push({ tipe: 'hex', html, tinggi: ukurBlok(html) });
       };
       // Isi bab (Latar Belakang, Maksud & Tujuan, Ruang Lingkup,
       // Peserta, Tindak Lanjut, Penutup) diambil TETAP dari TEMPLATE
       // (template laporan sebelumnya) — tidak lagi bisa diubah.
       tambahBab('Latar Belakang', TEMPLATE.latar);
       tambahBab('Maksud & Tujuan', TEMPLATE.maksud);
-      tambahBab('Ruang Lingkup', TEMPLATE.ruang);
-      tambahBab('Peserta', TEMPLATE.peserta);
+      tambahKolase();
+      tambahHexBaris(fotoSepekan.slice(0, 2), '#1E40AF');
+      tambahBab('Ruang Lingkup', TEMPLATE.ruang, 'kanan');
+      tambahBab('Peserta', TEMPLATE.peserta, 'kiri');
+      tambahHexKanan(fotoSepekan[2] || fotoSepekan[0]);
       // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
       // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
       // hari ikut grup kegiatan pertama hari itu.
@@ -897,8 +968,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         h.kegiatan.forEach((k, ki) => {
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
           const grup = 'keg-' + (h.tanggal || '') + '-' + ki;
-          const htmlJudul = '<h3 class="sepekan-judul-kegiatan">' + esc(k.judul || '(Tanpa judul)') + '</h3>';
-          blok.push({ tipe: 'judul-kegiatan', html: htmlJudul, tinggi: ukurBlok(htmlJudul), grup });
           const fotos = (k.foto || []).filter(Boolean).slice(0, 2);
           // Foto maks 2, keduanya rapi DI ATAS narasi. 1 foto tampil
           // tunggal, 2 foto berdampingan kecil.
@@ -909,7 +978,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           };
           const htmlFoto = htmlFotoGrup(fotos);
           if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
-          for (const nb of blokNarasi2Kol(k.narasi)) blok.push({ ...nb, grup });
+          // Judul + narasi ala template: blok biru (judul kuning + awal
+          // narasi putih) di kiri, lanjutan narasi di kanan.
+          for (const nb of blokNarasi2Kol(k.narasi, k.judul || '(Tanpa judul)')) blok.push({ ...nb, grup });
         });
       }
       // Tindak lanjut
@@ -931,7 +1002,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const halaman = [];
       let kini = [];
       let tinggi = 0;
-      const JAGA = ['judul', 'hari', 'judul-kegiatan']; // jangan yatim di ujung halaman
+      const JAGA = ['judul', 'hari']; // jangan yatim di ujung halaman
       // Total tinggi tiap grup kegiatan (1 kegiatan = 1 halaman).
       const totalGrup = {};
       for (const b of blok) if (b.grup) totalGrup[b.grup] = (totalGrup[b.grup] || 0) + b.tinggi;
@@ -1019,7 +1090,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
-      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-lingkaran"></div><div class="sepekan-latar-lingkaran-dalam"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-tl"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-tr"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-bl"></div><div class="sepekan-latar-sudut sepekan-latar-sudut-br"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-tl"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-tr"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-bl"></div><div class="sepekan-latar-sudut-aksen sepekan-latar-sudut-aksen-br"></div></div>';
+      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-titik"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div><div class="sepekan-latar-logo-kuning"></div><div class="sepekan-latar-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-segitiga-bawah-kuning"></div><div class="sepekan-latar-segitiga-bawah-biru"></div><div class="sepekan-latar-bawah"></div></div>';
       halaman.forEach((hals, i) => {
         html += '<div class="sepekan-bungkus" data-halaman="' + (i + 2) + '"><div class="sepekan-halaman">' + LATAR + '<div class="sepekan-isi">' +
           hals.map((b) => b.html).join('') + '</div></div></div>';
