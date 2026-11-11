@@ -208,7 +208,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return m ? m[1] : '';
     }
 
-    function thumbYoutube(id) { return 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'; }
+    // Gambar mini YouTube 16:9 asli (mqdefault, 320×180) — hqdefault
+    // (480×360, 4:3) membawa garis hitam baked-in di atas/bawah untuk
+    // video 16:9 dan di kiri/kanan untuk video vertikal, sehingga
+    // thumbnail di daftar terlihat berbingkai hitam.
+    function thumbYoutube(id) { return 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg'; }
 
 
     function buildVideoMarkdown(d) {
@@ -268,10 +272,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // Sampul: foto frame pilihan admin (poster) didahulukan; bila
         // tidak ada, pakai gambar mini YouTube.
         const thumb = d.poster
-          ? '<img src="' + esc(d.poster) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
+          ? '<img src="' + esc(d.poster) + '" alt="" loading="lazy" class="aspect-video w-28 shrink-0 rounded-lg bg-[#0A2540] object-cover" />'
           : idYt
-            ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="h-auto w-28 shrink-0 rounded-lg" />'
-            : '<span class="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
+            ? '<img src="' + thumbYoutube(idYt) + '" alt="" loading="lazy" class="aspect-video w-28 shrink-0 rounded-lg bg-[#0A2540] object-cover" />'
+            : '<span class="flex aspect-video w-28 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-2xl text-white">▶</span>';
         return '<article class="flex gap-3 py-4">' + thumb +
           '<div class="min-w-0 flex-1">' +
           '<span class="block text-sm font-bold leading-snug">' + esc(d.title || '(tanpa judul)') + '</span>' +
