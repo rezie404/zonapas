@@ -341,13 +341,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     function formatMB(n) { return (n / 1048576).toFixed(1) + ' MB'; }
 
-    function aturProgres(terkirim, total, label) {
+    // tanpaMB: tampilkan persen saja tanpa "(x MB dari y MB)" — dipakai
+    // tahap olah video (trim + intro/outro), karena di sana yang ada
+    // hanya persen kemajuan ffmpeg, bukan byte terkirim; tanpa ini
+    // angkanya jadi persen yang diformat sebagai byte ("83% (0.0 MB
+    // dari 0.0 MB)", 11 Nov 2026).
+    function aturProgres(terkirim, total, label, tanpaMB) {
       const wrap = $('yt-progress-wrap');
       const bar = $('yt-progress');
       const teks = $('yt-progress-teks');
       if (wrap) wrap.classList.remove('hidden');
       if (bar) { bar.max = 100; bar.value = total ? Math.round((terkirim / total) * 100) : 0; }
-      if (teks) teks.textContent = (label || 'Mengunggah…') + (total ? ' ' + Math.round((terkirim / total) * 100) + '% (' + formatMB(terkirim) + ' dari ' + formatMB(total) + ')' : '');
+      if (teks) teks.textContent = (label || 'Mengunggah…') + (total ? ' ' + Math.round((terkirim / total) * 100) + '%' + (tanpaMB ? '' : ' (' + formatMB(terkirim) + ' dari ' + formatMB(total) + ')') : '');
     }
 
     function pesanYoutube(r, baku) {
@@ -609,7 +614,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (!olah || typeof olah.olahVideo !== 'function') throw new Error('modul olah video belum termuat');
           const awal = trimDurasi > 0 ? trimAwal : 0;
           const akhir = trimDurasi > 0 ? trimAkhir : null;
-          fileUnggah = await olah.olahVideo({ file, awal, akhir, onProgress: (p) => aturProgres(Math.round(p * 100), 100, 'Mengolah video (trim + intro/outro)…') });
+          fileUnggah = await olah.olahVideo({ file, awal, akhir, onProgress: (p) => aturProgres(Math.round(p * 100), 100, 'Mengolah video (trim + intro/outro)…', true) });
         } catch (errOlah) {
           catatanOlahan = ' Catatan: olahan trim/intro/outro gagal (' + (errOlah && errOlah.message ? errOlah.message : 'galat') + ') — video asli diunggah tanpa olahan.';
         }
