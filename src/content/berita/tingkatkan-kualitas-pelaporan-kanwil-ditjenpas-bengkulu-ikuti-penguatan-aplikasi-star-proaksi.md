@@ -13,6 +13,7 @@ breakingSince: "2026-11-11T08:18:40.166Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 297
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Penguatan Aplikasi STAR-Proaksi pada Satuan Kerja Pemasyarakatan,Rabu(11/26). Kegiatan ini dilaksanakan sebagai upaya meningkatkan pemahaman jajaran dalam pemanfaatan aplikasi untuk mendukung pelaksanaan tugas dan fungsi Pemasyarakatan.
