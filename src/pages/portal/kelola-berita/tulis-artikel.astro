@@ -143,9 +143,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <label for="f-keterangan" class="mb-1 block text-sm font-bold">Keterangan Foto</label>
               <input id="f-keterangan" value="Dokumentasi kegiatan. (ZonaPas)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
             </div>
-            <div class="flex items-center gap-6 md:col-span-2">
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-1 md:col-span-2">
               <label class="flex items-center gap-2 text-sm font-bold"><input id="f-featured" type="checkbox" class="h-4 w-4" /> Tampilkan sebagai Headline (Pilihan Redaksi)</label>
               <label class="flex items-center gap-2 text-sm font-bold"><input id="f-breaking" type="checkbox" class="h-4 w-4" checked /> Breaking News</label>
+              <span class="text-xs text-slate-500 dark:text-slate-400">Hanya satu berita yang bisa menjadi Headline — mencentang berita ini akan menggantikan Headline yang sekarang.</span>
             </div>
             <div class="md:col-span-2">
               <label for="f-kota" class="mb-1 block text-sm font-bold">Kota</label>
@@ -1101,9 +1102,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // ("Failed to fetch"). 422 = slug sudah dipakai — coba slug
         // berikutnya, maks. 3 percobaan.
         let percobaan = 0;
+        let hasilTulis = null;
         while (true) {
           try {
-            await githubTulis('src/content/berita/' + finalSlug + '.md', b64encodeUnicode(md), pesanSimpan, sha);
+            hasilTulis = await githubTulis('src/content/berita/' + finalSlug + '.md', b64encodeUnicode(md), pesanSimpan, sha);
             break;
           } catch (err) {
             if (!editing && err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slug + '-' + (percobaan + 1); continue; }
@@ -1115,7 +1117,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // Konfirmasi terbit: simpan pesan untuk ditampilkan sekali di
         // halaman Edit setelah redirect (selalu beri konfirmasi bahwa
         // berita sudah diisi setelah berhasil mempublish).
-        try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: 'Berita "' + title + '" sudah diisi dan berhasil diterbitkan. Berita tampil di situs setelah rebuild sekitar 1–2 menit.' })); } catch {}
+        let teksKonfirmasi = 'Berita "' + title + '" sudah diisi dan berhasil diterbitkan. Berita tampil di situs setelah rebuild sekitar 1–2 menit.';
+        if (hasilTulis && Array.isArray(hasilTulis.headlineDicabut) && hasilTulis.headlineDicabut.length) {
+          teksKonfirmasi += ' Headline sebelumnya otomatis dicabut (' + hasilTulis.headlineDicabut.length + ' berita), karena hanya satu berita yang bisa menjadi Headline.';
+        }
+        try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: teksKonfirmasi })); } catch {}
         window.location.href = '/portal/kelola-berita/edit-artikel/';
       } catch (err) {
         // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
