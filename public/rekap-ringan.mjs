@@ -70,7 +70,8 @@ export function normalisasiJudulPublikasi(judul) {
 }
 
 // Hitung rekap per UPT dari rows + penanda nihil. Judul di laporan adalah
-// judul UNIK per UPT (urutan kemunculan pertama); tautan = semua baris.
+// judul UNIK per UPT (urutan kemunculan pertama); tautan = semua baris,
+// diurutkan media massa dulu baru media sosial (11 Nov 2026).
 // Judul dinormalisasi ke Huruf Kapital Setiap Kata (lihat
 // normalisasiJudulPublikasi) supaya tidak ada judul huruf besar semua
 // atau huruf kecil semua di laporan.
@@ -87,7 +88,13 @@ export function hitungRekap(data) {
       const j = normalisasiJudulPublikasi(String(r.judul || "").trim()) || REKAP_JUDUL_KOSONG;
       if (!judulUnik.includes(j)) judulUnik.push(j);
     }
-    return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judulUnik : ["Nihil"], tautan: rs.length ? rs.map((r) => r.url) : ["Nihil"] };
+    // d. Tautan Publikasi: media massa dulu, baru media sosial — di dalam
+    // tiap kelompok urutan impor dipertahankan (sort stabil). Daftar judul
+    // (c.) dan baris data (rows) TIDAK diubah urutannya.
+    const tautanUrut = [...rs]
+      .sort((a, b) => (a.platform === "Website / Media Online" ? 0 : 1) - (b.platform === "Website / Media Online" ? 0 : 1))
+      .map((r) => r.url);
+    return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judulUnik : ["Nihil"], tautan: rs.length ? tautanUrut : ["Nihil"] };
   });
   const total = perUpt.reduce((a, u) => ({ sosial: a.sosial + u.sosial, massa: a.massa + u.massa, jumlah: a.jumlah + u.jumlah }), { sosial: 0, massa: 0, jumlah: 0 });
   return { tanggal, perUpt, total };
