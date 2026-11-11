@@ -169,7 +169,7 @@ const formatTanggalVideo = (d: Date) =>
       <aside class="space-y-8 pt-5 lg:pt-5">
         <section aria-label="Terpopuler" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <h2 class="border-b-2 border-[#D9232E] pb-2 text-lg font-black uppercase">Terpopuler</h2>
-          <ol class="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
+          <ol data-terpopuler class="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
             {popular.map((entry, i) => (
               <li class="flex gap-3 py-3">
                 <span class="text-3xl font-black leading-none text-[#D9232E]">{i + 1}</span>
@@ -197,4 +197,37 @@ const formatTanggalVideo = (d: Date) =>
       </aside>
     </div>
   </div>
+
+  <script is:inline>
+    // Terpopuler dari data tayangan nyata (7 hari terakhir). Daftar statis
+    // (Headline + terbaru) tetap menjadi isi awal; bila data tayangan
+    // tersedia, daftar diganti 5 teratas minggu ini beserta jumlah dibaca.
+    // Bila pengambilan gagal atau belum ada tayangan minggu ini, daftar
+    // statis dibiarkan apa adanya.
+    (function () {
+      var ol = document.querySelector('[data-terpopuler]');
+      if (!ol) return;
+      function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      Promise.all([
+        fetch('/redaksi/api/tayangan').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+        fetch('/search-index.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+      ]).then(function (hasil) {
+        var tay = hasil[0];
+        var idx = hasil[1];
+        if (!tay || !tay.ok || !Array.isArray(tay.terpopulerMinggu) || !idx) return;
+        var atas = tay.terpopulerMinggu.filter(function (x) { return x.minggu > 0; }).slice(0, 5);
+        if (!atas.length) return;
+        var olehSlug = {};
+        idx.forEach(function (item) { olehSlug[item.slug] = item; });
+        var html = atas.map(function (x, i) {
+          var item = olehSlug[x.slug];
+          if (!item) return '';
+          return '<li class="flex gap-3 py-3"><span class="text-3xl font-black leading-none text-[#D9232E]">' + (i + 1) + '</span><span><a href="' + esc(item.url) + '" class="text-sm font-bold leading-snug hover:text-[#D9232E] hover:underline">' + esc(item.title) + '</a><span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">' + Number(x.minggu).toLocaleString('id-ID') + ' dibaca minggu ini</span></span></li>';
+        }).join('');
+        if (html) ol.innerHTML = html;
+      });
+    })();
+  </script>
 </BaseLayout>

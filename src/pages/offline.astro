@@ -1,0 +1,43 @@
+---
+// Halaman offline ZonaPas — ditampilkan service worker saat navigasi
+// gagal (tidak ada koneksi). SENGAJA tanpa BaseLayout: tidak boleh
+// bergantung pada CSS/font/gambar luar, karena saat offline semuanya
+// mungkin tidak termuat. Semua gaya inline di dalam berkas ini.
+// Sengaja TIDAK masuk sitemap (bukan konten) dan tidak masuk indeks
+// pencarian.
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anda Sedang Offline | ZonaPas</title>
+    <meta name="theme-color" content="#05152E" />
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #05152e; color: #ffffff; text-align: center; }
+      .kartu { max-width: 420px; width: 100%; }
+      .wordmark { font-size: 34px; font-weight: 900; letter-spacing: -0.5px; }
+      .wordmark span { color: #ffcc00; }
+      .tagline { margin: 6px 0 0; font-size: 13px; color: #cbd5e1; }
+      .ikon { font-size: 44px; margin: 28px 0 8px; }
+      h1 { margin: 0; font-size: 22px; }
+      p { margin: 10px 0 0; font-size: 15px; line-height: 1.6; color: #e2e8f0; }
+      .tombol { display: inline-block; margin-top: 24px; padding: 12px 28px; border-radius: 9999px; background: #ffcc00; color: #05152e; font-weight: 800; font-size: 15px; text-decoration: none; border: none; cursor: pointer; }
+      .tautan { display: inline-block; margin-top: 16px; color: #ffffff; font-weight: 700; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main class="kartu">
+      <div class="wordmark">Zona<span>Pas</span></div>
+      <p class="tagline">Melihat Pemasyarakatan Lebih Dekat</p>
+      <div class="ikon" aria-hidden="true">📶</div>
+      <h1>Anda sedang offline</h1>
+      <p>Periksa koneksi internet Anda, lalu coba lagi. Berita yang sudah pernah dibuka tetap bisa dibaca dari riwayat peramban Anda.</p>
+      <button class="tombol" type="button" onclick="location.reload()">Coba Lagi</button>
+      <br />
+      <a class="tautan" href="/">Kembali ke Beranda</a>
+    </main>
+  </body>
+</html>

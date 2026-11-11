@@ -28,6 +28,18 @@ export function categoryBySlug(slug: string): Category | undefined {
   return CATEGORIES.find((c) => c.slug === slug);
 }
 
+// URL thumbnail kecil untuk foto sampul artikel (dibuat saat build oleh
+// scripts/buat-thumb.mjs ke dist/images/thumbs/). Dipakai kartu daftar
+// dan hasil pencarian supaya HP tidak memuat foto sampul ukuran penuh
+// (1200px) hanya untuk tampil selebar 112–380px. Bila bukan foto sampul
+// artikel (logo, SVG, foto sampul video, jalur luar), kembalikan jalur
+// aslinya.
+export function thumbCover(image: string, lebar: 320 | 640): string {
+  const m = /^\/images\/(cover-[^/]+)\.(jpg|jpeg|png)$/i.exec(image || '');
+  if (!m) return image;
+  return `/images/thumbs/${m[1]}-${lebar}.jpg`;
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

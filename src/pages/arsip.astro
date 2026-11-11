@@ -1,0 +1,121 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, categoryByName } from '../data/site';
+
+const all = (await getCollection('berita')).sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
+);
+
+// Kelompokkan per bulan (YYYY-MM), di dalamnya per hari (YYYY-MM-DD).
+const BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const HARI_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+function namaBulan(key: string) {
+  const [th, bl] = key.split('-').map(Number);
+  return `${BULAN_ID[bl - 1]} ${th}`;
+}
+function namaHari(tanggalISO: string) {
+  const d = new Date(tanggalISO + 'T00:00:00');
+  return `${HARI_ID[d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN_ID[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+const kelompok: { kunci: string; hari: { tanggal: string; daftar: typeof all }[] }[] = [];
+const perBulan = new Map<string, Map<string, typeof all>>();
+for (const e of all) {
+  const iso = e.data.publishDate.toISOString().slice(0, 10);
+  const bulan = iso.slice(0, 7);
+  if (!perBulan.has(bulan)) perBulan.set(bulan, new Map());
+  const hariMap = perBulan.get(bulan)!;
+  if (!hariMap.has(iso)) hariMap.set(iso, []);
+  hariMap.get(iso)!.push(e);
+}
+for (const [kunci, hariMap] of [...perBulan.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+  kelompok.push({
+    kunci,
+    hari: [...hariMap.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([tanggal, daftar]) => ({ tanggal, daftar })),
+  });
+}
+const totalBerita = all.length;
+---
+
+<BaseLayout title="Arsip Berita" description={`Jelajahi ${totalBerita} berita ${SITE.name} berdasarkan bulan dan tanggal terbit.`}>
+  <div class="mx-auto max-w-[1200px] px-4 pt-6">
+    <h1 class="text-3xl font-black">Arsip Berita</h1>
+    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+      {totalBerita} berita, dikelompokkan per bulan dan per hari terbit. Pilih tanggal untuk langsung melompat ke berita hari itu.
+    </p>
+
+    <div class="mt-4 flex flex-wrap items-end gap-3">
+      <label class="block">
+        <span class="mb-1 block text-xs font-bold text-slate-500 dark:text-slate-400">Loncat ke tanggal</span>
+        <input id="arsip-tanggal" type="date" class="h-10 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+      </label>
+      <button type="button" id="arsip-lompat" class="h-10 rounded-lg bg-[#0A2540] px-5 text-sm font-bold text-white hover:bg-[#D9232E]">Lihat</button>
+      <p id="arsip-pesan" class="text-sm text-slate-500 dark:text-slate-400"></p>
+    </div>
+
+    <div class="mt-6 space-y-4">
+      {kelompok.map((bulan, i) => (
+        <details open={i === 0} data-arsip-bulan={bulan.kunci} class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+          <summary class="cursor-pointer bg-slate-50 px-4 py-3 text-base font-black dark:bg-slate-900">
+            {namaBulan(bulan.kunci)}
+            <span class="ml-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+              ({bulan.hari.reduce((n, h) => n + h.daftar.length, 0)} berita)
+            </span>
+          </summary>
+          <div class="divide-y divide-slate-200 dark:divide-slate-800">
+            {bulan.hari.map((h) => (
+              <section data-tanggal={h.tanggal} class="px-4 py-3">
+                <h2 class="text-sm font-black text-[#0A2540] dark:text-white">{namaHari(h.tanggal)}</h2>
+                <ul class="mt-2 space-y-2">
+                  {h.daftar.map((entry) => {
+                    const cat = categoryByName(entry.data.category);
+                    return (
+                      <li class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        {cat && (
+                          <a href={`/${cat.slug}/`} class="shrink-0 text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>
+                            {cat.name}
+                          </a>
+                        )}
+                        <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} class="text-sm font-bold leading-snug hover:text-[#D9232E] hover:underline">
+                          {entry.data.title}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var input = document.getElementById('arsip-tanggal');
+      var tombol = document.getElementById('arsip-lompat');
+      var pesan = document.getElementById('arsip-pesan');
+      if (!input || !tombol) return;
+      function lompat() {
+        var tgl = input.value;
+        if (!tgl) { pesan.textContent = 'Pilih tanggal dulu.'; return; }
+        var target = document.querySelector('[data-tanggal="' + tgl + '"]');
+        if (!target) {
+          pesan.textContent = 'Tidak ada berita pada tanggal ' + tgl + '.';
+          return;
+        }
+        var detail = target.closest('details');
+        if (detail) detail.open = true;
+        pesan.textContent = '';
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.classList.add('bg-[#FFF7CC]', 'dark:bg-[#3a2f00]');
+        setTimeout(function () { target.classList.remove('bg-[#FFF7CC]', 'dark:bg-[#3a2f00]'); }, 2500);
+      }
+      tombol.addEventListener('click', lompat);
+      input.addEventListener('change', lompat);
+    })();
+  </script>
+</BaseLayout>

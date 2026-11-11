@@ -105,6 +105,35 @@ const ld = jsonLd
     <Footer />
     <PasmanChat />
     <InstallApp />
+    {/*
+      Tombol "Kembali ke atas" (semua halaman). Diposisikan di atas tombol
+      PasBot (kanan bawah, 64px + jarak 16px) dan di atas banner install
+      aplikasi — sebelumnya tombol ini hanya ada di halaman artikel dengan
+      posisi bottom-5 sehingga tertutup tombol PasBot.
+    */}
+    <button
+      type="button"
+      data-ke-atas
+      class="fixed bottom-24 right-5 z-50 hidden h-11 w-11 items-center justify-center rounded-full bg-[#0A2540] text-white shadow-lg hover:bg-[#14365c] dark:bg-white dark:text-[#0A2540]"
+      aria-label="Kembali ke atas"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
+    </button>
+    <script is:inline>
+      // Tombol "Kembali ke atas": muncul setelah menggulir 600px.
+      (function () {
+        var tombol = document.querySelector('[data-ke-atas]');
+        if (!tombol) return;
+        function perbarui() {
+          var tampil = window.scrollY > 600;
+          tombol.classList.toggle('hidden', !tampil);
+          tombol.classList.toggle('flex', tampil);
+        }
+        window.addEventListener('scroll', perbarui, { passive: true });
+        tombol.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        perbarui();
+      })();
+    </script>
     <script is:inline>
       // Toggle mode gelap/terang
       document.addEventListener('click', (e) => {
