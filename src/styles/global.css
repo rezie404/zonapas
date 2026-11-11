@@ -23,13 +23,14 @@ html[data-font="open-sans"] { --font-sans: "Open Sans", "Plus Jakarta Sans", ui-
 html[data-font="bellota"] { --font-sans: "Bellota", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
 html[data-font="charm"] { --font-sans: "Charm", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
 
-/* Ticker breaking news */
+/* Ticker breaking news — 80 dtk per putaran (diperlambat dari 40 dtk,
+   11 Nov 2026, agar judul sempat dibaca). */
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 .ticker-track {
-  animation: ticker-scroll 40s linear infinite;
+  animation: ticker-scroll 80s linear infinite;
 }
 .ticker-track:hover {
   animation-play-state: paused;
