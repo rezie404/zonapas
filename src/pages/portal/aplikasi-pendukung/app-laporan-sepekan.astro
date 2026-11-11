@@ -153,6 +153,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
+      <!-- Tindak Lanjut (bisa diedit) -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Tindak Lanjut">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Tindak Lanjut</h2>
+          <span class="flex flex-wrap items-center gap-2">
+            <button id="sp-isi-ulang-tindak" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">⟳ Isi Ulang Tindak Lanjut</button>
+            <button id="sp-tambah-tindak" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Tindak Lanjut</button>
+          </span>
+        </div>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Satu butir per kegiatan (1–2 baris): tindak lanjut yang sebaiknya dilakukan atas kegiatan minggu ini. Terisi otomatis dari kegiatan saat draf dibuat atau saat “Tarik Berita Minggu Ini” dijalankan — semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. “Tarik Berita Hari Ini” tidak mengubah butir-butir ini; ketuk “Isi Ulang” bila mau mengisi ulang semuanya dari kegiatan saat ini.</p>
+        <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
+      </section>
+
       <!-- Aksi -->
       <section class="mt-6 flex flex-wrap items-center gap-3">
         <button id="sp-unduh" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">⬇ Unduh PDF</button>
@@ -533,6 +546,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const semuaTgl = new Set(Object.keys(perHari));
           Object.keys(terkunci).forEach((t) => semuaTgl.add(t));
           state.hari = Array.from(semuaTgl).sort().map((k) => terkunci[k] || perHari[k]);
+          // Tindak Lanjut mengikuti kegiatan minggu ini — diisi ulang dari
+          // kegiatan yang baru ditarik (editan manual di kolom Tindak
+          // Lanjut ikut tertimpa, seperti halnya Hasil pada tarikan ini).
+          state.tindakLanjut = buatTindakLanjut(state.hari);
           const fotoBerita = artikel.filter((a) => a.image).map((a) => a.image);
           if (fotoBerita.length) {
             state.fotoPotret = fotoBerita[0];
@@ -646,6 +663,54 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       sabtu.setDate(m.getDate() + ((6 - m.getDay() + 7) % 7));
       state.akhir = fmtTglIso(sabtu);
     })();
+    // ---------- Tindak Lanjut (bisa diedit, Nov 2026) ----------
+    // Satu butir per kegiatan (1–2 baris): tindak lanjut yang sebaiknya
+    // dilakukan atas kegiatan itu. Terisi otomatis dari kegiatan saat draf
+    // dibuat / saat "Tarik Berita Minggu Ini" dijalankan, lalu BISA DIEDIT
+    // bebas di kolom Tindak Lanjut di bawah (ubah, hapus, tambah butir).
+    const ATURAN_TINDAK_LANJUT = [
+      { pola: /disiplin|apel pagi|ketertiban|kepatuhan/i, teks: 'Memperkuat budaya disiplin, integritas, dan profesionalisme pegawai melalui pengawasan ketertiban dan kelengkapan atribut kedinasan secara konsisten di lingkungan Kanwil Ditjenpas Bengkulu.' },
+      { pola: /bama|pengadaan|ekonomi lokal/i, teks: 'Menindaklanjuti kesiapan pengadaan Bama Tahun 2027 melalui koordinasi dengan pelaku ekonomi lokal serta pemantauan dan evaluasi persiapan secara berkala.' },
+      { pola: /pelayanan dan pembinaan|rapat bersama jajaran pelayanan/i, teks: 'Meningkatkan kualitas pelayanan dan pembinaan melalui tindak lanjut hasil rapat bersama jajaran pelayanan dan pembinaan secara terukur dan berkelanjutan.' },
+      { pola: /fasilitas/i, teks: 'Menindaklanjuti hasil evaluasi fasilitas dan pelayanan Lapas dengan perbaikan sarana prasarana serta peningkatan mutu layanan pemasyarakatan.' },
+      { pola: /pahlawan/i, teks: 'Menanamkan semangat pengabdian dan nilai kepahlawanan melalui kegiatan pembinaan yang berkelanjutan bagi pegawai dan Warga Binaan.' },
+      { pola: /integritas|\basn\b/i, teks: 'Memperkuat integritas dan keamanan dengan menindaklanjuti arahan kepada ASN Lapas melalui pengawasan dan pembinaan yang berkelanjutan.' },
+      { pola: /lpka|lpp\b/i, teks: 'Meningkatkan pembinaan dan kinerja di LPKA dan LPP melalui pendampingan, evaluasi berkala, serta penguatan program pembinaan yang berkelanjutan.' },
+      { pola: /bakti|masjid jamik|narapidana untuk negeri|gotong royong/i, teks: 'Memperkuat pelaksanaan Bakti Narapidana untuk Negeri sebagai wujud kepedulian dan pemberdayaan Warga Binaan melalui kegiatan sosial yang berkelanjutan di tengah masyarakat.' },
+      { pola: /star|proaksi|pelaporan|publikasi/i, teks: 'Meningkatkan kualitas pelaporan dan publikasi melalui optimalisasi penggunaan aplikasi Star-Proaksi serta pendampingan pelaporan ke seluruh UPT secara berkelanjutan.' },
+      { pola: /sinergi|koordinasi/i, teks: 'Memperkuat sinergi dan koordinasi antar-unit melalui komunikasi dan kolaborasi yang berkelanjutan untuk mendukung kelancaran tugas pemasyarakatan.' },
+      { pola: /kunker|kunjungan kerja|pengarahan/i, teks: 'Menindaklanjuti hasil kunjungan kerja dan pengarahan melalui evaluasi pelaksanaan tugas serta penguatan sinergi antar-unit kerja.' },
+    ];
+    const TINDAK_LANJUT_UMUM = 'Menindaklanjuti hasil kegiatan melalui monitoring dan evaluasi berkelanjutan untuk memastikan pelaksanaan tugas berjalan sesuai ketentuan.';
+    function tindakLanjutUntukJudul(judul) {
+      const j = String(judul || '');
+      for (const a of ATURAN_TINDAK_LANJUT) if (a.pola.test(j)) return a.teks;
+      return TINDAK_LANJUT_UMUM;
+    }
+    // Satu butir per kegiatan, urut per hari; butir yang sama persis (daf-
+    // tar kegiatan kembar) hanya ditulis sekali.
+    function buatTindakLanjut(hari) {
+      const keluar = [];
+      (hari || []).forEach((h) => {
+        (h.kegiatan || []).forEach((k) => {
+          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+          const teks = tindakLanjutUntukJudul(k.judul);
+          if (teks && !keluar.includes(teks)) keluar.push(teks);
+        });
+      });
+      return keluar;
+    }
+    // Daftar yang dipakai laporan + editor: dari state bila sudah ada,
+    // bila belum memakai daftar tetap template (cadangan).
+    function daftarTindakLanjut() {
+      return Array.isArray(state.tindakLanjut) ? state.tindakLanjut : (TEMPLATE.tindak || []);
+    }
+    // Draf lama (sebelum kolom ini ada) diisi otomatis dari kegiatannya
+    // saat pertama dibuka — editan manual tidak pernah tertimpa di sini.
+    function pastikanTindakLanjut() {
+      if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = buatTindakLanjut(state.hari);
+    }
+    pastikanTindakLanjut();
     let timerSimpan = null;
     function simpanDraf() {
       clearTimeout(timerSimpan);
@@ -885,6 +950,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const p = $('sp-periode-teks');
       if (p) p.textContent = teksPeriode() ? 'Periode: ' + teksPeriode() : '';
       renderHari();
+      renderTindakLanjut();
     }
     function bacaFormKeState() {
       // Hanya timpa bila ketikan sudah jadi tanggal DD/MM/YYYY yang sah;
@@ -952,6 +1018,27 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           '<div class="mt-3 space-y-3 sp-isi-hari' + (tutup ? ' hidden' : '') + '">' + keg + '</div>' +
           '<button type="button" data-tambah-kegiatan="' + hi + '" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800' + ((tutup || kunci) ? ' hidden' : '') + '">+ Tambah Kegiatan</button>' +
         '</article>';
+      }).join('');
+    }
+
+    // Tindak Lanjut (bisa diedit, Nov 2026): satu kartu per butir dengan
+    // kotak teks yang langsung tersimpan ke draf + pratinjau.
+    function renderTindakLanjut() {
+      const wadah = $('sp-tindak-list');
+      if (!wadah) return;
+      const daftar = daftarTindakLanjut();
+      if (!daftar.length) {
+        wadah.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400">Belum ada tindak lanjut — ketuk “Isi Ulang Tindak Lanjut” untuk mengisi dari kegiatan minggu ini, atau “+ Tambah Tindak Lanjut” untuk menulis sendiri.</p>';
+        return;
+      }
+      wadah.innerHTML = daftar.map((t, i) => {
+        return '<div class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">' +
+          '<div class="flex items-center justify-between gap-2">' +
+            '<span class="text-sm font-bold">Tindak lanjut ' + (i + 1) + '</span>' +
+            '<button type="button" data-hapus-tindak="' + i + '" class="text-xs font-bold text-red-600 hover:underline">Hapus</button>' +
+          '</div>' +
+          '<label class="mt-2 block"><textarea rows="2" data-tindak="' + i + '" placeholder="Tulis tindak lanjut…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(t) + '</textarea></label>' +
+        '</div>';
       }).join('');
     }
 
@@ -1320,10 +1407,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
         });
       }
-      // Tindak lanjut
-      if ((TEMPLATE.tindak || []).length) {
+      // Tindak lanjut (bisa diedit; terisi otomatis dari kegiatan)
+      const daftarTindak = daftarTindakLanjut();
+      if (daftarTindak.length) {
         blok.push(blokJudulBab('Tindak Lanjut'));
-        TEMPLATE.tindak.forEach((t, i) => {
+        daftarTindak.forEach((t, i) => {
           const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(t) + '</p>';
           blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html) });
         });
@@ -1691,6 +1779,34 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (t.matches('[data-judul-kegiatan]')) { const [hi, ki] = t.dataset.judulKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].judul = t.value; simpanDraf(); renderPratinjau(); return; }
         if (t.matches('[data-narasi-kegiatan]')) { const [hi, ki] = t.dataset.narasiKegiatan.split(':').map(Number); state.hari[hi].kegiatan[ki].narasi = t.value; simpanDraf(); renderPratinjau(); return; }
       });
+      // Tindak Lanjut (delegasi klik + input)
+      const wadahTindak = $('sp-tindak-list');
+      if (wadahTindak) {
+        wadahTindak.addEventListener('click', (e) => {
+          const hapus = e.target.closest('[data-hapus-tindak]');
+          if (!hapus) return;
+          pastikanTindakLanjut();
+          state.tindakLanjut.splice(Number(hapus.dataset.hapusTindak), 1);
+          renderTindakLanjut(); simpanDraf(); renderPratinjau();
+        });
+        wadahTindak.addEventListener('input', (e) => {
+          const t = e.target;
+          if (!t.matches('[data-tindak]')) return;
+          pastikanTindakLanjut();
+          state.tindakLanjut[Number(t.dataset.tindak)] = t.value;
+          simpanDraf(); renderPratinjau();
+        });
+      }
+      $('sp-tambah-tindak').addEventListener('click', () => {
+        pastikanTindakLanjut();
+        state.tindakLanjut.push('');
+        renderTindakLanjut(); simpanDraf(); renderPratinjau();
+      });
+      $('sp-isi-ulang-tindak').addEventListener('click', () => {
+        state.tindakLanjut = buatTindakLanjut(state.hari);
+        renderTindakLanjut(); simpanDraf(); renderPratinjau();
+        showStatus('Tindak Lanjut diisi ulang dari ' + state.tindakLanjut.length + ' kegiatan minggu ini. Butir yang sudah diubah ikut diganti — ubah lagi bila perlu.', true);
+      });
       const btnTutupSemua = $('sp-tutup-semua');
       if (btnTutupSemua) btnTutupSemua.addEventListener('click', () => {
         const semuaTutup = state.hari.length > 0 && state.hari.every((h) => !!h.tutup);
@@ -1719,6 +1835,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-reset-template').addEventListener('click', () => {
         if (!confirm('Kembalikan semua isi ke template laporan 02–07 November 2026? Draf saat ini akan diganti.')) return;
         state = klon(TEMPLATE);
+        state.tindakLanjut = klon(TEMPLATE.tindak);
         tulisStateKeForm(); simpanDraf(); renderPratinjau();
         showStatus('Isi dikembalikan ke template.', true);
       });
@@ -1727,6 +1844,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         try { localStorage.removeItem(KUNCI_DRAF); } catch {}
         state = klon(TEMPLATE);
         state.hari = [];
+        state.tindakLanjut = [];
         tulisStateKeForm(); renderPratinjau();
         showStatus('Draf dibersihkan.', true);
       });
