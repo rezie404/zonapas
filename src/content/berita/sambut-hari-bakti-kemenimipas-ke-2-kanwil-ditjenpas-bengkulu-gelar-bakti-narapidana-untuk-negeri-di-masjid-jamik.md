@@ -13,6 +13,7 @@ breakingSince: "2026-11-11T08:31:23.479Z"
 upt: "Semua UPT Pemasyarakatan Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 299
 ---
 
 **Bengkulu** – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan Bakti Narapidana Untuk Negeri pada Rabu (11/11/2026), bertempat di Masjid Jamik Kota Bengkulu. Kegiatan ini melibatkan jajaran Kanwil Ditjenpas Bengkulu sebagai bentuk kepedulian dan kontribusi nyata dalam memberikan manfaat bagi masyarakat dan lingkungan sekitar.
