@@ -7,7 +7,7 @@ author: "Rezie Novian Putra"
 publishDate: 2026-11-11
 image: "/images/cover-sambut-hari-bakti-kemenimipas-ke-2-kanwil-ditjenpas-bengkulu-gelar-bakti-narapidana-untuk-negeri-di-masjid-jamik-202611110831.jpg"
 imageCaption: "Kakanwil Memberikan Briefing Sebelum Kegiatan Dimulai"
-featured: false
+featured: true
 breaking: true
 breakingSince: "2026-11-11T08:31:23.479Z"
 upt: "Semua UPT Pemasyarakatan Bengkulu"
