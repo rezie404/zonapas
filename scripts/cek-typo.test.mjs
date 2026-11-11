@@ -13,7 +13,8 @@ const KAMUS = new Set([
   "kegiatan", "lapas", "pemasyarakatan", "rutan", "bapas", "kakanwil",
   "kegiatan", "berjalan", "lancar", "kunjungi", "info", "tebal", "tautan",
   "semarak", "bakti", "peduli", "lingkungan", "wujud", "nyata", "judul",
-  "kelas",
+  "kelas", "ingat", "cat", "kerja", "adil", "lanjut", "selesai", "hasil",
+  "daya", "royong", "tahu",
 ]);
 
 describe("kataDikenal (stemming ringan)", () => {
@@ -42,10 +43,24 @@ describe("kataDikenal (stemming ringan)", () => {
   it("ke- + -an: kedatangan -> datang", () => {
     assert.equal(kataDikenal("kedatangan", KAMUS), true);
   });
+  it("tiga lapis imbuhan: memperingati -> peringati -> peringat -> ingat", () => {
+    assert.equal(kataDikenal("memperingati", KAMUS), true);
+    assert.equal(kataDikenal("berkeadilan", KAMUS), true);
+    assert.equal(kataDikenal("berkelanjutan", KAMUS), true);
+    assert.equal(kataDikenal("keberhasilan", KAMUS), true);
+    assert.equal(kataDikenal("penyelesaiannya", KAMUS), true);
+  });
+  it("awalan be-: bekerja -> kerja; penge-: pengecatan -> cat", () => {
+    assert.equal(kataDikenal("bekerja", KAMUS), true);
+    assert.equal(kataDikenal("pengecatan", KAMUS), true);
+    assert.equal(kataDikenal("pengetahuan", KAMUS), true);
+  });
   it("kata yang memang salah tidak dikenal", () => {
     assert.equal(kataDikenal("berjaln", KAMUS), false);
     assert.equal(kataDikenal("lancr", KAMUS), false);
     assert.equal(kataDikenal("seharunya", KAMUS), false);
+    assert.equal(kataDikenal("mempringati", KAMUS), false);
+    assert.equal(kataDikenal("royonh", KAMUS), false);
   });
 });
 
@@ -68,6 +83,13 @@ describe("cekTypo", () => {
   it("tautan dan Markdown tidak diperiksa sebagai kata", () => {
     assert.deepEqual(cekTypo("Kunjungi https://example.com untuk info", KAMUS), []);
     assert.deepEqual(cekTypo("Judul **tebal** dan [tautan](https://x.id)", KAMUS), []);
+  });
+  it("gambar Markdown dan nama berkas foto tidak diperiksa sebagai kata", () => {
+    assert.deepEqual(
+      cekTypo("![340242](/images/isi-penguatan-tusi-di-lapas-kelas-iia-curup-20261107161627268629.jpg) Kegiatan berjalan", KAMUS),
+      [],
+    );
+    assert.deepEqual(cekTypo("Kegiatan /images/isi-berita-123.jpg berjalan lancar", KAMUS), []);
   });
   it("kata ulang (tanda hubung) diperiksa per bagian", () => {
     assert.deepEqual(cekTypo("buku-buku berjalan", KAMUS), []);

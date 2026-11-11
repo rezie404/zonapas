@@ -14,10 +14,13 @@
 
 // Awalan umum + kemungkinan huruf awal kata dasarnya
 // (mis. "menyapu" -> "sapu", "mengirim" -> "kirim", "memakai" -> "pakai").
+// "be-" adalah bentuk lain "ber-" (bekerja -> kerja, belajar -> ajar)
+// dan "penge-" adalah bentuk "peng-" sebelum kata tertentu
+// (pengecatan -> cat, pengecekan -> cek).
 const AWALAN = [
   ["meny", "s"], ["meng", "k"], ["menge", ""], ["men", "t"], ["mem", "p"],
-  ["me", ""], ["peng", "k"], ["peny", "s"], ["pen", "t"], ["pem", "p"],
-  ["pe", ""], ["ber", ""], ["ter", ""], ["di", ""], ["ke", ""], ["se", ""],
+  ["me", ""], ["peng", "k"], ["penge", ""], ["peny", "s"], ["pen", "t"], ["pem", "p"],
+  ["pe", ""], ["ber", ""], ["be", ""], ["ter", ""], ["di", ""], ["ke", ""], ["se", ""],
   ["per", ""], ["pel", ""],
 ];
 const AKHIRAN = ["nya", "lah", "kah", "pun", "ku", "mu", "kan", "an", "i"];
@@ -44,29 +47,47 @@ function lepasAwalan(kata) {
 }
 
 // True bila kata (sudah huruf kecil) ada di kamus, atau kata dasarnya ada
-// setelah melepas satu awalan dan/atau satu akhiran. Kata ulang (tanda
-// hubung) dikenal bila semua bagiannya dikenal.
+// setelah melepas imbuhan. Pelepasan dilakukan berulang sampai tidak ada
+// bentuk baru (titik tetap) — karena banyak kata butuh tiga lapis atau
+// lebih, mis. "memperingati" -> "peringati" -> "peringat" -> "ingat",
+// "penyelesaiannya" -> "penyelesaian" -> "selesaian" -> "selesai", dan
+// "berkeadilan" -> "keadilan" -> "keadil" -> "adil". Pelepasan lama hanya
+// dua lapis, jadi kata-kata seperti itu salah ditandai sebagai typo.
+// Tiap pelepasan memendekkan kata (syarat panjang >= 3 dijaga
+// lepasAwalan/lepasAkhiran), jadi perulangan ini pasti berhenti.
+// Kata ulang (tanda hubung) dikenal bila semua bagiannya dikenal.
 export function kataDikenal(kata, kamus) {
   if (kamus.has(kata)) return true;
   if (kata.includes("-")) {
     return kata.split("-").every((b) => b.length >= 2 && kataDikenal(b, kamus));
   }
   const varian = new Set([kata]);
-  for (const v of lepasAkhiran(kata)) varian.add(v);
-  for (const v of lepasAwalan(kata)) varian.add(v);
-  // Kombinasi: awalan + akhiran (mis. "pemasyarakatan" -> "masyarakat",
-  // "dilaksanakan" -> "laksana", "kedatangan" -> "datang").
-  for (const dasar of [...varian]) {
-    for (const v of lepasAkhiran(dasar)) varian.add(v);
-    for (const v of lepasAwalan(dasar)) varian.add(v);
+  let berubah = true;
+  while (berubah) {
+    berubah = false;
+    for (const dasar of [...varian]) {
+      for (const v of lepasAkhiran(dasar)) {
+        if (!varian.has(v)) { varian.add(v); berubah = true; }
+      }
+      for (const v of lepasAwalan(dasar)) {
+        if (!varian.has(v)) { varian.add(v); berubah = true; }
+      }
+    }
   }
   for (const v of varian) if (kamus.has(v)) return true;
   return false;
 }
 
 // Ambil kata dari teks: buang tautan, email, dan penanda Markdown dulu.
+// Gambar Markdown dibuang seluruhnya (teks alt-nya biasanya angka atau
+// nama berkas), tautan Markdown disisakan teksnya saja, dan jalur berkas
+// telanjang (mis. /images/isi-...jpg) dibuang — supaya potongan nama
+// berkas seperti "iia" dari nama berkas foto tidak ditandai sebagai typo.
 export function tokenisasi(teks) {
   const bersih = String(teks || "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg|mp4|pdf)\b/gi, " ")
     .replace(/https?:\/\/\S+/g, " ")
     .replace(/www\.\S+/g, " ")
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, " ")

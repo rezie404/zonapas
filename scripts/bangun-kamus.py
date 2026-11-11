@@ -63,6 +63,18 @@ surakarta madiun kediri malang jember denpasar singaraja
 rezie novian putra masjuno julianto budhi prasetyono aidil jumidi aris
 munandar tatan dirsan atmaja suci winarsih miko andriansyah
 """.split()
+# 3b. Kata yang pemeriksa typo sempat salah tandai (11 Nov 2026): "royong"
+# memang tidak ada di hunspell-id, begitu pula bentuk turunan yang
+# pemeriksa lama tidak sanggup urai dan kata serapan/istilah yang dipakai
+# artikel ZonaPas. Ditambahkan di sini supaya pembangunan ulang kamus
+# tidak menghilangkan mereka lagi.
+TAMBAHAN_20261111 = """
+royong memperingati peringati peringatan pengecatan wewenang kerjasama
+database kasubdit saifullah teleconference bansos tanggungjawab
+dipertanggungjawabkan pertanggungjawaban mempertanggungjawabkan
+""".split()
+kata.update(w.lower() for w in TAMBAHAN_20261111)
+print("tambahan 2026-11-11:", len(TAMBAHAN_20261111))
 sebelum = len(kata)
 kata.update(w.lower() for w in TAMBAHAN)
 print("tambahan:", len(kata) - sebelum)
