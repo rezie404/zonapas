@@ -405,6 +405,8 @@
       // Portal & halaman tulis: kartu/tombol yang tampil mengikuti peran.
       const kartuPengguna = $('kartu-pengguna');
       if (kartuPengguna) kartuPengguna.classList.toggle('hidden', peran !== 'admin');
+      const kartuDomain = $('kartu-domain');
+      if (kartuDomain) kartuDomain.classList.toggle('hidden', peran !== 'admin');
       const kartuAplikasi = $('kartu-aplikasi-pendukung');
       if (kartuAplikasi) kartuAplikasi.classList.toggle('hidden', !bisaAksesPendamping());
       const tombolAntreanHub = $('tombol-antrean-hub');
@@ -813,6 +815,7 @@
       const pathHalaman = window.location.pathname.replace(/\/$/, '');
       if (pathHalaman === '/portal/kelola-berita/antrean' && peran === 'penulis') { window.location.href = '/portal/kelola-berita/'; return; }
       if (pathHalaman === '/portal/kelola-pengguna' && peran !== 'admin') { window.location.href = '/portal/'; return; }
+      if (pathHalaman === '/portal/domain' && peran !== 'admin') { window.location.href = '/portal/'; return; }
       if (pathHalaman === '/portal/aplikasi-pendukung/app-rekap-publish' && !bisaAksesPendamping()) {
         tampilkanAksesDitolak('Halaman Rekap Laporan Publikasi Harian hanya untuk Administrator dan akun yang ditunjuk Administrator. Anda dialihkan ke Portal…');
         setTimeout(() => { window.location.href = '/portal/'; }, 2500);

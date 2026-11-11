@@ -114,10 +114,27 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <span class="mt-4 block text-sm font-bold text-[#0A2540] group-hover:underline dark:text-white">Buka Aplikasi Pendukung →</span>
           </span>
         </a>
+        <a id="kartu-domain" href="/portal/domain/" class="group block overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-[#0A2540] hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:hover:border-white">
+          <span class="block h-1.5 bg-[#FACC15]" aria-hidden="true"></span>
+          <span class="block p-5">
+            <span class="text-4xl" aria-hidden="true">🌐</span>
+            <span class="mt-3 block text-lg font-black uppercase tracking-tight">Domain</span>
+            <span class="mt-1 block text-sm text-slate-600 dark:text-slate-400">zonapas.web.id — sisa <span data-domain-sisa>…</span> hari, berlaku sampai 4 November 2027. Perpanjang lewat RDP Murah.</span>
+            <span class="mt-4 block text-sm font-bold text-[#0A2540] group-hover:underline dark:text-white">Buka Domain →</span>
+          </span>
+        </a>
       </div>
-      <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Kartu Kelola Pengguna hanya tampil untuk Administrator; kartu Aplikasi Pendukung tampil untuk Administrator dan akun yang ditunjuk Administrator.</p>
+      <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">Kartu Kelola Pengguna dan Domain hanya tampil untuk Administrator; kartu Aplikasi Pendukung tampil untuk Administrator dan akun yang ditunjuk Administrator.</p>
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=15"></script>
+  <script is:inline>
+    // Hitung mundur masa aktif domain (kedaluwarsa 4 Nov 2027, 23:59 UTC).
+    (function () {
+      var akhir = new Date('2027-11-04T23:59:59Z').getTime();
+      var sisa = Math.max(0, Math.ceil((akhir - Date.now()) / 86400000));
+      document.querySelectorAll('[data-domain-sisa]').forEach(function (el) { el.textContent = String(sisa); });
+    })();
+  </script>
+  <script is:inline src="/kelola-umum.js?v=16"></script>
 </BaseLayout>
