@@ -1,8 +1,8 @@
 ---
-title: "Tingkatkan Kualitas Pelaporan, Kanwil Ditjenpas Bengkulu Ikuti Penguatan Aplikasi Star-proaksi"
+title: "Tingkatkan Kualitas Pelaporan, Kanwil Ditjenpas Bengkulu Ikuti Penguatan Aplikasi Star - Proaksi"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Penguatan Aplikasi STAR-Proaksi pada Satuan Kerja…"
-category: "Umum"
-tags: []
+category: "Edukasi"
+tags: ["Penguatan", "Star-Proaksi"]
 author: "Rezie Novian Putra"
 publishDate: 2026-11-11
 image: "/images/cover-tingkatkan-kualitas-pelaporan-kanwil-ditjenpas-bengkulu-ikuti-penguatan-aplikasi-star-proaksi-202611110818.jpg"
