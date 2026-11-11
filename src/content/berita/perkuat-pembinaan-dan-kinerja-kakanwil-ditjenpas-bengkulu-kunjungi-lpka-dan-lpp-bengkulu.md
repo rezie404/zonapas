@@ -13,6 +13,7 @@ breakingSince: "2026-11-11T11:54:52.807Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 302
 ---
 
 **Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kunjungan kerja ke Lembaga Pembinaan Khusus Anak (LPKA) Kelas II Bengkulu dan Lapas Perempuan Kelas IIB Bengkulu pada Rabu (11/11/2026). Kunjungan ini menjadi bagian dari upaya memastikan pelaksanaan tugas dan fungsi Pemasyarakatan berjalan optimal, sekaligus melakukan evaluasi terhadap kualitas pelayanan pada kedua satuan kerja.
