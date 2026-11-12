@@ -243,7 +243,9 @@ const jsonLd = [
           var el = document.querySelector('[data-jumlah-baca]');
           if (el) { el.textContent = '| ' + Number(d.total).toLocaleString('id-ID') + ' dibaca'; el.classList.remove('hidden'); }
         }).catch(function () {});
-        var kunci = 'zonapas-tayang-' + slug + '-' + new Date().toISOString().slice(0, 10);
+        // Kunci dedup memakai tanggal WIB (bukan UTC): pembaca pukul 06.00
+        // dan 08.00 WIB di hari yang sama harus dihitung sekali.
+        var kunci = 'zonapas-tayang-' + slug + '-' + new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
         if (localStorage.getItem(kunci)) return;
         localStorage.setItem(kunci, '1');
         fetch('/redaksi/api/lihat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: slug }) }).catch(function () {});

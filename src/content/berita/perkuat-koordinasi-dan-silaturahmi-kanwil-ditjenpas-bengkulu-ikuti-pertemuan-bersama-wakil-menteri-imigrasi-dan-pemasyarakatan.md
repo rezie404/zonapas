@@ -7,7 +7,7 @@ author: "Rezie"
 publishDate: 2026-11-03
 image: "/images/cover-perkuat-koordinasi-dan-silaturahmi-kanwil-ditjenpas-bengkulu-ikuti-pertemuan-bersama-wakil-menteri-imigrasi-dan-pemasyarakatan-202611041614.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"
-featured: true
+featured: false
 breaking: true
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"

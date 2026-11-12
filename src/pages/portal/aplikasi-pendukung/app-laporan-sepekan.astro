@@ -676,26 +676,37 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       { pola: /pahlawan/i, teks: 'Menanamkan semangat pengabdian dan nilai kepahlawanan melalui kegiatan pembinaan yang berkelanjutan bagi pegawai dan Warga Binaan.' },
       { pola: /integritas|\basn\b/i, teks: 'Memperkuat integritas dan keamanan dengan menindaklanjuti arahan kepada ASN Lapas melalui pengawasan dan pembinaan yang berkelanjutan.' },
       { pola: /lpka|lpp\b/i, teks: 'Meningkatkan pembinaan dan kinerja di LPKA dan LPP melalui pendampingan, evaluasi berkala, serta penguatan program pembinaan yang berkelanjutan.' },
-      { pola: /bakti|masjid jamik|narapidana untuk negeri|gotong royong/i, teks: 'Memperkuat pelaksanaan Bakti Narapidana untuk Negeri sebagai wujud kepedulian dan pemberdayaan Warga Binaan melalui kegiatan sosial yang berkelanjutan di tengah masyarakat.' },
+      { pola: /integrasi|remisi|sidang tpp/i, teks: 'Menindaklanjuti hasil sidang TPP serta program integrasi dan remisi melalui pembinaan, pendampingan, dan pemantauan berkelanjutan bagi Warga Binaan.' },
+      { pola: /keamanan|pengamanan|pengawasan/i, teks: 'Menindaklanjuti hasil evaluasi pengamanan melalui penguatan pengawasan, kesiapsiagaan petugas, dan pemeliharaan keamanan di lingkungan satuan kerja.' },
+      { pola: /kerjasama|kerja sama/i, teks: 'Menindaklanjuti kerja sama antar-lembaga melalui koordinasi dan komunikasi yang berkelanjutan untuk mendukung pelaksanaan tugas pemasyarakatan.' },
+      { pola: /evaluasi|rencana aksi|penguatan tusi|\btusi\b/i, teks: 'Menindaklanjuti hasil evaluasi dan rencana aksi melalui penguatan tugas dan fungsi serta peningkatan kinerja satuan kerja secara berkelanjutan.' },
+      { pola: /bhakti|bakti|masjid jamik|narapidana untuk negeri|gotong royong/i, teks: 'Memperkuat pelaksanaan Bakti Narapidana untuk Negeri sebagai wujud kepedulian dan pemberdayaan Warga Binaan melalui kegiatan sosial yang berkelanjutan di tengah masyarakat.' },
       { pola: /star|proaksi|pelaporan|publikasi/i, teks: 'Meningkatkan kualitas pelaporan dan publikasi melalui optimalisasi penggunaan aplikasi Star-Proaksi serta pendampingan pelaporan ke seluruh UPT secara berkelanjutan.' },
       { pola: /sinergi|koordinasi/i, teks: 'Memperkuat sinergi dan koordinasi antar-unit melalui komunikasi dan kolaborasi yang berkelanjutan untuk mendukung kelancaran tugas pemasyarakatan.' },
       { pola: /kunker|kunjungan kerja|pengarahan/i, teks: 'Menindaklanjuti hasil kunjungan kerja dan pengarahan melalui evaluasi pelaksanaan tugas serta penguatan sinergi antar-unit kerja.' },
     ];
     const TINDAK_LANJUT_UMUM = 'Menindaklanjuti hasil kegiatan melalui monitoring dan evaluasi berkelanjutan untuk memastikan pelaksanaan tugas berjalan sesuai ketentuan.';
-    function tindakLanjutUntukJudul(judul) {
-      const j = String(judul || '');
+    // Cocokkan judul + narasi (kata kunci sering hanya ada di narasi).
+    function tindakLanjutUntukJudul(judul, narasi) {
+      const j = String(judul || '') + ' ' + String(narasi || '');
       for (const a of ATURAN_TINDAK_LANJUT) if (a.pola.test(j)) return a.teks;
       return TINDAK_LANJUT_UMUM;
     }
-    // Satu butir per kegiatan, urut per hari; butir yang sama persis (daf-
-    // tar kegiatan kembar) hanya ditulis sekali.
+    // Satu butir per kegiatan, urut per hari; hanya kegiatan yang sama
+    // persis (tanggal + judul sama) yang ditulis sekali — kegiatan
+    // berbeda tetap mendapat butirnya masing-masing walau teks tindak
+    // lanjutnya sama.
     function buatTindakLanjut(hari) {
       const keluar = [];
+      const sudah = new Set();
       (hari || []).forEach((h) => {
         (h.kegiatan || []).forEach((k) => {
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
-          const teks = tindakLanjutUntukJudul(k.judul);
-          if (teks && !keluar.includes(teks)) keluar.push(teks);
+          const kunci = String(h.tanggal || '') + '|' + String(k.judul || '').trim();
+          if (sudah.has(kunci)) return;
+          sudah.add(kunci);
+          const teks = tindakLanjutUntukJudul(k.judul, k.narasi);
+          if (teks) keluar.push(teks);
         });
       });
       return keluar;

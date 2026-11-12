@@ -21,10 +21,11 @@
  * OTENTIKASI
  * ----------
  * Token OAuth2 WordPress.com diambil dari environment `WP_COM_ACCESS_TOKEN`
- * (di Action: secret GitHub `WP_COM_ACCESS_TOKEN`). Bila token TIDAK ADA, skrip
- * berjalan dalam mode dry-run: mencatat persis apa yang AKAN dikirim (judul,
- * HTML, kategori, tag, gambar) tanpa memanggil API, lalu keluar dengan kode 0
- * dan pesan yang jelas — bukan gagal berisik.
+ * (di Action: secret GitHub `WP_COM_ACCESS_TOKEN`). Bila token TIDAK ADA dan
+ * mode dry-run TIDAK diminta eksplisit (--dry-run), skrip GAGAL (exit 1)
+ * dengan pesan yang jelas — supaya workflow tidak hijau padahal tidak ada
+ * yang terkirim (12 Nov 2026). Mode dry-run eksplisit tetap keluar 0
+ * tanpa memanggil API.
  *
  * PEMETAAN KATEGORI & TAG
  * -----------------------
@@ -439,6 +440,10 @@ export function wpClient({ site = DEFAULT_SITE, token }) {
     },
     createPost: (payload) => call('/posts/new', { method: 'POST', body: payload }),
     updatePost: (id, payload) => call(`/posts/${id}`, { method: 'POST', body: payload }),
+    // Cari post dari judul (perbaikan ID yang hilang): API WordPress.com
+    // mengembalikan daftar post yang judulnya MENGANDUNG kata kunci —
+    // pencocokan persis dilakukan pemanggil (cariIdDariJudul).
+    searchPosts: (q) => call('/posts?search=' + encodeURIComponent(q) + '&number=20'),
   };
 }
 
@@ -525,6 +530,27 @@ export function getChangedFiles({ root, before, after, filesArg } = {}) {
 // Pemrosesan satu artikel
 // ---------------------------------------------------------------------------
 
+/** Normalisasi judul untuk pencocokan: buang tag HTML + entitas umum. */
+export function normalisasiJudulWp(judul) {
+  return String(judul || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Cari ID post JurnalPas dari judul (perbaikan ID yang hilang, 12 Nov 2026).
+ * Mengembalikan ID bila TEPAT SATU post cocok persis setelah normalisasi;
+ * bila tidak ada atau lebih dari satu yang cocok, kembalikan null (jangan
+ * tebak — mencegah duplikat).
+ */
+export function cariIdDariJudul(posts, judul) {
+  const cari = normalisasiJudulWp(judul);
+  if (!cari) return null;
+  const cocok = (Array.isArray(posts) ? posts : []).filter((p) => normalisasiJudulWp(p && p.title) === cari);
+  return cocok.length === 1 ? cocok[0].ID : null;
+}
+
 async function processFile({ root, site, client, dryRun, change, categoriesCache }) {
   const { status, path } = change;
   const absPath = join(root, path);
@@ -545,7 +571,28 @@ async function processFile({ root, site, client, dryRun, change, categoriesCache
     throw new Error(`${path}: ${err.message}`);
   }
   const hasId = Number.isInteger(fm.jurnalpas_id);
-  const { action, reason } = decideAction(status, hasId);
+  let { action, reason } = decideAction(status, hasId);
+  let recovered = false;
+  // Perbaikan ID yang hilang (12 Nov 2026): artikel yang diubah tanpa
+  // jurnalpas_id sebelumnya dilewati SELAMANYA — termasuk bila ID-nya
+  // hilang karena commit-back gagal. Coba pulihkan dengan mencocokkan
+  // judul persis di JurnalPas; bila tidak ada atau ambigu, tetap lewati
+  // (jangan buat duplikat). Hanya di jalur kirim sungguhan (client ada).
+  if (action === 'skip' && status === 'M' && !hasId && !dryRun && client) {
+    try {
+      const res = await client.searchPosts(fm.title);
+      const id = cariIdDariJudul(res && res.posts, fm.title);
+      if (Number.isInteger(id)) {
+        fm.jurnalpas_id = id;
+        action = 'update';
+        reason = `tanpa jurnalpas_id — dipulihkan dari JurnalPas (cocok judul, post ID ${id})`;
+        recovered = true;
+        console.log(`PULIH ${path} — jurnalpas_id ${id} ditemukan dari judul; akan diperbarui, bukan dibuat baru.`);
+      }
+    } catch (err) {
+      console.log(`  ! Gagal mencari post dari judul untuk ${path}: ${err.message} — tetap dilewati.`);
+    }
+  }
   if (action === 'skip') {
     console.log(`SKIP ${path} — ${reason}.`);
     return { decision: 'skip', path, reason };
@@ -592,7 +639,7 @@ async function processFile({ root, site, client, dryRun, change, categoriesCache
     post = await client.updatePost(fm.jurnalpas_id, payload);
   }
   console.log(`${action === 'create' ? 'DIBUAT' : 'DIPERBARUI'} ${path} -> JurnalPas post ID ${post.ID} (${post.URL || ''})`);
-  return { decision: action, path, reason, postId: post.ID, postUrl: post.URL || '' };
+  return { decision: action, path, reason, postId: post.ID, postUrl: post.URL || '', recovered };
 }
 
 // ---------------------------------------------------------------------------
@@ -618,6 +665,14 @@ export async function main(argv = process.argv.slice(2)) {
   const root = resolve(args.root || process.cwd());
   const site = args.site || process.env.WP_SITE || DEFAULT_SITE;
   const token = process.env.WP_COM_ACCESS_TOKEN || '';
+  // Tanpa token + tanpa --dry-run eksplisit: GAGAL (exit 1). Sebelumnya
+  // skrip diam-diam beralih ke dry-run dan workflow tetap hijau padahal
+  // tidak ada yang terkirim ke JurnalPas (12 Nov 2026).
+  if (!token && !args.dryRun) {
+    console.error('ERROR: WP_COM_ACCESS_TOKEN belum dipasang — tidak ada yang dikirim ke JurnalPas.');
+    console.error('Pasang secret WP_COM_ACCESS_TOKEN di repo Settings → Secrets and variables → Actions, lalu jalankan ulang.');
+    return 1;
+  }
   const dryRun = args.dryRun || !token;
   if (!token) {
     console.log('WP_COM_ACCESS_TOKEN belum dipasang — mode dry-run: tidak ada yang dikirim ke JurnalPas.');
@@ -643,7 +698,7 @@ export async function main(argv = process.argv.slice(2)) {
     try {
       const r = await processFile({ root, site, client, dryRun, change, categoriesCache });
       results.push(r);
-      if (!dryRun && r.decision === 'create' && r.postId) {
+      if (!dryRun && r.postId && (r.decision === 'create' || r.recovered)) {
         const absPath = join(root, change.path);
         const updated = setJurnalpasId(readFileSync(absPath, 'utf8'), r.postId);
         writeFileSync(absPath, updated);

@@ -15,7 +15,11 @@ function namaBulan(key: string) {
   return `${BULAN_ID[bl - 1]} ${th}`;
 }
 function namaHari(tanggalISO: string) {
-  const d = new Date(tanggalISO + 'T00:00:00');
+  // Hitung dari komponen ISO langsung sebagai UTC: "2026-11-12T00:00:00"
+  // tanpa Z diurai sebagai waktu LOKAL, lalu dibaca dengan getter UTC —
+  // di WIB semua label mundur 1 hari (12 Nov 2026 sudah diperbaiki: Kamis).
+  const [th, bl, tg] = tanggalISO.split('-').map(Number);
+  const d = new Date(Date.UTC(th, bl - 1, tg));
   return `${HARI_ID[d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN_ID[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 const kelompok: { kunci: string; hari: { tanggal: string; daftar: typeof all }[] }[] = [];

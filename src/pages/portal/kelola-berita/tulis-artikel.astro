@@ -1121,6 +1121,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (hasilTulis && Array.isArray(hasilTulis.headlineDicabut) && hasilTulis.headlineDicabut.length) {
           teksKonfirmasi += ' Headline sebelumnya otomatis dicabut (' + hasilTulis.headlineDicabut.length + ' berita), karena hanya satu berita yang bisa menjadi Headline.';
         }
+        if (hasilTulis && hasilTulis.headlineSweepGagal) {
+          teksKonfirmasi += ' Perhatian: sapuan Headline gagal memeriksa berita lain — periksa daftar Headline di Kelola Berita sebelum menerbitkan berita berikutnya.';
+        }
         try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: teksKonfirmasi })); } catch {}
         window.location.href = '/portal/kelola-berita/edit-artikel/';
       } catch (err) {

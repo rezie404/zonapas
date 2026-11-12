@@ -321,8 +321,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (setujui) {
         const id = setujui.getAttribute('data-antrean-setujui');
         try {
-          await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/setujui', {});
-          showStatus('Berita disetujui dan diterbitkan.', true);
+          const hasil = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/setujui', {});
+          let pesan = 'Berita disetujui dan diterbitkan.';
+          if (hasil && hasil.headlineSweepGagal) pesan += ' Perhatian: sapuan Headline gagal memeriksa berita lain — periksa daftar Headline di Kelola Berita.';
+          showStatus(pesan, true);
           await muatAntrean();
           await loadArticles();
         } catch (err) { showStatus('Gagal menyetujui: ' + err.message, false); }
@@ -343,8 +345,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (ulang) {
         const id = ulang.getAttribute('data-antrean-ulang');
         try {
-          await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/terbitkan-ulang', {});
-          showStatus('Penerbitan ulang diminta.', true);
+          const hasil = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/terbitkan-ulang', {});
+          let pesan = 'Penerbitan ulang diminta.';
+          if (hasil && hasil.headlineSweepGagal) pesan += ' Perhatian: sapuan Headline gagal memeriksa berita lain — periksa daftar Headline di Kelola Berita.';
+          showStatus(pesan, true);
           await muatAntrean();
           await loadArticles();
         } catch (err) { showStatus('Gagal menerbitkan ulang: ' + err.message, false); }
