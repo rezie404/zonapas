@@ -75,6 +75,35 @@ collections:
           - Rutan Kelas IIB Bengkulu
           - Rutan Kelas IIB Manna
           - Bapas Kelas I Bengkulu
+      # Kota (Nov 2026): wajib diisi di Kelola Berita — nama kota masuk
+      # tebal di awal narasi ("**Bengkulu** – ..."). Decap tidak melewati
+      # penegakan Worker, jadi kota dicatat di frontmatter (dipakai
+      # validasi pasca-commit/reconciler); pilih "Lainnya" lalu isi
+      # "Kota Lainnya" bila kotanya tidak ada di daftar.
+      - name: kota
+        label: Kota
+        widget: select
+        default: "Bengkulu"
+        required: true
+        options:
+          - Bengkulu
+          - Bengkulu Selatan
+          - Rejang Lebong
+          - Bengkulu Utara
+          - Kaur
+          - Seluma
+          - Mukomuko
+          - Lebong
+          - Kepahiang
+          - Bengkulu Tengah
+          - Lainnya
+      - { name: kota_lainnya, label: Kota Lainnya (isi bila pilih "Lainnya"), widget: string, required: false }
+      # ID JurnalPas (D12, 13 Nov 2026): disembunyikan dari editor, tapi
+      # WAJIB ada di config supaya Decap mempertahankannya saat mengedit
+      # artikel yang sudah tersinkron — tanpa field ini Decap membuang
+      # jurnalpas_id dari frontmatter dan artikel putus dari JurnalPas
+      # (sama seperti B2 di jalur Worker).
+      - { name: jurnalpas_id, label: ID JurnalPas, widget: hidden, required: false }
       - { name: source, label: Sumber Artikel, widget: hidden, default: "zonapas" }
       - { name: body, label: Isi Berita, widget: markdown }
 

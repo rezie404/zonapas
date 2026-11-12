@@ -333,13 +333,21 @@ function gantiDataDiTabel(xmlTabel, ctx) {
 // bukan field HYPERLINK). UPT nihil ditulis sebaris di label c./d.
 function bangunRincian(segmenRincian, perUpt, perNama, contoh, rels) {
   const buatButirJudul = (n, teksJudul) => gantiTeksTerakhir(gantiTeksPertama(tanpaParaId(contoh.judul), n + "."), teksJudul);
-  const buatButirTautan = (n, url) => {
+  // Satu butir d. = satu judul + SEMUA tautannya (satu tautan per baris
+  // di dalam butir yang sama) — judul tidak berulang walau tautannya
+  // banyak (B1 revisi 13 Nov 2026 atas perintah Bos Besar).
+  const buatButirTautanKelompok = (n, urls) => {
     let xml = tanpaParaId(contoh.tautan);
     xml = gantiTeksPertama(xml, n + ".");
-    const rid = "rId" + (rels.berikut++);
-    rels.daftar.push({ id: rid, url });
-    xml = xml.replace(/<w:hyperlink[^>]*r:id="[^"]*"/, (m0) => m0.replace(/r:id="[^"]*"/, `r:id="${rid}"`));
-    return gantiTeksTerakhir(xml, url);
+    const m = xml.match(/<w:hyperlink[\s\S]*?<\/w:hyperlink>/);
+    if (!m) return gantiTeksTerakhir(xml, urls.join(" "));
+    const klon = urls.map((url) => {
+      const rid = "rId" + (rels.berikut++);
+      rels.daftar.push({ id: rid, url });
+      const el = m[0].replace(/r:id="[^"]*"/, `r:id="${rid}"`);
+      return gantiTeksTerakhir(el, url);
+    });
+    return xml.slice(0, m.index) + klon.join("<w:r><w:br/></w:r>") + xml.slice(m.index + m[0].length);
   };
   const keluar = [];
   let i = 0;
@@ -372,7 +380,7 @@ function bangunRincian(segmenRincian, perUpt, perNama, contoh, rels) {
     if (i < segmenRincian.length && /^d\./.test(teksParagraf(segmenRincian[i]))) {
       keluar.push(paragrafLabelTab(segmenRincian[i], "d. Tautan Publikasi", nihilTautan ? "Nihil" : "")); i++;
     }
-    const tautanBaru = nihilTautan ? [] : u.tautan.map((t2, k) => buatButirTautan(k + 1, t2));
+    const tautanBaru = nihilTautan ? [] : u.tautan.map((kel, k) => buatButirTautanKelompok(k + 1, kel));
     while (i < segmenRincian.length && segmenRincian[i].includes("<w:p") && !/^\d+\)\s/.test(teksParagraf(segmenRincian[i]))) i++;
     keluar.push(...tautanBaru);
   }
@@ -1045,9 +1053,17 @@ async function buildPdfLegacy(data) {
       barisLabelTab("d. Tautan Publikasi", "Nihil", 1);
     } else {
       // "d." dijaga butir tautan pertama (utuh, berapa pun barisnya).
-      barisLabelTab("d. Tautan Publikasi", "", 1, 360, TAB_TITIK_DUA, tinggiButir(u.tautan[0]));
-      u.tautan.forEach((t, k) => {
-        butirBernomor(k + 1, [{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], TW(720), TW(1080), 1, "both");
+      // Satu butir d. = satu judul + semua tautannya (B1 revisi 13 Nov
+      // 2026): nomor digambar sekali, tautan ditumpuk satu per baris.
+      barisLabelTab("d. Tautan Publikasi", "", 1, 360, TAB_TITIK_DUA, tinggiButir(u.tautan[0][0]));
+      u.tautan.forEach((kel, k) => {
+        const barisKel = kel.flatMap((t) => doc.bagiBaris([{ teks: t }], PDF_CW - TW(1080)));
+        doc.pastikan(barisKel.length * PDF_LH + 1);
+        const yAwal = doc.y;
+        doc.gambarBaris([{ teks: `${k + 1}.`, tebal: false }], PDF_M + TW(720), yAwal, "left", TW(1080) - TW(720));
+        kel.forEach((t, j) => {
+          doc.paragraf([{ teks: t, tebal: false, warna: PDF_TAUTAN, link: t }], { rata: "both", indentKiri: TW(1080), sesudah: j === kel.length - 1 ? 1 : 0 });
+        });
       });
     }
   });

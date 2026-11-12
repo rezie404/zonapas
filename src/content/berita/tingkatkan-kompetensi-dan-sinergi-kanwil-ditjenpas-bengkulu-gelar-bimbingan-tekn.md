@@ -13,6 +13,7 @@ breakingSince: "2026-11-05T08:32:01.028Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 225
 ---
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan Bimbingan Teknis Duta Kerja Sama dan Aplikasi SIKAP di lingkungan Kanwil Ditjenpas Bengkulu pada Kamis (5/11). Kegiatan ini menjadi bagian dari upaya meningkatkan pemahaman dan kapasitas jajaran dalam mendukung pelaksanaan tugas dan fungsi organisasi.
 

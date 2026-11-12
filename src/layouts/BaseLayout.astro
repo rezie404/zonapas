@@ -144,6 +144,15 @@ const ld = jsonLd
         document.querySelectorAll('[data-theme-toggle] .theme-icon-moon').forEach((el) => el.classList.toggle('hidden', isDark));
         document.querySelectorAll('[data-theme-toggle] .theme-icon-sun').forEach((el) => el.classList.toggle('hidden', !isDark));
       });
+      // Sinkronkan ikon tombol dengan tema AWAL (D2): tema tersimpan
+      // diterapkan di <head>, sebelum tombol ada — tanpa ini, mode gelap
+      // yang tersimpan tetap menampilkan ikon bulan (seolah-olah situs
+      // masih terang) sampai tombol diklik sekali.
+      (function () {
+        var gelap = document.documentElement.classList.contains('dark');
+        document.querySelectorAll('[data-theme-toggle] .theme-icon-moon').forEach((el) => el.classList.toggle('hidden', gelap));
+        document.querySelectorAll('[data-theme-toggle] .theme-icon-sun').forEach((el) => el.classList.toggle('hidden', !gelap));
+      })();
       // Menu mobile
       document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-menu-toggle]');

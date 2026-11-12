@@ -29,8 +29,21 @@ try {
     console.log("[thumb] dist/images tidak ada — lewati pembuatan thumbnail.");
     process.exit(0);
   }
+  // WAJIB: buat direktori keluaran dulu — Astro build mengosongkan dist/,
+  // jadi tanpa ini Jimp.write gagal ENOENT untuk SEMUA thumbnail.
   fs.mkdirSync(KELUAR, { recursive: true });
-  const berkas = fs.readdirSync(DIST).filter((f) => /^cover-[^/]+\.(jpg|jpeg|png)$/i.test(f));
+// Thumbnail dibuat untuk SEMUA foto (.jpg/.jpeg/.png) di dist/images —
+// tidak hanya yang berawalan cover- (sampul lama "334083.jpg",
+// "tingkatkan-kompetensi-….jpg", dan sampul tanpa awalan cover- lainnya
+// ikut dibuatkan thumbnail; lihat thumbCover() di src/data/site.ts).
+// Dikecualikan: ikon dan logo (ikon PWA, logo Kemenimipas/Ditjenpas,
+// logo ZonaPas, avatar robot) — aset itu bukan foto sampul dan tidak
+// pernah dipetakan thumbCover(); membuat thumbnail-nya hanya membuang
+// waktu build (ikon 192px diperbesar ke 640px pun percuma).
+const LEWATI = /^(icon-|logo-|robot-|pasman|lambang-|dikuti-)/i;
+const berkas = fs
+  .readdirSync(DIST)
+  .filter((f) => /\.(jpg|jpeg|png)$/i.test(f) && !LEWATI.test(f));
   let dibuat = 0;
   for (const nama of berkas) {
     const dasar = nama.replace(/\.(jpg|jpeg|png)$/i, "");

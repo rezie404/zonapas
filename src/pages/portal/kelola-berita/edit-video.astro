@@ -438,22 +438,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       btn.textContent = 'Menyimpan…';
       try {
         // Bila admin menangkap frame dari file video, unggah JPEG frame
-        // ke repo (pola sama seperti foto sampul artikel) dan pakai jalur
-        // repo itu sebagai poster. Bila tidak, pakai scene YouTube yang
-        // dipilih (atau '' untuk gambar mini default).
+        // ke repo lewat Worker dulu (tulisFileRepo; gh() hanya fallback)
+        // dan pakai jalur repo itu sebagai poster. Bila tidak, pakai
+        // scene YouTube yang dipilih (atau '' untuk gambar mini default).
         let posterPath = editVideoSampul === '__tangkap__' ? '' : editVideoSampul;
         if (editVideoSampulDataUrl) {
           const stampSampul = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
           const namaSampul = 'sampul-video-' + v.slug + '-' + stampSampul + '.jpg';
           const base64Sampul = editVideoSampulDataUrl.split(',')[1];
-          if (token) {
-            await gh('/contents/public/images/' + encodeURIComponent(namaSampul), {
-              method: 'PUT',
-              body: JSON.stringify({ message: 'Unggah foto sampul video: ' + namaSampul, content: base64Sampul, branch: 'main' }),
-            });
-          } else {
-            await githubTulis('public/images/' + namaSampul, base64Sampul, 'Unggah foto sampul video: ' + namaSampul);
-          }
+          await tulisFileRepo('public/images/' + namaSampul, base64Sampul, 'Unggah foto sampul video: ' + namaSampul);
           posterPath = '/images/' + namaSampul;
         }
         const md = buildVideoMarkdownEdit({
@@ -465,15 +458,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           author: v.data.author || 'Rezie',
         });
         const isi = b64encodeUnicode(md);
-        if (token) {
-          await gh('/contents/' + v.path, {
-            method: 'PUT',
-            body: JSON.stringify({ message: 'Edit video ZonaPasTV: ' + judul, content: isi, sha: v.sha, branch: 'main' }),
-          });
-        } else {
-          await githubTulis(v.path, isi, 'Edit video ZonaPasTV: ' + judul, v.sha);
+        // Simpan .md lewat Worker dulu (tulisFileRepo; gh() hanya
+        // fallback) — simpan langsung via gh() gagal di HP Bos Besar (B5).
+        await tulisFileRepo(v.path, isi, 'Edit video ZonaPasTV: ' + judul, v.sha);
+        // K18: sampul lama yang diganti ikut dihapus bila berkas repo dan
+        // tidak dipakai video lain. Baru dihapus SETELAH .md baru
+        // tersimpan — bila simpan gagal, sampul lama tetap utuh.
+        const posterLama = (v.data && v.data.poster) || '';
+        let catatanSampul = '';
+        if (posterLama && posterLama !== posterPath && posterLama.indexOf('/images/') === 0 && /\.(jpg|jpeg|png)$/i.test(posterLama) && !sampulDipakaiLain(videos, v.slug, 'poster', posterLama)) {
+          try {
+            await githubHapus('public' + posterLama);
+          } catch (errSampul) {
+            catatanSampul = ' Foto sampul lama tidak ikut terhapus (' + (errSampul && errSampul.message ? errSampul.message : 'galat') + ').';
+          }
         }
-        showStatus('Video "' + judul + '" diperbarui. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
+        showStatus('Video "' + judul + '" diperbarui.' + catatanSampul + ' Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
         tutupEditVideo();
         await muatVideoEdit();
       } catch (err) {

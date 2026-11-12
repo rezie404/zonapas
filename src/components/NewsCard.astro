@@ -34,7 +34,9 @@ const narasi = teksNarasi(entry.body) || summary;
 
 {size === 'small' ? (
   <a href={url} data-reveal class="group flex gap-3 py-3 transition-transform duration-200 hover:-translate-y-0.5">
-    <img src={thumbCover(image, 320)} data-asli={image} alt={imageCaption} loading="lazy" width="320" height="180" class="h-auto w-28 shrink-0 rounded-lg" onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
+    <span class="block aspect-video w-28 shrink-0 overflow-hidden rounded-lg">
+      <img src={thumbCover(image, 320)} data-asli={image} alt={imageCaption} loading="lazy" width="320" height="180" class="h-full w-full object-cover" onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
+    </span>
     <span>
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
       {source === 'contoh' && <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>}
@@ -57,7 +59,9 @@ const narasi = teksNarasi(entry.body) || summary;
   </a>
 ) : (
   <a href={url} data-reveal class="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
-    <img src={thumbCover(image, 640)} data-asli={image} alt={imageCaption} loading="lazy" width="640" height="360" class="h-auto w-full transition-transform duration-300 group-hover:scale-105" onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
+    <span class="block aspect-video w-full overflow-hidden">
+      <img src={thumbCover(image, 640)} data-asli={image} alt={imageCaption} loading="lazy" width="640" height="360" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
+    </span>
     <span class="block p-4">
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
       {source === 'contoh' && <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Artikel Contoh</span>}

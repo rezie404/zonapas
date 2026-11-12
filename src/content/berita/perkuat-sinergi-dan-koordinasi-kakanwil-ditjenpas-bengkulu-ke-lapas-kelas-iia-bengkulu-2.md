@@ -11,6 +11,7 @@ featured: false
 breaking: true
 breakingSince: "2026-11-10T08:08:07.778Z"
 source: "zonapas"
+jurnalpas_id: 261
 ---
 **Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kunjungan kerja ke Lapas Kelas IIA Bengkulu, Selasa(10/11/2026). Kunjungan ini menjadi bagian dari upaya mempererat koordinasi sekaligus memperkuat sinergi antara kantor wilayah dan Unit Pelaksana Teknis (UPT) Pemasyarakatan.
 

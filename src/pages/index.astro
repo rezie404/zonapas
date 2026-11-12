@@ -60,7 +60,7 @@ const formatTanggalVideo = (d: Date) =>
   d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 ---
 
-<BaseLayout title={SITE.name} description={SITE.description}>
+<BaseLayout title={SITE.name} description={SITE.description} image={hero.data.image}>
   <Ticker items={breaking} />
 
   <div class="mx-auto max-w-[1200px] px-4">

@@ -239,6 +239,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
 
     async function muatVideo() {
+      // Daftar video lewat Worker dulu (GET /redaksi/api/video-terbit):
+      // di HP Bos Besar api.github.com sering tidak terjangkau sehingga
+      // muat langsung (gh) gagal total dan daftar video tidak pernah
+      // tampil. Fallback gh() bila Worker gagal — pola yang sama seperti
+      // muatVideoEdit di Edit Video dan loadArticles untuk artikel.
+      try {
+        const res = await workerGet('/redaksi/api/video-terbit');
+        if (res && res.ok && Array.isArray(res.videos)) {
+          const loaded = [];
+          for (const v of res.videos) {
+            try {
+              const parsed = parseFrontmatter(v.content || '');
+              loaded.push({ slug: v.slug, path: v.path, sha: v.sha, data: parsed.data });
+            } catch (e) {
+              console.warn('Gagal memuat video ' + v.slug, e);
+            }
+          }
+          loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
+          videos = loaded;
+          renderVideoList();
+          return;
+        }
+      } catch (e) {
+        console.warn('Daftar video via Worker gagal, coba langsung.', e);
+      }
       let list;
       try {
         list = await gh('/contents/src/content/video?ref=main');
@@ -601,6 +626,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       btn.disabled = true;
       btn.textContent = 'Mengolah video…';
       mulaiJagaSesi();
+      // ID video YouTube yang sudah berhasil terunggah (null = belum ada
+      // yang terunggah). Bila pencatatan .md gagal SETELAH YouTube
+      // berhasil, pesan galat WAJIB menyebut itu — "Gagal mengunggah
+      // video" saja menyesatkan dan memancing unggah ulang (= duplikat
+      // di channel, seperti M7rdLY8QvsI). Lihat B5, 13 Nov 2026.
+      let ytId = null;
       try {
         const slugDasar = slugify(judul);
         const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
@@ -621,25 +652,25 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         btn.textContent = 'Mengunggah…';
         aturProgres(0, fileUnggah.size, 'Memulai unggahan…');
         const hasil = await unggahKeYoutube(fileUnggah, judul, deskripsi, (tk, total) => aturProgres(tk, total, 'Mengunggah ke YouTube…'));
+        ytId = hasil.id;
         // Foto sampul (bila admin menangkap frame): unggah JPEG frame ke
-        // repo — pola sama seperti foto sampul artikel (gh bila ada token
-        // GitHub, bila tidak lewat Worker). Jalur ditulis ke frontmatter
-        // `poster`; kartu video memakai poster ini, bukan gambar mini
-        // YouTube.
+        // repo lewat Worker dulu (tulisFileRepo; gh() hanya fallback).
+        // Jalur ditulis ke frontmatter `poster`; kartu video memakai
+        // poster ini, bukan gambar mini YouTube. Gagal unggah sampul
+        // TIDAK menggagalkan pencatatan video — kartu memakai gambar
+        // mini YouTube dan kegagalannya dicatat di pesan sukses.
         let posterPath = '';
+        let catatanSampul = '';
         if (sampulDataUrl) {
           const stampSampul = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
           const namaSampul = 'sampul-video-' + slugDasar + '-' + stampSampul + '.jpg';
           const base64Sampul = sampulDataUrl.split(',')[1];
-          if (token) {
-            await gh('/contents/public/images/' + encodeURIComponent(namaSampul), {
-              method: 'PUT',
-              body: JSON.stringify({ message: 'Unggah foto sampul video: ' + namaSampul, content: base64Sampul, branch: 'main' }),
-            });
-          } else {
-            await githubTulis('public/images/' + namaSampul, base64Sampul, 'Unggah foto sampul video: ' + namaSampul);
+          try {
+            await tulisFileRepo('public/images/' + namaSampul, base64Sampul, 'Unggah foto sampul video: ' + namaSampul);
+            posterPath = '/images/' + namaSampul;
+          } catch (errSampul) {
+            catatanSampul = ' Foto sampul gagal diunggah (' + (errSampul && errSampul.message ? errSampul.message : 'galat') + ') — kartu video memakai gambar mini YouTube.';
           }
-          posterPath = '/images/' + namaSampul;
         }
         const tanggal = new Date().toISOString().slice(0, 10);
         const md = buildVideoMarkdown({
@@ -650,35 +681,42 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           publishDate: tanggal,
           author: (identitas && identitas.nama) || 'Rezie',
         });
-        // Tulis data video; slug bentrok (422) -> coba slug-2, slug-3.
+        // Tulis data video lewat Worker dulu (tulisFileRepo; gh() hanya
+        // fallback) — urutan lama (gh dulu bila ada token) gagal di HP
+        // Bos Besar tepat setelah video terkirim ke YouTube (B5).
+        // Slug bentrok (422) -> coba slug-2, slug-3.
+        // PENTING: .md TIDAK BISA ditulis sebelum unggah YouTube (butuh
+        // ID videonya), jadi bila tulis .md gagal di sini, video SUDAH
+        // ada di YouTube — lempar pesan yang menyebut itu + tautannya,
+        // supaya admin tidak mengunggah ulang (duplikat).
         let finalSlug = slugDasar;
         let percobaan = 0;
-        while (true) {
-          try {
-            const isi = b64encodeUnicode(md);
-            if (token) {
-              await gh('/contents/src/content/video/' + encodeURIComponent(finalSlug) + '.md', {
-                method: 'PUT',
-                body: JSON.stringify({ message: 'Tambah video ZonaPasTV: ' + judul, content: isi, branch: 'main' }),
-              });
-            } else {
-              await githubTulis('src/content/video/' + finalSlug + '.md', isi, 'Tambah video ZonaPasTV: ' + judul);
+        try {
+          while (true) {
+            try {
+              const isi = b64encodeUnicode(md);
+              await tulisFileRepo('src/content/video/' + finalSlug + '.md', isi, 'Tambah video ZonaPasTV: ' + judul);
+              break;
+            } catch (err) {
+              if (err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slugDasar + '-' + (percobaan + 1); continue; }
+              throw err;
             }
-            break;
-          } catch (err) {
-            if (err.status === 422 && percobaan < 2) { percobaan++; finalSlug = slugDasar + '-' + (percobaan + 1); continue; }
-            throw err;
           }
+        } catch (errMd) {
+          throw new Error('Video sudah terunggah ke YouTube (https://www.youtube.com/watch?v=' + ytId + ') tetapi gagal dicatat di ZonaPasTV: ' + (errMd && errMd.message ? errMd.message : 'galat') + '. Jangan unggah ulang — videonya akan jadi duplikat di channel. Tambahkan video ini secara manual lewat CMS Decap (/admin/ → Video ZonaPasTV) dengan tautan di atas.');
         }
         const privasi = hasil.privasi && hasil.privasi !== 'public' ? ' (YouTube menyimpannya sebagai ' + hasil.privasi + ' — periksa pengaturan channel bila seharusnya publik.)' : '';
-        showStatus('Video "' + judul + '" terunggah ke YouTube dan ditambahkan ke ZonaPasTV' + privasi + '.' + catatanOlahan + ' Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
+        showStatus('Video "' + judul + '" terunggah ke YouTube dan ditambahkan ke ZonaPasTV' + privasi + '.' + catatanOlahan + catatanSampul + ' Tayang di beranda setelah rebuild sekitar 1–2 menit.', true);
         $('form-video').reset();
         resetTrim();
         resetSampul();
         const wrap = $('yt-progress-wrap'); if (wrap) wrap.classList.add('hidden');
         await muatVideo();
       } catch (err) {
-        showStatus('Gagal mengunggah video: ' + err.message, false);
+        // Bila YouTube sudah berhasil (ytId terisi), pesan galat sudah
+        // menyebut itu secara lengkap (lihat blok tulis .md di atas) —
+        // jangan ditambahi awalan "Gagal mengunggah video".
+        showStatus((ytId ? '' : 'Gagal mengunggah video: ') + err.message, false);
       } finally {
         berhentiJagaSesi();
         btn.disabled = false;
@@ -687,20 +725,29 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     });
 
     document.addEventListener('click', async (e) => {
-// Hapus video ZonaPasTV (khusus Administrator, login GitHub):
-      // hapus data .md saja. Video di YouTube TIDAK ikut terhapus.
-            const delVideoBtn = e.target.closest('[data-video-hapus]');
-if (delVideoBtn) {
+      // Hapus video ZonaPasTV (khusus Administrator): hapus data .md
+      // lewat Worker dulu (githubHapus; gh() hanya fallback) — hapus
+      // langsung via gh() gagal di HP Bos Besar (B5). Video di YouTube
+      // TIDAK ikut terhapus. K18: berkas sampul video ikut dihapus bila
+      // tidak dipakai video lain.
+      const delVideoBtn = e.target.closest('[data-video-hapus]');
+      if (delVideoBtn) {
         if (peran !== 'admin') return;
         const v = videos.find((x) => x.slug === delVideoBtn.getAttribute('data-video-hapus'));
         if (!v) return;
         if (!confirm('Hapus video "' + (v.data.title || v.slug) + '" dari ZonaPasTV? Video di YouTube tidak ikut terhapus. Tindakan ini tidak bisa dibatalkan.')) return;
         try {
-          await gh('/contents/' + v.path, {
-            method: 'DELETE',
-            body: JSON.stringify({ message: 'Hapus video ZonaPasTV: ' + (v.data.title || v.slug), sha: v.sha, branch: 'main' }),
-          });
-          showStatus('Video "' + (v.data.title || v.slug) + '" dihapus. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
+          await githubHapus(v.path, v.sha);
+          let catatanSampul = '';
+          const poster = (v.data && v.data.poster) || '';
+          if (poster.indexOf('/images/') === 0 && /\.(jpg|jpeg|png)$/i.test(poster) && poster !== '/images/cover-default.svg' && !sampulDipakaiLain(videos, v.slug, 'poster', poster)) {
+            try {
+              await githubHapus('public' + poster);
+            } catch (errSampul) {
+              catatanSampul = ' Foto sampul tidak ikut terhapus (' + (errSampul && errSampul.message ? errSampul.message : 'galat') + ').';
+            }
+          }
+          showStatus('Video "' + (v.data.title || v.slug) + '" dihapus.' + catatanSampul + ' Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
           await muatVideo();
         } catch (err) {
           showStatus('Gagal menghapus video: ' + err.message, false);

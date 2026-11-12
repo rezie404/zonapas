@@ -144,11 +144,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (!a) return;
         if (!confirm('Hapus berita "' + (a.data.title || a.slug) + '"? Tindakan ini tidak bisa dibatalkan.')) return;
         try {
-          await gh('/contents/' + a.path, {
-            method: 'DELETE',
-            body: JSON.stringify({ message: 'Hapus berita: ' + (a.data.title || a.slug), sha: a.sha, branch: 'main' }),
-          });
-          showStatus('Berita "' + (a.data.title || a.slug) + '" dihapus. Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
+          // Hapus .md lewat Worker dulu (githubHapus; gh() hanya
+          // fallback) — hapus langsung via gh() gagal di HP Bos Besar
+          // (B5). K18: foto sampul ikut dihapus bila tidak dipakai
+          // artikel lain.
+          await githubHapus(a.path, a.sha);
+          let catatanSampul = '';
+          const sampul = (a.data && a.data.image) || '';
+          if (sampul.indexOf('/images/') === 0 && /\.(jpg|jpeg|png)$/i.test(sampul) && sampul !== '/images/cover-default.svg' && !sampulDipakaiLain(articles, a.slug, 'image', sampul)) {
+            try {
+              await githubHapus('public' + sampul);
+            } catch (errSampul) {
+              catatanSampul = ' Foto sampul tidak ikut terhapus (' + (errSampul && errSampul.message ? errSampul.message : 'galat') + ').';
+            }
+          }
+          showStatus('Berita "' + (a.data.title || a.slug) + '" dihapus.' + catatanSampul + ' Situs diperbarui setelah rebuild sekitar 1–2 menit.', true);
           await loadArticles();
         } catch (err) {
           showStatus('Gagal menghapus: ' + err.message, false);

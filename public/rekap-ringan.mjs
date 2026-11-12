@@ -17,14 +17,28 @@ export function namaLaporan(upt) { return NAMA_LAPORAN[upt] || upt; }
 const HARI_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+export function isValidCalendarDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
 export function tanggalIndonesia(iso) {
-  const [y, m, d] = String(iso || "").split("-").map(Number);
-  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
-  return `${HARI_ID[dt.getUTCDay()]}, ${d} ${BULAN_ID[(m || 1) - 1]} ${y}`;
+  // K26: tanggal kosong/tak valid (mis. "" atau 2026-02-30) tidak boleh
+  // menghasilkan label omong kosong ("Senin, undefined Januari 0") —
+  // kembalikan "" supaya pemanggil tahu datanya tidak ada.
+  if (!isValidCalendarDate(iso)) return "";
+  const [y, m, d] = String(iso).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return `${HARI_ID[dt.getUTCDay()]}, ${d} ${BULAN_ID[m - 1]} ${y}`;
 }
 export function tanggalIndonesiaTanpaHari(iso) {
-  const [y, m, d] = String(iso || "").split("-").map(Number);
-  return `${d} ${BULAN_ID[(m || 1) - 1]} ${y}`;
+  if (!isValidCalendarDate(iso)) return "";
+  const [y, m, d] = String(iso).split("-").map(Number);
+  return `${d} ${BULAN_ID[m - 1]} ${y}`;
 }
 export function namaFileLaporan(tanggal, ext) {
   const [y, m, d] = String(tanggal || "").split("-");
@@ -38,7 +52,7 @@ export function namaFileLaporan(tanggal, ext) {
 // di judul publikasi UPT). Angka Romawi (I–XII) juga tetap kapital semua.
 const SINGKATAN_JUDUL = new Set([
   "UPT", "LPP", "WBP", "LPKA", "TPP", "KPLP", "IIA", "IIB",
-  "BIMTEK", "FGD", "KPPN", "PKBI", "BMN", "TKA",
+  "BIMTEK", "FGD", "KPPN", "PKBI", "BMN", "TKA", "HUT",
 ]);
 const ROMAWI_JUDUL = new Set(["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]);
 // Normalisasi judul publikasi ke Huruf Kapital Setiap Kata (Title Case):
@@ -53,9 +67,11 @@ export function normalisasiJudulPublikasi(judul) {
   // laporan — buang semuanya sebelum normalisasi huruf (09 Nov 2026).
   const teks = String(judul || "").replace(/\*/g, "").trim().replace(/\s+/g, " ");
   if (!teks) return "";
-  return teks.split(" ").map((kata) => {
+  // Normalisasi satu kata (tanpa spasi): pisahkan tanda baca di
+  // awal/akhir, lalu kapitalkan inti (singkatan/Romawi tetap kapital
+  // semua, angka tidak diubah).
+  const normalisasiKata = (kata) => {
     if (!kata) return kata;
-    // Pisahkan tanda baca di awal/akhir kata (koma, titik, tanda kutip).
     const m = /^([^A-Za-z0-9]*)([A-Za-z0-9][A-Za-z0-9'’-]*)([^A-Za-z0-9]*)$/.exec(kata);
     if (!m) return kata;
     const [, awal, inti, akhir] = m;
@@ -66,12 +82,29 @@ export function normalisasiJudulPublikasi(judul) {
     // huruf kecil ("sosialisasi-pembinaan" -> "Sosialisasi-Pembinaan").
     const kecil = inti.toLowerCase().replace(/(^|[-'])[a-z]/g, (c) => c.toUpperCase());
     return awal + kecil + akhir;
+  };
+  return teks.split(" ").map((kata) => {
+    if (!kata) return kata;
+    // K25: token bertanda "/" ("dan/atau", "Lapas/Rutan", "IIA/B")
+    // sebelumnya lolos karena regex di atas tidak cocok bila token
+    // mengandung "/" — pecah pada "/" lalu normalisasi tiap segmen.
+    if (kata.includes("/")) return kata.split("/").map(normalisasiKata).join("/");
+    return normalisasiKata(kata);
   }).join(" ");
 }
 
-// Hitung rekap per UPT dari rows + penanda nihil. Judul di laporan adalah
-// judul UNIK per UPT (urutan kemunculan pertama); tautan = semua baris,
-// diurutkan media massa dulu baru media sosial (11 Nov 2026).
+// Hitung rekap per UPT dari rows + penanda nihil.
+// B1 (audit 13 Nov 2026, direvisi atas perintah Bos Besar): daftar
+// "c. Judul Publikasi" dan "d. Tautan Publikasi" selalu sama panjang
+// dan bernomor sama — tiap judul disebut SEKALI (tidak berulang walau
+// tautannya banyak, supaya tidak boros halaman), dan SEMUA tautan tetap
+// ada: tautan dikelompokkan per judul di bawah nomor yang sama dengan
+// judulnya. Pasangan (judul, tautan) diurutkan bersama-sama (media
+// massa dulu, baru media sosial; di dalam tiap kelompok urutan impor
+// dipertahankan, sort stabil) lalu dikelompokkan menurut judul.
+// Sebelumnya judul didedup terpisah sementara tautan diurutkan ulang —
+// satu judul di 3 platform menghasilkan c.=1 butir vs d.=3 butir, dan
+// dua judul beda urutan impor berpasangan silang.
 // Judul dinormalisasi ke Huruf Kapital Setiap Kata (lihat
 // normalisasiJudulPublikasi) supaya tidak ada judul huruf besar semua
 // atau huruf kecil semua di laporan.
@@ -83,18 +116,29 @@ export function hitungRekap(data) {
     const rs = rows.filter((r) => r.upt === nama);
     const sosial = rs.filter((r) => r.platform !== "Website / Media Online").length;
     const massa = rs.length - sosial;
-    const judulUnik = [];
-    for (const r of rs) {
-      const j = normalisasiJudulPublikasi(String(r.judul || "").trim()) || REKAP_JUDUL_KOSONG;
-      if (!judulUnik.includes(j)) judulUnik.push(j);
-    }
-    // d. Tautan Publikasi: media massa dulu, baru media sosial — di dalam
-    // tiap kelompok urutan impor dipertahankan (sort stabil). Daftar judul
-    // (c.) dan baris data (rows) TIDAK diubah urutannya.
-    const tautanUrut = [...rs]
+    // Pasangan (judul, tautan) per baris, diurutkan bersama-sama:
+    // media massa dulu, baru media sosial (perintah Bos Besar 11 Nov
+    // 2026 — urutan ini tetap dipertahankan, hanya c. kini mengikuti
+    // urutan yang sama dengan d.).
+    const pasanganUrut = [...rs]
       .sort((a, b) => (a.platform === "Website / Media Online" ? 0 : 1) - (b.platform === "Website / Media Online" ? 0 : 1))
-      .map((r) => r.url);
-    return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judulUnik : ["Nihil"], tautan: rs.length ? tautanUrut : ["Nihil"] };
+      .map((r) => ({
+        judul: normalisasiJudulPublikasi(String(r.judul || "").trim()) || REKAP_JUDUL_KOSONG,
+        url: r.url,
+      }));
+    // Kelompokkan tautan per judul (urutan kemunculan pertama
+    // dipertahankan): judul = daftar unik, tautan[k] = semua URL milik
+    // judul[k]. Tidak ada tautan yang dibuang.
+    const kelompok = [];
+    const indeksJudul = new Map();
+    for (const p of pasanganUrut) {
+      let g = indeksJudul.get(p.judul);
+      if (!g) { g = { judul: p.judul, urls: [] }; indeksJudul.set(p.judul, g); kelompok.push(g); }
+      g.urls.push(p.url);
+    }
+    const judul = kelompok.map((g) => g.judul);
+    const tautan = kelompok.map((g) => g.urls);
+    return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judul : ["Nihil"], tautan: rs.length ? tautan : ["Nihil"] };
   });
   const total = perUpt.reduce((a, u) => ({ sosial: a.sosial + u.sosial, massa: a.massa + u.massa, jumlah: a.jumlah + u.jumlah }), { sosial: 0, massa: 0, jumlah: 0 });
   return { tanggal, perUpt, total };
@@ -180,7 +224,7 @@ export function pratinjauLaporanHtml(hitung) {
       h += '<p>d. Tautan Publikasi : Nihil</p>';
     } else {
       h += '<p>d. Tautan Publikasi :</p>';
-      h += '<ol class="daftar">' + u.tautan.map((ta) => '<li><a href="' + escHtml(ta) + '" target="_blank" rel="noopener">' + escHtml(ta) + '</a></li>').join('') + '</ol>';
+      h += '<ol class="daftar">' + u.tautan.map((kel) => '<li>' + kel.map((ta) => '<a href="' + escHtml(ta) + '" target="_blank" rel="noopener">' + escHtml(ta) + '</a>').join('<br>') + '</li>').join('') + '</ol>';
     }
   });
   // D. PENUTUP

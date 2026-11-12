@@ -371,6 +371,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!m) return null;
       return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
     }
+    // Tanggal ISO kalender yang sah (YYYY-MM-DD, tanggal nyata —
+    // "2026-02-30" ditolak, bukan digelinding ke 2 Mar). Dipakai penjaga
+    // tombol "Tarik Berita Hari Ini" (K21).
+    function isoTanggalValid(str) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+      if (!m) return false;
+      const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return d.getFullYear() === Number(m[1]) && d.getMonth() === Number(m[2]) - 1 && d.getDate() === Number(m[3]);
+    }
     // Format tanggal DD/MM/YYYY (Nov 2026): <input type="date"> bawaan
     // menampilkan MM/DD/YYYY di HP Bos Besar (mengikuti lokal perangkat,
     // bukan lang halaman). Supaya selalu DD/MM/YYYY, kolom tanggal kini
@@ -480,8 +489,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // (Nov 2026, atas permintaan Bos Besar: editan hari lain aman).
     async function tarikBeritaMingguIni(hanyaTanggal) {
       if (sedangTarik) return;
+      // K21: argumen string yang bukan tanggal ISO kalender yang sah
+      // (mis. '' dari kartu hari yang tanggalnya masih kosong) TIDAK
+      // boleh jatuh ke jalur tarik mingguan — tolak dengan pesan.
+      if (typeof hanyaTanggal === 'string' && !isoTanggalValid(hanyaTanggal)) { showStatus('Isi tanggal hari dulu.', false); return; }
       // hanyaTanggal harus tanggal ISO; selain itu dianggap tarik seminggu.
-      const perHariSaja = typeof hanyaTanggal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(hanyaTanggal);
+      const perHariSaja = typeof hanyaTanggal === 'string' && isoTanggalValid(hanyaTanggal);
       const teksTombol = perHariSaja ? '📥 Tarik Berita Hari Ini' : '📥 Tarik Berita Minggu Ini';
       const btn = perHariSaja
         ? document.querySelector('[data-tarik-hari="' + hanyaTanggal + '"]')
@@ -660,15 +673,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // tanggal akhir sempat tertinggal di Sabtu minggu berjalan), kembalikan
     // tanggal akhir ke Sabtu pada minggu yang sama dengan tanggal mulai.
     // (Perbaikan atas laporan Bos Besar: "dipilih 2-7, hasilnya malah 2-14".)
-    (function normalisasiPeriode() {
+    // K30: fungsi ini juga dipanggil dari handler change tanggal
+    // mulai/akhir, supaya ketikan manual ikut dinormalisasi (sebelumnya
+    // hanya jalan sekali saat draf dimuat). Mengembalikan true bila
+    // tanggal akhir diubah.
+    function normalisasiPeriode() {
       const m = parseTgl(state.mulai), a = parseTgl(state.akhir);
-      if (!m || !a) return;
+      if (!m || !a) return false;
       const selisihHari = Math.round((a - m) / 86400000);
-      if (selisihHari <= 6) return;
+      if (selisihHari <= 6) return false;
       const sabtu = new Date(m);
       sabtu.setDate(m.getDate() + ((6 - m.getDay() + 7) % 7));
       state.akhir = fmtTglIso(sabtu);
-    })();
+      return true;
+    }
+    normalisasiPeriode();
     // ---------- Tindak Lanjut (bisa diedit, Nov 2026) ----------
     // Satu butir per kegiatan (1–2 baris): tindak lanjut yang sebaiknya
     // dilakukan atas kegiatan itu. Terisi otomatis dari kegiatan saat draf
@@ -742,6 +761,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
       }, 400);
     }
+    // K20: tulis draf SECARA SINKRON (tanpa debounce 400 ms) — dipakai
+    // sebelum navigasi ke halaman pratinjau (?pratinjau=1), supaya editan
+    // terakhir tidak hilang karena timer dibatalkan navigasi. simpanDraf()
+    // biasa tetap dipakai untuk autosave saat mengetik.
+    function simpanDrafSegera() {
+      clearTimeout(timerSimpan);
+      timerSimpan = null;
+      try {
+        localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
+        const info = $('sp-draf-info');
+        if (info) info.textContent = 'Draf tersimpan otomatis di peramban ini.';
+      } catch {
+        const info = $('sp-draf-info');
+        if (info) info.textContent = 'Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.';
+      }
+    }
     function showStatus(pesan, ok) {
       const el = $('status');
       if (!el) return;
@@ -750,30 +785,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       el.style.background = ok ? '#dcfce7' : '#fee2e2';
       el.style.color = ok ? '#166534' : '#991b1b';
       el.style.border = '1px solid ' + (ok ? '#86efac' : '#fca5a5');
-    }
-
-    // ---------- Foto: baca berkas -> data URL (diperkecil maks 1200px) ----------
-    function berkasKeDataUrl(file, maxLebar) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Gagal membaca berkas.'));
-        reader.onload = () => {
-          const img = new Image();
-          img.onerror = () => reject(new Error('Berkas bukan gambar.'));
-          img.onload = () => {
-            try {
-              const skala = Math.min(1, (maxLebar || 1200) / img.naturalWidth);
-              const c = document.createElement('canvas');
-              c.width = Math.max(1, Math.round(img.naturalWidth * skala));
-              c.height = Math.max(1, Math.round(img.naturalHeight * skala));
-              c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-              resolve(c.toDataURL('image/jpeg', 0.85));
-            } catch (e) { reject(e); }
-          };
-          img.src = String(reader.result);
-        };
-        reader.readAsDataURL(file);
-      });
     }
 
     // ---------- Potong foto (crop) ----------
@@ -1028,7 +1039,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               '<span class="mt-1 flex max-w-xs items-center gap-1"><input type="text" inputmode="numeric" placeholder="DD/MM/YYYY" autocomplete="off" data-tanggal-hari="' + hi + '" value="' + esc(isoKeDMY(h.tanggal)) + '" class="sp-tgl w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"' + (kunci ? ' disabled' : '') + ' />' +
               (kunci ? '' : '<button type="button" data-buka-kalender class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Pilih tanggal kegiatan dari kalender">📅</button>') + '</span></label>' +
             '<span class="text-sm font-bold text-[#0A2540] dark:text-white">' + esc(labelHari(h.tanggal)) + '</span>' +
-            (kunci ? '' : '<button type="button" data-tarik-hari="' + esc(h.tanggal) + '" class="rounded-lg bg-[#0A2540] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Hari Ini</button>') +
+            (kunci ? '' : (isoTanggalValid(h.tanggal)
+              ? '<button type="button" data-tarik-hari="' + esc(h.tanggal) + '" class="rounded-lg bg-[#0A2540] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Hari Ini</button>'
+              // K21: tanggal kosong/tak valid — tombol dinonaktifkan
+              // supaya tidak menjalankan tarik mingguan secara tak sengaja.
+              : '<button type="button" disabled title="Isi tanggal hari dulu" class="rounded-lg bg-slate-300 px-2.5 py-1 text-xs font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-400" aria-disabled="true">📥 Tarik Berita Hari Ini</button>')) +
             (kunci ? '' : '<button type="button" data-hapus-hari="' + hi + '" class="text-xs font-bold text-red-600 hover:underline">Hapus hari</button>') +
             '<button type="button" data-kunci-hari="' + hi + '" class="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-bold ' + (kunci ? 'border-transparent bg-[#FACC15] text-[#0A2540]' : 'border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800') + '" aria-label="' + (kunci ? 'Buka kunci hari ini' : 'Kunci hari ini') + '">' + (kunci ? '🔒 Terkunci' : '🔓 Kunci') + '</button>' +
           '</div>' +
@@ -1416,13 +1431,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
       // hari ikut grup kegiatan pertama hari itu.
       for (const [hi, h] of state.hari.entries()) {
-        if (!h.kegiatan.length) continue;
+        // K31: hari yang hanya berisi kegiatan kosong (judul + narasi
+        // kosong, mis. hasil "+ Tambah Kegiatan" yang belum diisi) TIDAK
+        // menghasilkan halaman Hasil — saring dulu sebelum pita + tanggal
+        // hari didorong. Sebelumnya blok pita didorong dulu, baru tiap
+        // kegiatan kosong dilewati, sehingga halaman kosong tercipta.
+        const kegiatanIsi = (h.kegiatan || [])
+          .map((k, ki) => ({ k, ki }))
+          .filter(({ k }) => String(k.judul || '').trim() || String(k.narasi || '').trim());
+        if (!kegiatanIsi.length) continue;
         const grupHari = 'keg-' + hi + '-' + (h.tanggal || '') + '-0';
         const htmlHari = '<div class="sepekan-pita-hasil">HASIL YANG DICAPAI</div><p class="sepekan-tanggal-hari">' + esc(labelHari(h.tanggal)) + '</p>';
         const tinggiHari = ukurBlok(htmlHari);
         blok.push({ tipe: 'hari', html: htmlHari, tinggi: tinggiHari, grup: grupHari });
-        h.kegiatan.forEach((k, ki) => {
-          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+        kegiatanIsi.forEach(({ k, ki }) => {
           const grup = 'keg-' + hi + '-' + (h.tanggal || '') + '-' + ki;
           const fotos = (k.foto || []).filter(Boolean).slice(0, 4);
           // Foto MAKS 4 (Nov 2026, atas permintaan Bos Besar), rapi DI
@@ -1711,7 +1733,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const el = $(id);
         if (!el) return;
         el.addEventListener('input', () => { formatKetikDMY(el); bacaFormKeState(); simpanDraf(); renderPratinjau(); });
-        el.addEventListener('change', () => { bacaFormKeState(); simpanDraf(); renderPratinjau(); });
+        el.addEventListener('change', () => {
+          // K30: normalisasi periode juga saat tanggal diketik/diubah
+          // manual (bukan hanya saat draf dimuat). Periode terbalik
+          // (akhir < mulai) DITOLAK: state dikembalikan ke sebelumnya dan
+          // kolom formulir ditulis ulang dari state.
+          const mulaiLama = state.mulai, akhirLama = state.akhir;
+          bacaFormKeState();
+          if (id === 'sp-mulai' || id === 'sp-akhir') {
+            const m = parseTgl(state.mulai), a = parseTgl(state.akhir);
+            if (m && a && a < m) {
+              state.mulai = mulaiLama; state.akhir = akhirLama;
+              tulisStateKeForm();
+              showStatus('Tanggal akhir tidak boleh sebelum tanggal mulai — periode dikembalikan ke sebelumnya.', false);
+            } else if (normalisasiPeriode()) {
+              tulisStateKeForm();
+              showStatus('Periode lebih dari 7 hari — tanggal akhir dikembalikan ke Sabtu pada minggu yang sama dengan tanggal mulai.', true);
+            }
+          }
+          simpanDraf(); renderPratinjau();
+        });
       });
       // Tombol kalender (📅) di semua kolom tanggal + hasil pilihan kalender.
       document.addEventListener('click', (e) => {
@@ -1817,7 +1858,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           return;
         }
         const tarikHari = t.closest('[data-tarik-hari]');
-        if (tarikHari) { tarikBeritaMingguIni(tarikHari.dataset.tarikHari); return; }
+        if (tarikHari) {
+          // K21: pertahanan kedua — tanggal kosong/tak valid ditolak
+          // dengan pesan, jangan jatuh ke tarik mingguan.
+          if (!isoTanggalValid(tarikHari.dataset.tarikHari)) { showStatus('Isi tanggal hari dulu.', false); return; }
+          tarikBeritaMingguIni(tarikHari.dataset.tarikHari);
+          return;
+        }
         const hapusHari = t.closest('[data-hapus-hari]');
         if (hapusHari) { state.hari.splice(Number(hapusHari.dataset.hapusHari), 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
         const hapusKeg = t.closest('[data-hapus-kegiatan]');
@@ -1897,7 +1944,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // bukan lagi menggulir ke pratinjau di bawah form (Nov 2026, atas
       // permintaan Bos Besar). Draf disimpan dulu supaya pratinjau di
       // halaman baru memuat isi terbaru (draf tersimpan di localStorage).
-      $('sp-lihat').addEventListener('click', () => { bacaFormKeState(); simpanDraf(); location.href = location.pathname + '?pratinjau=1'; });
+      // K20: simpan SECARA SINKRON (simpanDrafSegera) — simpanDraf() biasa
+      // hanya menjadwalkan tulis 400 ms kemudian dan timer itu dibatalkan
+      // navigasi, sehingga editan terakhir hilang.
+      $('sp-lihat').addEventListener('click', () => { bacaFormKeState(); simpanDrafSegera(); location.href = location.pathname + '?pratinjau=1'; });
       const btnUnduhPratinjau = $('sp-unduh-pratinjau');
       if (btnUnduhPratinjau) btnUnduhPratinjau.addEventListener('click', unduhPdf);
       $('sp-reset-template').addEventListener('click', () => {

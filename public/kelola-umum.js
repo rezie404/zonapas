@@ -329,6 +329,80 @@
     }
 
 
+    // Tulis file ke repo — Worker DULU, gh() hanya fallback (B5, 13 Nov
+    // 2026). Di HP Bos Besar api.github.com sering tidak terjangkau
+    // ("Failed to fetch"), sementara Worker (same-origin) selalu bisa
+    // dijangkau; urutan lama (gh dulu bila ada token GitHub) membuat
+    // simpan video gagal tepat setelah video terkirim ke YouTube.
+    // Dipakai tulis/hapus video + hapus artikel; alur artikel
+    // (tulis-artikel) sudah Worker-first sejak awal.
+    async function tulisFileRepo(path, content, message, sha) {
+      try {
+        return await githubTulis(path, content, message, sha);
+      } catch (errW) {
+        if (!token) throw errW;
+        console.warn('Tulis via Worker gagal, coba langsung ke GitHub.', errW);
+        const payload = { message, content, branch: 'main' };
+        if (sha) payload.sha = sha;
+        return gh('/contents/' + path, { method: 'PUT', body: JSON.stringify(payload) });
+      }
+    }
+
+
+    // Hapus file dari repo — Worker DULU (POST /redaksi/api/github-hapus),
+    // gh() hanya fallback (B5 + K18, 13 Nov 2026). Kontrak endpoint:
+    // body { path, sha? }, respons { ok: true } atau { ok: false, error },
+    // admin-only, 404 ditoleransi (berkas sudah tidak ada = sudah sesuai
+    // yang diinginkan). Bila endpoint belum ada / Worker gagal dan ada
+    // token GitHub, hapus langsung via GitHub API (ambil sha dulu bila
+    // tidak diberikan); 404 di jalur mana pun dianggap berhasil.
+    async function githubHapus(path, sha) {
+      const repoPath = String(path || '').replace(/^\/+/, '');
+      if (!repoPath) throw new Error('Jalur file kosong.');
+      try {
+        const res = await workerPost('/redaksi/api/github-hapus', sha ? { path: repoPath, sha } : { path: repoPath });
+        if (res && res.ok === true) return res;
+        throw new Error((res && res.error) || 'Worker gagal menghapus file.');
+      } catch (errW) {
+        if (!token) throw errW;
+        console.warn('Hapus via Worker gagal, coba langsung ke GitHub.', errW);
+        let shaPakai = sha;
+        if (!shaPakai) {
+          try {
+            const f = await gh('/contents/' + repoPath + '?ref=main');
+            shaPakai = f && f.sha;
+          } catch (e) {
+            if (e && e.status === 404) return { ok: true };
+            throw e;
+          }
+        }
+        if (!shaPakai) return { ok: true };
+        try {
+          await gh('/contents/' + repoPath, { method: 'DELETE', body: JSON.stringify({ message: 'Hapus file: ' + repoPath, sha: shaPakai, branch: 'main' }) });
+        } catch (e) {
+          if (e && e.status === 404) return { ok: true };
+          throw e;
+        }
+        return { ok: true };
+      }
+    }
+
+
+    // K18 (13 Nov 2026): sampul hanya boleh dihapus bila tidak dipakai
+    // artikel/video lain. daftar = articles / videos (global), field =
+    // 'image' untuk artikel, 'poster' untuk video. Selain frontmatter,
+    // diperiksa juga badan narasi (sampul yang dikutip di badan artikel
+    // lain ikut dihitung terpakai).
+    function sampulDipakaiLain(daftar, slugSendiri, field, pathSampul) {
+      if (!pathSampul) return false;
+      return (daftar || []).some((x) => {
+        if (!x || x.slug === slugSendiri) return false;
+        if (x.data && x.data[field] === pathSampul) return true;
+        return !!(x.body && x.body.indexOf(pathSampul) !== -1);
+      });
+    }
+
+
     function labelPeran(r) { return ROLE_LABEL[r] || r || '-'; }
 
 

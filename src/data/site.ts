@@ -31,11 +31,13 @@ export function categoryBySlug(slug: string): Category | undefined {
 // URL thumbnail kecil untuk foto sampul artikel (dibuat saat build oleh
 // scripts/buat-thumb.mjs ke dist/images/thumbs/). Dipakai kartu daftar
 // dan hasil pencarian supaya HP tidak memuat foto sampul ukuran penuh
-// (1200px) hanya untuk tampil selebar 112–380px. Bila bukan foto sampul
-// artikel (logo, SVG, foto sampul video, jalur luar), kembalikan jalur
-// aslinya.
+// (1200px) hanya untuk tampil selebar 112–380px. Berlaku untuk SEMUA foto
+// sampul di /images/ — tidak hanya yang berawalan cover- (sampul lama
+// "334083.jpg", "tingkatkan-kompetensi-….jpg", dan sampul tanpa awalan
+// cover- lainnya ikut dibuatkan thumbnail). Bila bukan foto (SVG, jalur
+// luar), kembalikan jalur aslinya.
 export function thumbCover(image: string, lebar: 320 | 640): string {
-  const m = /^\/images\/(cover-[^/]+)\.(jpg|jpeg|png)$/i.exec(image || '');
+  const m = /^\/images\/([^/]+)\.(jpg|jpeg|png)$/i.exec(image || '');
   if (!m) return image;
   return `/images/thumbs/${m[1]}-${lebar}.jpg`;
 }

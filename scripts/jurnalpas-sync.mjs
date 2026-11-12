@@ -540,15 +540,26 @@ export function normalisasiJudulWp(judul) {
 
 /**
  * Cari ID post JurnalPas dari judul (perbaikan ID yang hilang, 12 Nov 2026).
- * Mengembalikan ID bila TEPAT SATU post cocok persis setelah normalisasi;
- * bila tidak ada atau lebih dari satu yang cocok, kembalikan null (jangan
- * tebak — mencegah duplikat).
+ * Mengembalikan ID bila TEPAT SATU post cocok setelah normalisasi; bila
+ * tidak ada atau lebih dari satu yang cocok, kembalikan null (jangan tebak
+ * — mencegah duplikat). Pelonggaran 13 Nov 2026: bila tidak ada yang cocok
+ * persis, coba lagi dengan toleransi tanda baca/spasi (hanya huruf/angka
+ * yang dibandingkan — "Star - Proaksi" sama dengan "Star-proaksi").
  */
 export function cariIdDariJudul(posts, judul) {
   const cari = normalisasiJudulWp(judul);
   if (!cari) return null;
-  const cocok = (Array.isArray(posts) ? posts : []).filter((p) => normalisasiJudulWp(p && p.title) === cari);
-  return cocok.length === 1 ? cocok[0].ID : null;
+  const daftar = Array.isArray(posts) ? posts : [];
+  const cocok = daftar.filter((p) => normalisasiJudulWp(p && p.title) === cari);
+  if (cocok.length === 1) return cocok[0].ID;
+  if (cocok.length > 1) return null;
+  // Pelonggaran (13 Nov 2026): toleransi tanda baca/spasi — hanya
+  // huruf/angka yang dibandingkan. Tetap null bila 0 atau >1 cocok.
+  const longgar = (s) => normalisasiJudulWp(s).replace(/[^a-z0-9]/g, '');
+  const cariLonggar = longgar(judul);
+  if (!cariLonggar) return null;
+  const cocokLonggar = daftar.filter((p) => longgar(p && p.title) === cariLonggar);
+  return cocokLonggar.length === 1 ? cocokLonggar[0].ID : null;
 }
 
 async function processFile({ root, site, client, dryRun, change, categoriesCache }) {

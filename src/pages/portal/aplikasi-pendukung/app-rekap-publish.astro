@@ -152,6 +152,40 @@ const PLATFORM = [
         <div id="impor-hasil" class="mt-3 hidden rounded-lg bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"></div>
       </section>
 
+      <!-- Tambah publikasi (K23): publikasi yang terlewat impor bisa
+           ditambahkan satu per satu lewat formulir ini — memanggil
+           endpoint POST /redaksi/api/rekap/tambah yang sudah ada di Worker. -->
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Tambah publikasi">
+        <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Tambah Publikasi</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Publikasi yang terlewat impor (mis. tautan dikirim terpisah dari surat) bisa ditambahkan satu per satu di sini. Tautan yang sudah ada di rekap akan ditolak server.</p>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          <label class="sm:col-span-2">
+            <span class="block text-sm font-bold">Judul publikasi</span>
+            <input id="tambah-judul" type="text" maxlength="500" placeholder="Contoh: Apel Pagi Disiplin Pegawai" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+          <label class="sm:col-span-2">
+            <span class="block text-sm font-bold">Tautan publikasi</span>
+            <input id="tambah-tautan" type="url" inputmode="url" placeholder="https://…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+          <label>
+            <span class="block text-sm font-bold">UPT</span>
+            <select id="tambah-upt" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></select>
+          </label>
+          <label>
+            <span class="block text-sm font-bold">Platform</span>
+            <select id="tambah-platform" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></select>
+          </label>
+          <label>
+            <span class="block text-sm font-bold">Tanggal</span>
+            <input id="tambah-tanggal" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </label>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <button id="btn-tambah-publikasi" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tambah Publikasi</button>
+          <span id="tambah-hasil" class="text-sm"></span>
+        </div>
+      </section>
+
       <!-- Laporan -->
       <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Laporan">
         <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Laporan</h2>
@@ -242,9 +276,13 @@ const PLATFORM = [
       return { tanggal: rekapTanggalDipilih(), rows: rekapRows, nihil };
     }
 
-    async function muatChecklist() {
+    async function muatChecklist(gen) {
       const tgl = rekapTanggalDipilih();
       const res = await workerGet('/redaksi/api/rekap/checklist?tanggal=' + encodeURIComponent(tgl));
+      // K29: abaikan respons kedaluwarsa — bila tanggal sudah diganti dan
+      // muatSemua() yang lebih baru sedang berjalan, jangan timpa state
+      // dengan data tanggal lama.
+      if (gen !== rekapGenerasi) return;
       rekapChecklist = res;
       renderChecklist();
       renderRingkasanTanggal();
@@ -269,7 +307,12 @@ const PLATFORM = [
         const u = peta[nama] || { nama, jumlah: 0, sosial: 0, massa: 0, nihil: false, sudahLapor: false };
         let lencana;
         let tombol = '';
-        if (u.nihil) {
+        // K22: lencana "sudah lapor (nihil)" HANYA bila jumlah publikasi
+        // === 0. Penanda nihil bisa basi (ditandai pagi, lalu UPT mengirim
+        // laporan susulan dan diimpor) — bila sudah ada publikasi, tampilkan
+        // "sudah lapor" biasa. Sisi server (hapus penanda saat impor) milik
+        // agen Worker; di sini hanya rendernya yang diperbaiki.
+        if (u.nihil && (u.jumlah || 0) === 0) {
           lencana = '<span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">sudah lapor (nihil)</span>';
           tombol = '<button type="button" data-batal-nihil="' + esc(nama) + '" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batalkan</button>';
         } else if (u.sudahLapor) {
@@ -289,27 +332,32 @@ const PLATFORM = [
       }).join('');
     }
 
-    async function muatPublikasi() {
+    async function muatPublikasi(gen) {
       const tgl = rekapTanggalDipilih();
       const semua = [];
       let offset = 0;
       let total = Infinity;
       while (semua.length < total) {
         const res = await workerGet('/redaksi/api/rekap/publikasi?tanggal=' + encodeURIComponent(tgl) + '&limit=1000&offset=' + offset);
+        // K29: hentikan pengumpulan bila generasi sudah kedaluwarsa.
+        if (gen !== rekapGenerasi) return;
         const rows = (res && res.rows) || [];
         total = (res && typeof res.total === 'number') ? res.total : rows.length;
         semua.push(...rows);
         offset += rows.length;
         if (!rows.length) break;
       }
+      if (gen !== rekapGenerasi) return;
       rekapRows = semua;
       const tglEl = $('laporan-tanggal');
       if (tglEl) tglEl.textContent = tanggalIndonesiaTanpaHari(tgl) + ' \u2022 19.00 WIB';
     }
 
-    async function muatStatistik() {
+    async function muatStatistik(gen) {
       try {
         const res = await workerGet('/redaksi/api/rekap/statistik');
+        // K29: abaikan respons kedaluwarsa (lihat muatChecklist).
+        if (gen !== rekapGenerasi) return;
         const totalEl = $('statistik-total');
         if (totalEl) totalEl.textContent = 'Total semua tanggal: ' + (res.totalSemua || 0) + ' publikasi.';
         const wadah = $('statistik-tanggal');
@@ -326,13 +374,22 @@ const PLATFORM = [
       }
     }
 
+    // K29: penghitung generasi — tiap muatSemua() menaikkan nomornya;
+    // respons dari pemanggilan yang sudah kedaluwarsa (tanggal diganti
+    // cepat 12→11→12) diabaikan oleh masing-masing pemuat, supaya
+    // checklist/publikasi/statistik tidak tertukar tanggalnya.
+    let rekapGenerasi = 0;
     async function muatSemua() {
+      const gen = ++rekapGenerasi;
       // Muat PARALEL (dulu berurutan: checklist, lalu publikasi, lalu
       // statistik — tiga perjalanan bolak-balik ke server). Statistik tidak
       // pernah melempar galat (ditangani di dalamnya), jadi aman di sini.
       try {
-        await Promise.all([muatChecklist(), muatPublikasi(), muatStatistik()]);
+        await Promise.all([muatChecklist(gen), muatPublikasi(gen), muatStatistik(gen)]);
       } catch (err) {
+        // Galat dari generasi kedaluwarsa: diam saja, pemanggilan yang
+        // lebih baru yang akan menampilkan hasilnya.
+        if (gen !== rekapGenerasi) return;
         rekapGalat(err, 'Gagal memuat data rekap');
       }
     }
@@ -406,6 +463,49 @@ const PLATFORM = [
         rekapGalat(err, 'Gagal mengimpor');
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Impor'; }
+      }
+    });
+
+    // ---------- Tambah publikasi (K23) ----------
+    // Daftar platform HARUS sama persis dengan REKAP_PLATFORMS di Worker
+    // ("X / Twitter" pakai spasi — "X/Twitter" tanpa spasi ditolak server
+    // dengan "Platform tidak dikenal.").
+    const TAMBAH_PLATFORM = ['Website / Media Online', 'Facebook', 'Instagram', 'X / Twitter', 'TikTok', 'YouTube', 'Threads', 'LinkedIn', 'Lainnya'];
+    (function isiOpsiTambah() {
+      const selUpt = $('tambah-upt');
+      if (selUpt) selUpt.innerHTML = UPT_BAKU.map((u) => '<option value="' + esc(u) + '">' + esc(u) + '</option>').join('');
+      const selPlat = $('tambah-platform');
+      if (selPlat) selPlat.innerHTML = TAMBAH_PLATFORM.map((p) => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+      const tgl = $('tambah-tanggal');
+      if (tgl && !tgl.value) tgl.value = rekapTanggalDipilih();
+    })();
+    on('btn-tambah-publikasi', 'click', async () => {
+      const judul = ($('tambah-judul').value || '').trim();
+      const url = ($('tambah-tautan').value || '').trim();
+      const upt = $('tambah-upt').value;
+      const platform = $('tambah-platform').value;
+      const tanggal = $('tambah-tanggal').value;
+      const hasil = $('tambah-hasil');
+      const pesan = (t, ok) => { if (hasil) { hasil.textContent = t; hasil.className = 'text-sm ' + (ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-300'); } };
+      if (!judul) { pesan('Isi judul publikasi dulu.', false); return; }
+      if (!/^https?:\/\/\S+$/.test(url)) { pesan('Tautan harus berupa URL http(s) yang valid.', false); return; }
+      if (!tanggal) { pesan('Isi tanggal publikasi dulu.', false); return; }
+      const btn = $('btn-tambah-publikasi');
+      if (btn) { btn.disabled = true; btn.textContent = 'Menambahkan…'; }
+      try {
+        await workerPost('/redaksi/api/rekap/tambah', { tanggal, upt, judul, platform, url });
+        pesan('Publikasi ditambahkan ke ' + upt + ' (' + tanggalIndonesia(tanggal) + ').', true);
+        showStatus('Publikasi "' + judul + '" ditambahkan.', true);
+        $('tambah-judul').value = '';
+        $('tambah-tautan').value = '';
+        // Bila tanggal tambah sama dengan tanggal laporan yang sedang
+        // dibuka, muat ulang supaya checklist + laporan ikut berubah.
+        if (tanggal === rekapTanggalDipilih()) await muatSemua();
+      } catch (err) {
+        if (err && (err.status === 401 || err.status === 403)) rekapGalat(err, 'Gagal menambah publikasi');
+        else pesan('Gagal menambah publikasi: ' + (err && err.message ? err.message : 'terjadi galat.'), false);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Tambah Publikasi'; }
       }
     });
 
