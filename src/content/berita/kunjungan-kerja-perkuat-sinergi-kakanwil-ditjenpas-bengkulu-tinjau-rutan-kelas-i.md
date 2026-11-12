@@ -13,6 +13,7 @@ breakingSince: "2026-11-12T08:40:54.161Z"
 upt: "Rutan Kelas IIB Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 308
 ---
 
 **Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kunjungan kerja ke Rumah Tahanan Negara Kelas IIB Bengkulu pada Kamis (12/11/2026). Kunjungan ini merupakan bagian dari upaya memperkuat koordinasi sekaligus memastikan pelaksanaan tugas dan fungsi Pemasyarakatan berjalan secara optimal.
