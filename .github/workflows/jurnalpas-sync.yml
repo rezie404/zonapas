@@ -4,8 +4,8 @@
 #
 # Cara kerja: scripts/jurnalpas-sync.mjs (Node, tanpa dependensi).
 # Token OAuth2 WordPress.com diambil dari secret WP_COM_ACCESS_TOKEN.
-# Bila secret belum dipasang, skrip berjalan dry-run (hanya mencatat apa yang
-# AKAN dikirim) dan workflow tetap hijau — bukan gagal.
+# Bila secret belum dipasang, skrip GAGAL (exit 1) — bukan dry-run diam-diam —
+# kecuali bila dijalankan eksplisit dengan --dry-run.
 #
 # Dijalankan manual (workflow_dispatch) juga bisa: tanpa SHA before/after,
 # skrip menganggap semua artikel diubah — yang ber-ID diperbarui, yang tanpa
