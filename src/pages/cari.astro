@@ -50,6 +50,9 @@ import { CATEGORIES, SITE } from '../data/site';
       async function loadIndex() {
         if (index) return index;
         const res = await fetch('/search-index.json');
+        // Gagal dimuat bukan diam-diam: lempar supaya doSearch menampilkan
+        // status galat yang terlihat (K22).
+        if (!res.ok) throw new Error('Indeks berita tidak bisa dimuat (HTTP ' + res.status + ').');
         index = await res.json();
         return index;
       }
@@ -75,7 +78,17 @@ import { CATEGORIES, SITE } from '../data/site';
           results.innerHTML = '';
           return;
         }
-        const data = await loadIndex();
+        let data;
+        try {
+          data = await loadIndex();
+        } catch (e) {
+          // Indeks gagal dimuat: beri tahu pengguna, jangan gagal diam-diam.
+          status.textContent = 'Pencarian tidak tersedia: indeks berita gagal dimuat. Periksa koneksi lalu coba lagi.';
+          status.style.color = '#B91C1C';
+          results.innerHTML = '';
+          return;
+        }
+        status.style.color = '';
         const needle = q.toLowerCase();
         const hits = data.filter((item) => {
           if (q && (item.title + ' ' + item.summary + ' ' + item.category + ' ' + item.tags.join(' ')).toLowerCase().indexOf(needle) === -1) return false;

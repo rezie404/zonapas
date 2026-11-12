@@ -355,8 +355,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-hex-dalam img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
     .sepekan-sampul-kaki { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #0A2540; }
     .sepekan-sampul-kaki::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: #FFCC00; }
-    /* Pengukur tinggi blok (tersembunyi, lebar sama dengan area isi) */
-    #sp-ukur { position: fixed; left: 0; top: 0; width: 701px; visibility: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
+    /* Pengukur tinggi blok (tersembunyi, lebar sama dengan area isi). overflow:hidden supaya margin bawah anak terakhir tidak runtuh keluar dan tinggi terukur penuh (D2). */
+    #sp-ukur { position: fixed; left: 0; top: 0; width: 701px; visibility: hidden; overflow: hidden; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }`;
     (function suntikCssLaporan() {
       const st = document.createElement('style');
       st.setAttribute('data-sepekan', '');
@@ -528,8 +528,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           // itu belum ada); hari lain dan foto sampul TIDAK disentuh.
           const hariBaru = perHari[hanyaTanggal];
           const idx = state.hari.findIndex((h) => h.tanggal === hanyaTanggal);
-          if (idx >= 0) state.hari[idx] = hariBaru;
-          else { state.hari.push(hariBaru); state.hari.sort((x, y) => String(x.tanggal || '').localeCompare(String(y.tanggal || ''))); }
+          if (idx >= 0) {
+            // Hanya kegiatannya yang diganti — flag minimize (tutup) dan
+            // kunci hari yang lama dipertahankan (K12).
+            const lama = state.hari[idx];
+            state.hari[idx] = hariBaru;
+            if (lama.tutup !== undefined) state.hari[idx].tutup = lama.tutup;
+            if (lama.kunci !== undefined) state.hari[idx].kunci = lama.kunci;
+          } else { state.hari.push(hariBaru); state.hari.sort((x, y) => String(x.tanggal || '').localeCompare(String(y.tanggal || ''))); }
         } else {
           periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
           // Hari yang terkunci TIDAK ditimpa tarikan mingguan — hari fix
@@ -1081,9 +1087,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (ukurBlok(html) <= TINGGI_ISI) { keluar.push({ tipe: 'paragraf', html, tinggi: ukurBlok(html) }); continue; }
         // Paragraf terlalu panjang: pecah per kalimat.
         const kalimat = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
+        // Satu kalimat yang sendirinya melebihi 1 halaman (D4): belah
+        // per kata supaya tiap potongan muat, bukan satu blok raksasa
+        // yang meluber lalu terpotong.
+        const kalimatPecah = [];
+        for (const k of kalimat) {
+          const satu = k.trim();
+          if (ukurBlok(buatHtml(satu, true)) <= TINGGI_ISI) { kalimatPecah.push(k); continue; }
+          let bagian = '';
+          for (const kata of satu.split(' ')) {
+            const cobaBagian = bagian ? bagian + ' ' + kata : kata;
+            if (bagian && ukurBlok(buatHtml(cobaBagian, true)) > TINGGI_ISI) {
+              kalimatPecah.push(bagian);
+              bagian = kata;
+            } else { bagian = cobaBagian; }
+          }
+          if (bagian) kalimatPecah.push(bagian);
+        }
         let buf = '';
         let pertama = true;
-        for (const k of kalimat) {
+        for (const k of kalimatPecah) {
           const coba = (buf ? buf + ' ' : '') + k.trim();
           const h = ukurBlok(buatHtml(coba, pertama));
           if (h > TINGGI_ISI && buf) {
@@ -1111,7 +1134,23 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const satuan = []; // { teks, para, awal }
       paragraf.forEach((p, pi) => {
         const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
-        kal.forEach((k, i) => satuan.push({ teks: k.trim(), para: pi, awal: i === 0 }));
+        kal.forEach((k, i) => {
+          const teks = k.trim();
+          if (teks.length <= 200) { satuan.push({ teks, para: pi, awal: i === 0 }); return; }
+          // Satu kalimat sangat panjang (D4): belah per kata (maks 200
+          // karakter per potongan) supaya kelompok chunk tetap muat.
+          let bagian = '';
+          let awalBagian = (i === 0);
+          for (const kata of teks.split(' ')) {
+            const coba = bagian ? bagian + ' ' + kata : kata;
+            if (bagian && coba.length > 200) {
+              satuan.push({ teks: bagian, para: pi, awal: awalBagian });
+              awalBagian = false;
+              bagian = kata;
+            } else { bagian = coba; }
+          }
+          if (bagian) satuan.push({ teks: bagian, para: pi, awal: awalBagian });
+        });
       });
       if (!satuan.length) return [];
       // Kalimat dari paragraf yang sama digabung jadi satu <p> supaya
@@ -1193,7 +1232,23 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const satuan = []; // { teks, para, awal }
       paragraf.forEach((p, pi) => {
         const kal = p.match(/[^.!?]+[.!?]+["”)]?\s*/g) || [p];
-        kal.forEach((k, i) => satuan.push({ teks: k.trim(), para: pi, awal: i === 0 }));
+        kal.forEach((k, i) => {
+          const teks = k.trim();
+          if (teks.length <= 200) { satuan.push({ teks, para: pi, awal: i === 0 }); return; }
+          // Satu kalimat sangat panjang (D4): belah per kata (maks 200
+          // karakter per potongan) supaya kelompok chunk tetap muat.
+          let bagian = '';
+          let awalBagian = (i === 0);
+          for (const kata of teks.split(' ')) {
+            const coba = bagian ? bagian + ' ' + kata : kata;
+            if (bagian && coba.length > 200) {
+              satuan.push({ teks: bagian, para: pi, awal: awalBagian });
+              awalBagian = false;
+              bagian = kata;
+            } else { bagian = coba; }
+          }
+          if (bagian) satuan.push({ teks: bagian, para: pi, awal: awalBagian });
+        });
       });
       if (!satuan.length) return keluar;
       // Alur koran (Nov 2026, ralat atas permintaan Bos Besar): kolom kiri
@@ -1360,15 +1415,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Hasil per hari. 1 kegiatan = 1 grup (judul + foto + narasi +
       // foto ke-2) supaya tidak terpisah antar halaman. Pita + tanggal
       // hari ikut grup kegiatan pertama hari itu.
-      for (const h of state.hari) {
+      for (const [hi, h] of state.hari.entries()) {
         if (!h.kegiatan.length) continue;
-        const grupHari = 'keg-' + (h.tanggal || '') + '-0';
+        const grupHari = 'keg-' + hi + '-' + (h.tanggal || '') + '-0';
         const htmlHari = '<div class="sepekan-pita-hasil">HASIL YANG DICAPAI</div><p class="sepekan-tanggal-hari">' + esc(labelHari(h.tanggal)) + '</p>';
         const tinggiHari = ukurBlok(htmlHari);
         blok.push({ tipe: 'hari', html: htmlHari, tinggi: tinggiHari, grup: grupHari });
         h.kegiatan.forEach((k, ki) => {
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
-          const grup = 'keg-' + (h.tanggal || '') + '-' + ki;
+          const grup = 'keg-' + hi + '-' + (h.tanggal || '') + '-' + ki;
           const fotos = (k.foto || []).filter(Boolean).slice(0, 4);
           // Foto MAKS 4 (Nov 2026, atas permintaan Bos Besar), rapi DI
           // BAWAH narasi. Tinggi foto MENYESUAIKAN panjang narasi:
@@ -1484,12 +1539,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             // Bila yang tersisa adalah judul bab, pindahkan juga (jangan yatim).
             if (!JAGA.includes(kini[kini.length - 1].tipe)) break;
           }
-          // Jangan dorong halaman kosong: bila halaman saat ini habis
-          // dipindahkan, batalkan pemindahan (tanda tangan tetap pindah
-          // sendiri, tapi halaman sebelumnya tidak kosong).
+          // Bila halaman saat ini habis dipindahkan (isinya hanya judul +
+          // paragraf Penutup), dorong halaman itu apa adanya dan biarkan
+          // tanda tangan ke halaman baru sendirian — lebih baik daripada
+          // tanda tangan menumpuk di luar halaman lalu terpotong (D3).
           if (kini.length === 0) {
-            kini = pindah;
-            tinggi = pindah.reduce((a, x) => a + x.tinggi, 0);
+            halaman.push(pindah);
+            kini = [];
+            tinggi = 0;
           } else {
             halaman.push(kini);
             kini = pindah;

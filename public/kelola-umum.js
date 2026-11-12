@@ -1005,7 +1005,17 @@
       let m = /^\s*\*\*([A-Z][^*.\n,;!?]{1,39})\*\*\s*[—–-]\s*/.exec(teks);
       if (m) return { kota: m[1].trim(), narasi: teks.slice(m[0].length) };
       m = /^\s*([A-Z][A-Za-zÀ-ÿ']{1,20})\s*[—–-]\s+/.exec(teks);
-      if (m) return { kota: m[1].trim(), narasi: teks.slice(m[0].length) };
+      // Tanpa tebal (narasi lama): hanya bila yang di depan dash adalah
+      // nama kota di DAFTAR_KOTA_BENGKULU — "Senin – …" atau kata lain
+      // bukan kota (K17). Kota dua kata dicoba dulu (terpanjang dulu)
+      // supaya "Bengkulu Selatan" tidak tertangkap sebagai "Bengkulu".
+      if (m && DAFTAR_KOTA_BENGKULU.includes(m[1].trim())) return { kota: m[1].trim(), narasi: teks.slice(m[0].length) };
+      const daftarDuaKata = DAFTAR_KOTA_BENGKULU.filter((k) => k.indexOf(' ') !== -1).sort((a, b) => b.length - a.length);
+      for (const kota of daftarDuaKata) {
+        const pola = new RegExp('^\\s*' + kota.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[—–-]\\s+');
+        const cocok = pola.exec(teks);
+        if (cocok) return { kota, narasi: teks.slice(cocok[0].length) };
+      }
       return { kota: '', narasi: teks };
     }
 
@@ -1343,7 +1353,9 @@
 
     async function uploadCover(slug) {
       if (!pendingCover) return null;
-      const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+      // stampId() (ms + acak, sama seperti foto isi): stamp presisi menit
+      // menimpa sampul bila disimpan ulang dalam menit yang sama (K18).
+      const stamp = stampId();
       const filename = 'cover-' + slug + '-' + stamp + '.jpg';
       const base64 = pendingCover.dataUrl.split(',')[1];
       // Selalu lewat Worker (githubTulis, same-origin). PUT langsung ke

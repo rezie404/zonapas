@@ -26,7 +26,14 @@ self.addEventListener('fetch', (event) => {
   // teruskan ke jaringan seperti semula.
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/offline/'))
+      // Bila cache /offline/ kosong, jangan respondWith(undefined) —
+      // kembalikan halaman HTML sederhana (K21).
+      fetch(event.request).catch(() =>
+        caches.match('/offline/').then((res) => res || new Response(
+          '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ZonaPas — Offline</title></head><body style="font-family:sans-serif;max-width:560px;margin:40px auto;padding:0 16px"><h1>Anda sedang offline</h1><p>Periksa koneksi internet Anda lalu muat ulang halaman ini.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        ))
+      )
     );
     return;
   }

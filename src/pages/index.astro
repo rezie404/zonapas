@@ -217,13 +217,15 @@ const formatTanggalVideo = (d: Date) =>
         var tay = hasil[0];
         var idx = hasil[1];
         if (!tay || !tay.ok || !Array.isArray(tay.terpopulerMinggu) || !idx) return;
-        var atas = tay.terpopulerMinggu.filter(function (x) { return x.minggu > 0; }).slice(0, 5);
-        if (!atas.length) return;
         var olehSlug = {};
         idx.forEach(function (item) { olehSlug[item.slug] = item; });
+        // Hanya slug yang ada di indeks pencarian yang dipakai, SEBELUM
+        // slice(0, 5) — bila tidak, nomor urut melompat (K13: item yang
+        // tak ada di indeks dilewati tapi i+1-nya tetap maju).
+        var atas = tay.terpopulerMinggu.filter(function (x) { return x.minggu > 0 && olehSlug[x.slug]; }).slice(0, 5);
+        if (!atas.length) return;
         var html = atas.map(function (x, i) {
           var item = olehSlug[x.slug];
-          if (!item) return '';
           return '<li class="flex gap-3 py-3"><span class="text-3xl font-black leading-none text-[#D9232E]">' + (i + 1) + '</span><span><a href="' + esc(item.url) + '" class="text-sm font-bold leading-snug hover:text-[#D9232E] hover:underline">' + esc(item.title) + '</a><span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">' + Number(x.minggu).toLocaleString('id-ID') + ' dibaca minggu ini</span></span></li>';
         }).join('');
         if (html) ol.innerHTML = html;

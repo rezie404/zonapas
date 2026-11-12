@@ -6,23 +6,37 @@ import { SITE, formatDate } from '../../data/site';
 
 export async function getStaticPaths() {
   const entries = await getCollection('video');
-  return entries.map((entry) => ({
-    params: { slug: entry.id.replace(/\.md$/, '') },
-    props: { entry },
-  }));
+  // Entri tanpa ID YouTube yang valid dilewati (K23): bila tidak,
+  // halamannya ter-build dengan iframe embed kosong + thumbnail rusak.
+  // (Pemeriksaan di-inline di sini: Astro memindahkan isi frontmatter
+  // lain ke fungsi render komponen, jadi helper di luar tidak terlihat
+  // dari getStaticPaths.)
+  const punyaIdYoutube = (tautan) => {
+    const t = (tautan || '').trim();
+    return /(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/.test(t) || /^[A-Za-z0-9_-]{11}$/.test(t);
+  };
+  return entries
+    .filter((entry) => punyaIdYoutube(entry.data.video))
+    .map((entry) => ({
+      params: { slug: entry.id.replace(/\.md$/, '') },
+      props: { entry },
+    }));
 }
+
+// ID YouTube dari tautan watch / youtu.be / Shorts / embed / live / ID mentah.
+// Didefinisikan SEBELUM pemakaian di bawah (dan sebelum getStaticPaths
+// dipanggil Astro saat build) — const arrow tidak ter-hoist.
+const idYoutube = (tautan: string) => {
+  const t = (tautan || '').trim();
+  const m = t.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/) || t.match(/^([A-Za-z0-9_-]{11})$/);
+  return m ? m[1] : '';
+};
 
 const { entry } = Astro.props;
 const { title, description, video, publishDate, author } = entry.data;
 const slug = entry.id.replace(/\.md$/, '');
 const url = `${SITE.url}/video/${slug}/`;
 
-// ID YouTube dari tautan watch / youtu.be / Shorts / embed / live / ID mentah.
-const idYoutube = (tautan: string) => {
-  const t = (tautan || '').trim();
-  const m = t.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/) || t.match(/^([A-Za-z0-9_-]{11})$/);
-  return m ? m[1] : '';
-};
 const id = idYoutube(video);
 // Sampul video: foto frame pilihan admin (poster) didahulukan; bila
 // tidak ada, pakai gambar mini YouTube. thumbnailUrl JSON-LD memakai URL

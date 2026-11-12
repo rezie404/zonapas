@@ -239,10 +239,17 @@ const jsonLd = [
         var slug = (location.pathname.split('/').filter(Boolean).pop() || '');
         if (!slug) return;
         fetch('/redaksi/api/tayangan?slug=' + encodeURIComponent(slug)).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-          if (!d || !d.ok || !d.total) return;
           var el = document.querySelector('[data-jumlah-baca]');
-          if (el) { el.textContent = '| ' + Number(d.total).toLocaleString('id-ID') + ' dibaca'; el.classList.remove('hidden'); }
-        }).catch(function () {});
+          if (!el) return;
+          // Bila fetch gagal (bukan sekadar 0 tayangan), tampilkan "—"
+          // supaya pembaca tetap melihat tempatnya (K26).
+          if (!d || !d.ok) { el.textContent = '| — dibaca'; el.classList.remove('hidden'); return; }
+          if (!d.total) return;
+          el.textContent = '| ' + Number(d.total).toLocaleString('id-ID') + ' dibaca'; el.classList.remove('hidden');
+        }).catch(function () {
+          var el = document.querySelector('[data-jumlah-baca]');
+          if (el) { el.textContent = '| — dibaca'; el.classList.remove('hidden'); }
+        });
         // Kunci dedup memakai tanggal WIB (bukan UTC): pembaca pukul 06.00
         // dan 08.00 WIB di hari yang sama harus dihitung sekali.
         var kunci = 'zonapas-tayang-' + slug + '-' + new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);

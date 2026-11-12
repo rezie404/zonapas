@@ -19,11 +19,30 @@ export const GET: APIRoute = async () => {
     { loc: `${SITE.url}/info-iklan/` },
     { loc: `${SITE.url}/kontak/` },
     { loc: `${SITE.url}/kebijakan-privasi/` },
+    { loc: `${SITE.url}/disclaimer/` },
   ];
   for (const e of entries) {
     urls.push({
       loc: `${SITE.url}/berita/${e.id.replace(/\.md$/, '')}/`,
       lastmod: e.data.publishDate.toISOString().split('T')[0],
+    });
+  }
+  // Halaman video + disclaimer (K2): entri video tanpa ID YouTube yang
+  // valid tidak punya halaman (lihat getStaticPaths video/[slug].astro),
+  // jadi tidak ikut masuk sitemap.
+  const idYoutube = (tautan: string) => {
+    const t = (tautan || '').trim();
+    const m = t.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/) || t.match(/^([A-Za-z0-9_-]{11})$/);
+    return m ? m[1] : '';
+  };
+  const videos = (await getCollection('video'))
+    .filter((v) => idYoutube(v.data.video))
+    .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
+  urls.push({ loc: `${SITE.url}/video/` });
+  for (const v of videos) {
+    urls.push({
+      loc: `${SITE.url}/video/${v.id.replace(/\.md$/, '')}/`,
+      lastmod: v.data.publishDate.toISOString().split('T')[0],
     });
   }
   const tags = new Set<string>();

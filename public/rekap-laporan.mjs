@@ -583,7 +583,11 @@ class PdfDokumen {
         continue;
       }
       let w = lebarTeks(k.teks, 11, k.tebal);
-      if (w > lebar && kini.length === 0) {
+      // Baris sudah terisi tapi kata tidak muat: dorong dulu, lalu periksa
+      // ulang — kata yang lebih panjang dari lebar baris harus dipotong
+      // per karakter walau tiba saat baris sudah terisi (K19).
+      if (lebarKini + w > lebar && kini.length) { dorong(); }
+      if (w > lebar) {
         // Kata lebih panjang dari baris (URL panjang): potong per karakter.
         let sisa = k.teks;
         while (sisa) {
@@ -598,7 +602,6 @@ class PdfDokumen {
         }
         continue;
       }
-      if (lebarKini + w > lebar && kini.length) { dorong(); }
       kini.push(k);
       lebarKini += w;
     }

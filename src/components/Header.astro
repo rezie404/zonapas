@@ -52,6 +52,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
               <a data-menu-kelola href="/portal/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Portal Redaksi</a>
               <a data-menu-ajukan href="/ajukan-penulis/" class="block px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" role="menuitem">Ajukan Jadi Penulis</a>
               <button type="button" data-menu-keluar class="block w-full px-4 py-2 text-left text-sm font-bold text-[#D9232E] hover:bg-slate-100 dark:hover:bg-slate-800" role="menuitem">Keluar</button>
+              <button type="button" data-menu-keluar-semua class="block w-full px-4 py-2 text-left text-sm font-bold text-[#D9232E] hover:bg-slate-100 dark:hover:bg-slate-800" role="menuitem">Keluar dari semua perangkat</button>
             </div>
           </div>
         )}
@@ -180,6 +181,13 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       try { localStorage.removeItem(KUNCI); } catch (err) {}
       window.location.href = '/masuk/';
     }
+    // Keluar dari semua perangkat (K11): hapus SEMUA sesi milik akun ini
+    // di server dulu (selagi sesi ini masih berlaku), lalu keluar seperti biasa.
+    async function keluarSemua(e) {
+      if (e) e.preventDefault();
+      try { await fetch('/redaksi/api/logout-semua', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+      keluarManual();
+    }
     // Menu profil: ketuk nama di header → muncul nama + email akun, tautan
     // Kelola Berita (hanya Redaksi), dan tombol Keluar.
     var menuTerpasang = false;
@@ -229,6 +237,8 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       });
       var btnKeluar = menu.querySelector('[data-menu-keluar]');
       if (btnKeluar) btnKeluar.addEventListener('click', keluarManual);
+      var btnKeluarSemua = menu.querySelector('[data-menu-keluar-semua]');
+      if (btnKeluarSemua) btnKeluarSemua.addEventListener('click', keluarSemua);
       document.addEventListener('click', function (e) {
         if (terbuka && !wadah.contains(e.target)) aturMenu(false);
       });
@@ -284,6 +294,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       if (!lencana) return;
       if (user.role !== 'admin' && user.role !== 'penyunting') {
         lencana.classList.add('hidden');
+        lencana.classList.remove('flex');
         return;
       }
       var token = ambilTokenGithub();
@@ -297,7 +308,11 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       }
       function tampilkan(n) {
         lencana.textContent = String(n);
+        // `hidden` dan `flex` sama-sama mengatur display — keduanya
+        // di-toggle bersama supaya hanya satu yang aktif (K15): angka
+        // terpusat oleh items-center/justify-center saat lencana tampil.
         lencana.classList.toggle('hidden', n === 0);
+        lencana.classList.toggle('flex', n > 0);
         lencana.setAttribute('aria-label', n > 0 ? (n + ' menunggu persetujuan') : 'Tidak ada yang menunggu persetujuan');
       }
       var pAntrean = fetch('/redaksi/api/antrean', { credentials: 'same-origin', headers: headers })
