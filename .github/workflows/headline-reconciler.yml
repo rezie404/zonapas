@@ -1,0 +1,47 @@
+# Reconciler Headline — menjaga aturan "hanya satu Headline" untuk jalur Decap CMS.
+#
+# Decap CMS menulis langsung ke GitHub API tanpa melewati Worker, jadi satu
+# centang Headline di Decap bisa menciptakan Headline kedua secara permanen
+# (B4, 13 Nov 2026). Action ini memindai src/content/berita/*.md setiap
+# hari dan mencabut featured: true ganda (pertahankan yang publishDate-nya
+# terbaru; bila seri, nama berkas terbesar — sama seperti reconciler cron
+# Worker di worker.js: reconcileHeadline).
+#
+# Cara kerja: scripts/reconcile-headline.mjs (Node, tanpa dependensi).
+# Perubahan di-commit kembali dengan pesan "[skip ci]" supaya tidak
+# memicu Action berulang (pola yang sama dengan commit-back jurnalpas_id
+# di scripts/jurnalpas-sync.mjs).
+#
+# Jadwal 02:00 UTC = 09:00 WIB — SAMA dengan cron harian Worker, supaya
+# kedua penyembuh berjalan beriringan. Bila salah satu mati, yang lain
+# tetap menutup celah. Kegagalan apa pun (berkas tak terbaca, commit/push
+# gagal) membuat skrip keluar 1 dan workflow MERAH — bukan hijau diam-diam.
+name: Reconciler Headline
+
+on:
+  schedule:
+    # Harian 02:00 UTC = 09:00 WIB (cerminkan cron harian Worker).
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write # untuk commit kembali pencabutan Headline (dengan [skip ci])
+
+concurrency:
+  group: headline-reconciler
+  cancel-in-progress: false # antrekan berurutan supaya tidak ada dobel-cabut
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Cabut Headline ganda
+        run: node scripts/reconcile-headline.mjs
