@@ -45,14 +45,15 @@ const id = idYoutube(video);
 const thumb = entry.data.poster || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 const thumbAbs = thumb.startsWith('http') ? thumb : `${SITE.url}${thumb}`;
 
-// Video lainnya: terbaru dulu, maksimal 6. Sejak 07 Nov 2026 kartunya
+// Video lainnya: terbaru dulu, maksimal 2 (13 Nov 2026) + tombol
+// "Tonton semua video ZonaPasTV" ke /video/. Sejak 07 Nov 2026 kartunya
 // memakai thumbnail bawaan YouTube (bingkai video itu sendiri) dengan
 // judul seksi "Tonton Juga" — bukan sampul/cover buatan redaksi.
 const semua = await getCollection('video');
 const lainnya = semua
   .filter((v) => v.id !== entry.id)
   .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
-  .slice(0, 6);
+  .slice(0, 2);
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -129,7 +130,7 @@ const jsonLd = {
     {lainnya.length > 0 && (
       <section class="mx-auto mt-10 max-w-[1200px]" aria-label="Tonton juga">
         <h2 class="mb-4 border-b-2 border-[#D9232E] pb-2 text-xl font-black uppercase">Tonton Juga</h2>
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2">
           {lainnya.map((v) => (
             <a
               href={`/video/${v.id.replace(/\.md$/, '')}/`}
@@ -148,6 +149,12 @@ const jsonLd = {
               <span class="block px-3 pb-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(v.data.publishDate)}</span>
             </a>
           ))}
+        </div>
+        <div class="mt-6 text-center">
+          <a href="/video/" class="inline-flex items-center gap-2 rounded-full bg-[#FFCC00] px-6 py-3 text-sm font-extrabold text-[#05152E] shadow-md transition hover:brightness-95">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+            Tonton semua video ZonaPasTV
+          </a>
         </div>
       </section>
     )}
