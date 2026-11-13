@@ -94,17 +94,15 @@ export function normalisasiJudulPublikasi(judul) {
 }
 
 // Hitung rekap per UPT dari rows + penanda nihil.
-// B1 (audit 13 Nov 2026, direvisi atas perintah Bos Besar): daftar
-// "c. Judul Publikasi" dan "d. Tautan Publikasi" selalu sama panjang
-// dan bernomor sama — tiap judul disebut SEKALI (tidak berulang walau
-// tautannya banyak, supaya tidak boros halaman), dan SEMUA tautan tetap
-// ada: tautan dikelompokkan per judul di bawah nomor yang sama dengan
-// judulnya. Pasangan (judul, tautan) diurutkan bersama-sama (media
-// massa dulu, baru media sosial; di dalam tiap kelompok urutan impor
-// dipertahankan, sort stabil) lalu dikelompokkan menurut judul.
-// Sebelumnya judul didedup terpisah sementara tautan diurutkan ulang —
-// satu judul di 3 platform menghasilkan c.=1 butir vs d.=3 butir, dan
-// dua judul beda urutan impor berpasangan silang.
+// d. Tautan Publikasi bernomor urut DATAR — tiap tautan mendapat nomornya
+// sendiri (kembali seperti sebelum revisi B1 13 Nov 2026, atas perintah
+// Bos Besar 13 Nov 2026; revisi B1 yang mengelompokkan tautan per judul
+// dibatalkan karena tautan di dalam kelompok jadi tidak bernomor).
+// c. Judul Publikasi tetap berisi judul UNIK (tiap judul disebut sekali).
+// Akibatnya jumlah butir c. dan d. BISA berbeda — seperti sebelum revisi
+// B1. Pasangan (judul, tautan) diurutkan bersama-sama (media massa dulu,
+// baru media sosial; urutan impor dipertahankan, sort stabil) supaya
+// urutan tautan di d. tetap media massa dulu.
 // Judul dinormalisasi ke Huruf Kapital Setiap Kata (lihat
 // normalisasiJudulPublikasi) supaya tidak ada judul huruf besar semua
 // atau huruf kecil semua di laporan.
@@ -126,18 +124,11 @@ export function hitungRekap(data) {
         judul: normalisasiJudulPublikasi(String(r.judul || "").trim()) || REKAP_JUDUL_KOSONG,
         url: r.url,
       }));
-    // Kelompokkan tautan per judul (urutan kemunculan pertama
-    // dipertahankan): judul = daftar unik, tautan[k] = semua URL milik
-    // judul[k]. Tidak ada tautan yang dibuang.
-    const kelompok = [];
-    const indeksJudul = new Map();
-    for (const p of pasanganUrut) {
-      let g = indeksJudul.get(p.judul);
-      if (!g) { g = { judul: p.judul, urls: [] }; indeksJudul.set(p.judul, g); kelompok.push(g); }
-      g.urls.push(p.url);
-    }
-    const judul = kelompok.map((g) => g.judul);
-    const tautan = kelompok.map((g) => g.urls);
+    // Tautan DATAR bernomor urut (kembali seperti sebelum revisi B1
+    // 13 Nov 2026): judul = daftar unik, tautan = semua URL dalam
+    // urutan pasangan (media massa dulu). Tidak ada tautan yang dibuang.
+    const judul = [...new Set(pasanganUrut.map((p) => p.judul))];
+    const tautan = pasanganUrut.map((p) => p.url);
     return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judul : ["Nihil"], tautan: rs.length ? tautan : ["Nihil"] };
   });
   const total = perUpt.reduce((a, u) => ({ sosial: a.sosial + u.sosial, massa: a.massa + u.massa, jumlah: a.jumlah + u.jumlah }), { sosial: 0, massa: 0, jumlah: 0 });
@@ -224,7 +215,7 @@ export function pratinjauLaporanHtml(hitung) {
       h += '<p>d. Tautan Publikasi : Nihil</p>';
     } else {
       h += '<p>d. Tautan Publikasi :</p>';
-      h += '<ol class="daftar">' + u.tautan.map((kel) => '<li>' + kel.map((ta) => '<a href="' + escHtml(ta) + '" target="_blank" rel="noopener">' + escHtml(ta) + '</a>').join('<br>') + '</li>').join('') + '</ol>';
+      h += '<ol class="daftar">' + u.tautan.map((ta) => '<li><a href="' + escHtml(ta) + '" target="_blank" rel="noopener">' + escHtml(ta) + '</a></li>').join('') + '</ol>';
     }
   });
   // D. PENUTUP
