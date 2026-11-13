@@ -252,6 +252,17 @@ function tambahKeepNext(xmlParagraf) {
   if (!/<w:pPr>/.test(xml) || /<w:keepNext\/>/.test(xml)) return xml;
   return xml.replace(/<w:pPr>/, "<w:pPr><w:keepNext/>");
 }
+// Larang baris tabel terbelah antar halaman (dipakai untuk tabel tanda
+// tangan Penutup yang hanya satu baris; tabel rekapitulasi yang panjang
+// TIDAK boleh memakai ini). Bila baris sudah punya <w:trPr>, cantSplit
+// disisipkan ke dalamnya; bila belum, trPr baru dibuat.
+function tambahCantSplit(xmlTabel) {
+  return String(xmlTabel).replace(/<w:tr>(<w:trPr>)?/g, (m, trPr) => {
+    if (!trPr) return "<w:tr><w:trPr><w:cantSplit/></w:trPr>";
+    if (m.includes("cantSplit")) return m;
+    return m.replace("<w:trPr>", "<w:trPr><w:cantSplit/>");
+  });
+}
 // Ubah paragraf label menjadi "label <TAB> : isi": sisipkan tab stop ke
 // pPr (w:tabs harus sebelum w:spacing/w:ind) dan pecah run tunggal jadi
 // label + <w:tab/> + ": isi". Run memakai rPr asli paragraf (Arial 11)
@@ -441,10 +452,20 @@ function gabungDocumentXml(xmlDokumen, hitung, ridAwal) {
     if (s.jenis === "teks") return s.xml;
     if (s.jenis === "tabel") {
       if (s.xml.includes("Satuan Kerja")) return isiTabelRekap(s.xml, perUpt, total);
-      return gantiDataDiTabel(s.xml, ctx);
+      const xmlTabel = gantiDataDiTabel(s.xml, ctx);
+      // Tabel tanda tangan Penutup (satu baris) tidak boleh terbelah —
+      // seluruh bab Penutup turun utuh bila tidak muat (lap. 13 Nov
+      // 2026; atas perintah Bos Besar).
+      if (idxPenutup >= 0 && i >= idxPenutup) return tambahCantSplit(xmlTabel);
+      return xmlTabel;
     }
     if (idxRincian >= 0 && i > idxRincian && (idxPenutup < 0 || i < idxPenutup)) return s.xml; // rincian: fase 2
-    return gantiDataParagraf(s.xml, ctx);
+    const xmlBaru = gantiDataParagraf(s.xml, ctx);
+    // Semua paragraf Penutup (termasuk paragraf kosong sebelum tabel
+    // tanda tangan) diberi keepNext supaya bab Penutup tetap menyatu
+    // dengan tabel tanda tangan di halaman berikut.
+    if (idxPenutup >= 0 && i >= idxPenutup) return tambahKeepNext(xmlBaru);
+    return xmlBaru;
   });
 
   // Fase 2: bangun ulang daftar judul/tautan tiap UPT di bagian rincian.
@@ -1059,6 +1080,15 @@ async function buildPdfLegacy(data) {
     }
   });
   // --- D. PENUTUP ---
+  // Seluruh bab Penutup (judul + 2 paragraf + blok tanda tangan) harus
+  // turun utuh ke halaman berikut bila tidak muat di halaman ini —
+  // jangan biarkan tanda tangan menggantung sendirian di halaman
+  // berikutnya (lap. 13 Nov 2026: judul + paragraf di hlm. 13,
+  // tanda tangan di hlm. 14; atas perintah Bos Besar).
+  const barisPenutup1 = doc.bagiBaris([{ teks: TEKS_PENUTUP_1 }], PDF_CW - TW(284) - TW(425)).length;
+  const barisPenutup2 = doc.bagiBaris([{ teks: TEKS_PENUTUP_2 }], PDF_CW - TW(709)).length;
+  const tinggiPenutup = 12 + PDF_LH + 4 + (barisPenutup1 * PDF_LH + 3) + (barisPenutup2 * PDF_LH + 3) + PDF_LH + 7 * PDF_LH;
+  doc.pastikan(tinggiPenutup);
   judulBagian("D. PENUTUP");
   // Paragraf penutup: after=60 (3pt) di template.
   tubuh(TEKS_PENUTUP_1, 3);
