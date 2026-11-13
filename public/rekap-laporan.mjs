@@ -161,7 +161,7 @@ const TEKS_PENUTUP_2 = "Atas perhatian dan kerja sama seluruh pihak, disampaikan
 // Bagian teks dimuat sebagai teks, gambar sebagai biner; dimuat sekali
 // lalu di-cache (modul dimuat malas, jadi unduhan pertama yang memuatnya).
 const TEMPLATE_DASAR = "/template-laporan/";
-const TEMPLATE_BAGIAN_TEKS = ["Content_Types.xml", "_rels/.rels", "docProps/core.xml", "word/document.xml", "word/_rels/document.xml.rels"];
+const TEMPLATE_BAGIAN_TEKS = ["Content_Types.xml", "_rels/.rels", "docProps/core.xml", "word/document.xml", "word/_rels/document.xml.rels", "word/footer1.xml"];
 const TEMPLATE_BAGIAN_BINER = ["word/media/image1.jpeg"];
 // Tanggal yang tertulis di template (8 Nov 2026) — dipakai untuk
 // memperbarui judul di docProps/core.xml.
@@ -513,6 +513,7 @@ export async function buildDocx(data) {
     ["docProps/core.xml", core],
     ["word/document.xml", xmlBaru],
     ["word/_rels/document.xml.rels", relsXml],
+    ["word/footer1.xml", tpl.teks["word/footer1.xml"]],
     ["word/media/image1.jpeg", tpl.biner["word/media/image1.jpeg"]],
   ]);
   return new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
@@ -771,7 +772,12 @@ class PdfDokumen {
         objek.push(`<< /Type /Annot /Subtype /Link /Rect [${t.x0.toFixed(2)} ${t.y0.toFixed(2)} ${t.x1.toFixed(2)} ${t.y1.toFixed(2)}] /Border [0 0 0] /A << /S /URI /URI (${t.uri.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")}) >> >>`);
         return objek.length;
       });
-      const aliran = h.ops.join("\n");
+      // Nomor halaman di bawah tengah setiap halaman (atas perintah
+      // Bos Besar 13 Nov 2026): angka saja, Helvetica 11, tepat di
+      // tengah lebar halaman, di bawah area isi (margin bawah 51pt).
+      const noHal = String(i + 1);
+      const xNoHal = (PDF_W - lebarTeks(noHal, 11, false)) / 2;
+      const aliran = h.ops.join("\n") + `\nBT /F1 11 Tf 0 g 1 0 0 1 ${xNoHal.toFixed(2)} 30.00 Tm ${pdfString(noHal)} Tj ET`;
       objek[idKonten[i] - 1] = { stream: aliran, dict: `<< /Length ${new TextEncoder().encode(aliran).length} >>` };
       objek[idHalamanObj[i] - 1] = `<< /Type /Page /Parent ${idHalaman} 0 R /MediaBox [0 0 ${PDF_W} ${PDF_H}] /Resources << /Font << /F1 ${idF1} 0 R /F2 ${idF2} 0 R >> /XObject << /Logo ${idGambar} 0 R >> >> /Contents ${idKonten[i]} 0 R${anot.length ? ` /Annots [${anot.map((a) => a + " 0 R").join(" ")}]` : ""} >>`;
     });
