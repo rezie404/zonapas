@@ -7,7 +7,7 @@ author: "Rezie"
 publishDate: 2026-11-03
 image: "/images/cover-lanjutkan-estafet-pengabdian-pisah-sambut-kakanwil-ditjenpas-bengkulu-perkiat-sinergi-pemasyarakatan-202611041650.jpg"
 imageCaption: "Dokumentasi kegiatan. Foto: JurnalPAS — jurnalpas.wordpress.com"
-featured: true
+featured: false
 breaking: false
 upt: "Kanwil Ditjenpas Bengkulu"
 source: "zonapas"
