@@ -14,6 +14,13 @@
 // build TIDAK digagalkan: kartu fallback ke foto sampul asli lewat
 // onerror (cover-default.svg) — jadi kegagalan di sini tidak pernah
 // merobohkan deploy.
+//
+// CATATAN (13 Nov 2026): thumbnail di sini TIDAK di-crop — hanya
+// diperkecil menjaga rasio (foto potret tetap potret). Fokus ke wajah
+// diatur di TAMPILAN, bukan di berkas: script hitung-fokus-wajah.mjs
+// (jalan SEBELUM astro build) menghitung titik fokus tiap sampul, dan
+// NewsCard memasangnya sebagai CSS object-position — jadi jendela 16:9
+// kartu menampilkan wajah orang terdepan tanpa memotong berkas aslinya.
 import { Jimp } from "jimp";
 import fs from "node:fs";
 import path from "node:path";

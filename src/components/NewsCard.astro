@@ -1,6 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
-import { categoryByName, formatDateShort, thumbCover } from '../data/site';
+import { categoryByName, formatDateShort, thumbCover, fokusWajah } from '../data/site';
 
 interface Props {
   entry: CollectionEntry<'berita'>;
@@ -12,6 +12,10 @@ const { entry, size = 'medium', showCategory = true } = Astro.props;
 const { title, summary, category, image, imageCaption, publishDate, source } = entry.data;
 const cat = categoryByName(category);
 const url = `/berita/${entry.id.replace(/\.md$/, '')}/`;
+// Titik fokus wajah (object-position) supaya jendela 16:9 kartu
+// menampilkan wajah orang terdepan — foto tidak di-crop, hanya
+// jendela tampilannya yang digeser ke wajah.
+const fokus = fokusWajah(image);
 
 // Kutipan narasi: teks polos dari awal badan artikel (baris gambar dibuang,
 // format Markdown/HTML dilucuti). Kartu menampilkan 4 baris pertama saja;
@@ -35,7 +39,7 @@ const narasi = teksNarasi(entry.body) || summary;
 {size === 'small' ? (
   <a href={url} data-reveal class="group flex gap-3 py-3 transition-transform duration-200 hover:-translate-y-0.5">
     <span class="block aspect-video w-28 shrink-0 overflow-hidden rounded-lg">
-      <img src={thumbCover(image, 320)} data-asli={image} alt={imageCaption} loading="lazy" width="320" height="180" class="h-full w-full object-cover" onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
+      <img src={thumbCover(image, 320)} data-asli={image} alt={imageCaption} loading="lazy" width="320" height="180" class="h-full w-full object-cover" style={`object-position:${fokus.x}% ${fokus.y}%`} onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
     </span>
     <span>
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}
@@ -60,7 +64,7 @@ const narasi = teksNarasi(entry.body) || summary;
 ) : (
   <a href={url} data-reveal class="group block overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
     <span class="block aspect-video w-full overflow-hidden">
-      <img src={thumbCover(image, 640)} data-asli={image} alt={imageCaption} loading="lazy" width="640" height="360" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
+      <img src={thumbCover(image, 640)} data-asli={image} alt={imageCaption} loading="lazy" width="640" height="360" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" style={`object-position:${fokus.x}% ${fokus.y}%`} onerror="if(this.dataset.fb){this.onerror=null;this.src='/images/cover-default.svg';}else{this.dataset.fb='1';this.src=this.dataset.asli;}" />
     </span>
     <span class="block p-4">
       {showCategory && cat && <span class="text-xs font-bold uppercase tracking-wide" style={`color:${cat.color}`}>{cat.name}</span>}

@@ -42,6 +42,21 @@ export function thumbCover(image: string, lebar: 320 | 640): string {
   return `/images/thumbs/${m[1]}-${lebar}.jpg`;
 }
 
+// Titik fokus wajah untuk thumbnail sampul (persentase object-position
+// CSS). Dihitung saat build oleh scripts/hitung-fokus-wajah.mjs dari
+// foto sampul di public/images — jendela 16:9 yang memuat wajah
+// terbanyak diubah menjadi object-position, jadi kartu (object-cover)
+// menampilkan wajah orang terdepan tanpa memotong berkas foto. Foto
+// tanpa wajah terdeteksi tidak ada di JSON dan memakai tengah (50/50).
+import fokusWajahData from './fokus-wajah.json';
+
+export function fokusWajah(image: string): { x: number; y: number } {
+  const data = fokusWajahData as Record<string, { x: number; y: number }>;
+  const f = data[image || ''];
+  if (!f || typeof f.x !== 'number' || typeof f.y !== 'number') return { x: 50, y: 50 };
+  return { x: Math.min(100, Math.max(0, f.x)), y: Math.min(100, Math.max(0, f.y)) };
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()
