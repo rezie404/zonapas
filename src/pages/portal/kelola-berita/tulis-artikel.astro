@@ -230,7 +230,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div class="flex min-h-full items-center justify-center px-3 py-6">
           <div id="modal-crop-panel" class="w-full max-w-[640px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-900">
             <p class="text-base font-bold">✂️ Potong Foto</p>
-            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Geser kotak dengan jari atau mouse, tarik sudut putih untuk mengubah ukuran, geser foto untuk menggeser gambar, atau atur zoom. Ketuk “Blur wajah” lalu seret di atas wajah untuk memburamkannya. Rasio bebas — foto tampil utuh mengikuti rasio aslinya.</p>
+            <p id="crop-petunjuk-bebas" class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Geser kotak dengan jari atau mouse, tarik sudut putih untuk mengubah ukuran, geser foto untuk menggeser gambar, atau atur zoom. Ketuk “Blur wajah” lalu seret di atas wajah untuk memburamkannya. Rasio bebas — foto tampil utuh mengikuti rasio aslinya.</p>
+            <p id="crop-petunjuk-kunci" class="mt-0.5 hidden text-xs font-bold text-amber-700 dark:text-amber-300">Rasio dikunci 16:9 — foto sampul dipotong mengikuti ukuran thumbnail supaya tampil penuh di kartu berita. Geser kotaknya untuk memilih bagian foto yang dipakai.</p>
             <div id="crop-stage" class="relative mt-3 h-[52vh] max-h-[460px] touch-none select-none overflow-hidden rounded-xl bg-slate-900">
               <img id="crop-img" alt="Foto yang dipotong" class="absolute max-w-none" draggable="false" />
               <div id="crop-box" class="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" style="touch-action:none">
@@ -456,8 +457,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const pratinjauLama = preview.src;
       const pratinjauTampil = !preview.classList.contains('hidden');
       try {
-        // Potong dulu sebelum resize/unggah; Batal = sampul lama tetap.
-        const terpotong = await bukaCrop(file);
+        // Potong dulu sebelum resize/unggah — sampul: rasio DIKUNCI 16:9
+        // (menyesuaikan thumbnail) supaya tampil penuh di kartu berita;
+        // Batal = sampul lama tetap.
+        const terpotong = await bukaCrop(file, 1.7778);
         if (!terpotong) {
           e.target.value = '';
           pendingCover = coverLama;
@@ -840,7 +843,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
 
-    function bukaCrop(file) {
+    // kunciRasio: bila diisi (mis. 1.7778 = 16:9 untuk foto sampul), rasio
+    // potongan DIKUNCI — tombol rasio lain disembunyikan dan kotak awal
+    // langsung 16:9, supaya sampul selalu sesuai ukuran thumbnail (16:9)
+    // dan tampil penuh di kartu berita tanpa dipotong lagi. Foto isi
+    // (badan narasi) memanggil tanpa kunciRasio — rasionya tetap bebas.
+    function bukaCrop(file, kunciRasio) {
       return new Promise((resolve, reject) => {
         const url = URL.createObjectURL(file);
         const img = new Image();
@@ -854,18 +862,29 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const muat = cropUkuranMuat(img.naturalWidth, img.naturalHeight, stage.clientWidth, stage.clientHeight);
           const gx = Math.round((stage.clientWidth - muat.w) / 2);
           const gy = Math.round((stage.clientHeight - muat.h) / 2);
+          const rasioAwal = kunciRasio || 0;
+          const kotakAwal = { x: gx, y: gy, w: muat.w, h: muat.h };
           cropState = {
             file, url,
             alami: { w: img.naturalWidth, h: img.naturalHeight },
             gambar: { x: gx, y: gy, w: muat.w, h: muat.h },
-            kotak: { x: gx, y: gy, w: muat.w, h: muat.h },
-            zoom: 1, rasio: 0,
+            kotak: rasioAwal ? cropBatasiKotak(cropTerapRasio(kotakAwal, rasioAwal), { x: gx, y: gy, w: muat.w, h: muat.h }, 40) : kotakAwal,
+            zoom: 1, rasio: rasioAwal,
+            kunciRasio: !!kunciRasio,
             blur: [], blurMode: false, blurSementara: null,
             resolve,
           };
           const zoom = $('crop-zoom');
           if (zoom) zoom.value = '1';
-          document.querySelectorAll('[data-rasio]').forEach((b) => b.classList.toggle('crop-rasio-aktif', (parseFloat(b.getAttribute('data-rasio')) || 0) === 0));
+          document.querySelectorAll('[data-rasio]').forEach((b) => {
+            const r = parseFloat(b.getAttribute('data-rasio')) || 0;
+            b.classList.toggle('hidden', !!kunciRasio && r !== kunciRasio);
+            b.classList.toggle('crop-rasio-aktif', r === rasioAwal);
+          });
+          const petunjukBebas = $('crop-petunjuk-bebas');
+          const petunjukKunci = $('crop-petunjuk-kunci');
+          if (petunjukBebas) petunjukBebas.classList.toggle('hidden', !!kunciRasio);
+          if (petunjukKunci) petunjukKunci.classList.toggle('hidden', !kunciRasio);
           perbaruiTombolBlur();
           cropTampilkan();
         };
@@ -999,7 +1018,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
     document.querySelectorAll('[data-rasio]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (!cropState) return;
+        if (!cropState || cropState.kunciRasio) return;
         const r = parseFloat(btn.getAttribute('data-rasio')) || 0;
         cropState.rasio = r;
         document.querySelectorAll('[data-rasio]').forEach((b) => b.classList.toggle('crop-rasio-aktif', b === btn));
