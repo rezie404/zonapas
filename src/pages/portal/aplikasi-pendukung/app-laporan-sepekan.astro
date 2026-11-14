@@ -149,7 +149,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 4 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Sabtu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 6 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Sabtu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -1027,9 +1027,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               '<input type="text" data-judul-kegiatan="' + hi + ':' + ki + '" value="' + esc(k.judul) + '" placeholder="Contoh: Apel Pagi Kanwil Ditjenpas Bengkulu" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"' + (kunci ? ' disabled' : '') + ' /></label>' +
             '<label class="mt-2 block"><span class="block text-xs font-bold">Narasi</span>' +
               '<textarea rows="5" data-narasi-kegiatan="' + hi + ':' + ki + '" placeholder="Tulis narasi kegiatan…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900"' + (kunci ? ' disabled' : '') + '>' + esc(k.narasi) + '</textarea></label>' +
-            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 4)</span>' +
+            '<div class="mt-2"><span class="block text-xs font-bold">Foto kegiatan (maks 6)</span>' +
               '<div class="mt-1 flex flex-wrap items-center gap-2">' + fotos +
-              (!kunci && k.foto.filter(Boolean).length < 4 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
+              (!kunci && k.foto.filter(Boolean).length < 6 ? '<label class="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-[#0A2540] dark:border-slate-700">+ Tambah foto<input type="file" accept="image/*" data-tambah-foto="' + hi + ':' + ki + '" class="hidden" /></label>' : '') +
               '</div></div></div>';
         }).join('');
         return '<article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">' +
@@ -1446,14 +1446,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         blok.push({ tipe: 'hari', html: htmlHari, tinggi: tinggiHari, grup: grupHari });
         kegiatanIsi.forEach(({ k, ki }) => {
           const grup = 'keg-' + hi + '-' + (h.tanggal || '') + '-' + ki;
-          const fotos = (k.foto || []).filter(Boolean).slice(0, 4);
-          // Foto MAKS 4 (Nov 2026, atas permintaan Bos Besar), rapi DI
+          const fotos = (k.foto || []).filter(Boolean).slice(0, 6);
+          // Foto MAKS 6 (Nov 2026, atas permintaan Bos Besar), rapi DI
           // BAWAH narasi. Tinggi foto MENYESUAIKAN panjang narasi:
           // dihitung dari sisa ruang 1 halaman F4 (TINGGI_ISI 1081px)
           // setelah narasi + kepala hari — narasi panjang -> foto lebih
           // ringkas; narasi pendek -> foto lebih besar — supaya kegiatan
           // tetap muat 1 halaman. 1 foto tampil tunggal, 2-3 foto
-          // sebaris, 4 foto grid 2x2.
+          // sebaris, 4 foto grid 2x2, 5 foto grid 3+2, 6 foto grid 3+3.
           const narasiBlok = blokNarasi2Kol(k.narasi, k.judul || '(Tanpa judul)');
           const tNarasi = narasiBlok.reduce((a, b) => a + b.tinggi, 0);
           const sisa = Math.max(100, Math.min(520, TINGGI_ISI - tNarasi - (ki === 0 ? tinggiHari : 0) - 50));
@@ -1474,14 +1474,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               daftar.forEach((f) => { sel += '<div class="sepekan-foto-item" style="height:' + h3 + 'px"><img src="' + esc(f) + '" alt="" /></div>'; });
               return '<div class="sepekan-foto-baris" style="height:' + h3 + 'px">' + sel + '</div>';
             }
-            const h4 = Math.max(90, Math.min(190, Math.floor((sisa - 28) / 2)));
+            // 4 foto grid 2x2, 5 foto grid 3+2, 6 foto grid 3+3 —
+            // semuanya dua baris, tinggi per baris sama.
+            const perBaris = daftar.length === 4 ? 2 : 3;
+            const hG = Math.max(90, Math.min(190, Math.floor((sisa - 28) / 2)));
             let baris = '';
             for (let r = 0; r < 2; r++) {
               let sel = '';
-              for (let c = 0; c < 2; c++) {
-                sel += '<div class="sepekan-foto-item" style="height:' + h4 + 'px"><img src="' + esc(daftar[r * 2 + c]) + '" alt="" /></div>';
+              for (let c = 0; c < perBaris; c++) {
+                const idx = r * perBaris + c;
+                if (idx >= daftar.length) break;
+                sel += '<div class="sepekan-foto-item" style="height:' + hG + 'px"><img src="' + esc(daftar[idx]) + '" alt="" /></div>';
               }
-              baris += '<div class="sepekan-foto-baris" style="height:' + h4 + 'px">' + sel + '</div>';
+              if (sel) baris += '<div class="sepekan-foto-baris" style="height:' + hG + 'px">' + sel + '</div>';
             }
             return baris;
           };
@@ -1881,7 +1886,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const [hi, ki] = t.dataset.tambahFoto.split(':').map(Number);
           const f = t.files && t.files[0];
           if (!f) return;
-          if (state.hari[hi].kegiatan[ki].foto.filter(Boolean).length >= 4) { t.value = ''; return; }
+          if (state.hari[hi].kegiatan[ki].foto.filter(Boolean).length >= 6) { t.value = ''; return; }
           try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { t.value = ''; return; } state.hari[hi].kegiatan[ki].foto.push(url); renderHari(); simpanDraf(); renderPratinjau(); }
           catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
           t.value = '';
