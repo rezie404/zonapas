@@ -689,8 +689,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     normalisasiPeriode();
     // ---------- Tindak Lanjut (bisa diedit, Nov 2026) ----------
-    // Satu butir per kegiatan (1–2 baris): tindak lanjut yang sebaiknya
-    // dilakukan atas kegiatan itu. Terisi otomatis dari kegiatan saat draf
+    // Satu butir per ruang lingkup (1–2 baris): bila beberapa kegiatan
+    // punya ruang lingkup yang sama, tindak lanjutnya cukup 1 butir
+    // untuk kegiatan-kegiatan itu — jumlah kegiatan tidak selalu
+    // berbanding lurus dengan jumlah tindak lanjut (perintah Bos Besar
+    // 14 Nov 2026; membatalkan aturan lama "satu butir per kegiatan
+    // walau teksnya sama"). Terisi otomatis dari kegiatan saat draf
     // dibuat / saat "Tarik Berita Minggu Ini" dijalankan, lalu BISA DIEDIT
     // bebas di kolom Tindak Lanjut di bawah (ubah, hapus, tambah butir).
     const ATURAN_TINDAK_LANJUT = [
@@ -717,13 +721,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       for (const a of ATURAN_TINDAK_LANJUT) if (a.pola.test(j)) return a.teks;
       return TINDAK_LANJUT_UMUM;
     }
-    // Satu butir per kegiatan, urut per hari; hanya kegiatan yang sama
-    // persis (tanggal + judul sama) yang ditulis sekali — kegiatan
-    // berbeda tetap mendapat butirnya masing-masing walau teks tindak
-    // lanjutnya sama.
+    // Satu butir per ruang lingkup, urut per hari: kegiatan yang sama
+    // persis (tanggal + judul sama) ditulis sekali, dan kegiatan
+    // berbeda yang ruang lingkupnya sama (teks tindak lanjut yang
+    // dihasilkan sama) digabung jadi satu butir — diambil yang pertama.
     function buatTindakLanjut(hari) {
       const keluar = [];
       const sudah = new Set();
+      const sudahTeks = new Set();
       (hari || []).forEach((h) => {
         (h.kegiatan || []).forEach((k) => {
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
@@ -731,7 +736,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (sudah.has(kunci)) return;
           sudah.add(kunci);
           const teks = tindakLanjutUntukJudul(k.judul, k.narasi);
-          if (teks) keluar.push(teks);
+          if (!teks) return;
+          const kunciTeks = teks.trim().replace(/\s+/g, ' ');
+          if (sudahTeks.has(kunciTeks)) return;
+          sudahTeks.add(kunciTeks);
+          keluar.push(teks);
         });
       });
       return keluar;
@@ -1923,9 +1932,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         renderTindakLanjut(); simpanDraf(); renderPratinjau();
       });
       $('sp-isi-ulang-tindak').addEventListener('click', () => {
+        const jmlKegiatan = (state.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
         state.tindakLanjut = buatTindakLanjut(state.hari);
         renderTindakLanjut(); simpanDraf(); renderPratinjau();
-        showStatus('Tindak Lanjut diisi ulang dari ' + state.tindakLanjut.length + ' kegiatan minggu ini. Butir yang sudah diubah ikut diganti — ubah lagi bila perlu.', true);
+        showStatus('Tindak Lanjut diisi ulang menjadi ' + state.tindakLanjut.length + ' butir dari ' + jmlKegiatan + ' kegiatan minggu ini (ruang lingkup yang sama digabung jadi satu butir). Butir yang sudah diubah ikut diganti — ubah lagi bila perlu.', true);
       });
       const btnTutupSemua = $('sp-tutup-semua');
       if (btnTutupSemua) btnTutupSemua.addEventListener('click', () => {
