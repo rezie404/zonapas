@@ -1496,15 +1496,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const lebarSatuan = Math.max.apply(null, BARIS.map((n, r) => n + (r % 2 ? 0.5 : 0)));
         const sLebar = 701 / (lebarSatuan * 1.732);
         const s = Math.max(50, Math.min(220, Math.floor(Math.min(sTinggi, sLebar))));
-        const W = Math.floor(1.732 * s), H = 2 * s, dx = W, dy = Math.floor(1.5 * s), offX = Math.floor(0.866 * s);
-        const lebarKlaster = Math.max.apply(null, BARIS.map((n, r) => (r % 2 ? offX : 0) + n * W));
-        const geserX = Math.round((701 - lebarKlaster) / 2);
+        const W = Math.floor(1.732 * s), H = 2 * s, dx = W, dy = Math.floor(1.5 * s);
         const tinggi = H + (BARIS.length - 1) * dy;
         let sel = '';
         let idx = 0;
         BARIS.forEach((n, r) => {
           for (let k = 0; k < n; k++) {
-            const cx = W / 2 + k * dx + (r % 2 ? offX : 0) + geserX;
+            // Tiap baris dipusatkan sendiri ke tengah halaman (15 Nov
+            // 2026, perintah Bos Besar: "agar semua ditengah dan
+            // terlihat rapi"). Baris 2 segi enam otomatis bergeser W/2
+            // ke kanan terhadap baris 3 segi enam — itulah selang-seling
+            // sarang lebahnya. Sebelumnya seluruh klaster dipusatkan
+            // sekali (geserX) sehingga baris 2 segi enam duduk 0,75W
+            // ke kiri dari tengah halaman (tampak menumpuk di kiri).
+            const cx = W / 2 + k * dx + (701 - n * W) / 2;
             const cy = H / 2 + r * dy;
             const gaya = 'left:' + Math.round(cx - W / 2) + 'px;top:' + Math.round(cy - H / 2) + 'px;width:' + W + 'px;height:' + H + 'px';
             if (idx < foto.length) sel += '<div class="sepekan-madu-hex" style="' + gaya + ';background:#FFCC00"><div class="sepekan-madu-isi"><img src="' + esc(foto[idx]) + '" alt="" /></div></div>';
