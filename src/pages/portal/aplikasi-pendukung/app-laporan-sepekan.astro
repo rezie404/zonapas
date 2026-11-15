@@ -174,7 +174,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <button id="sp-reset-template" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Template</button>
         <button id="sp-bersihkan" type="button" class="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-200 dark:hover:bg-red-900/20">Bersihkan Draf</button>
       </section>
-      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di peramban ini.</p>
+      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server (akun Anda) — aman walau keluar lalu masuk lagi atau ganti perangkat.</p>
       </div>
 
       <!-- Pratinjau (halaman sendiri saat ?pratinjau=1) -->
@@ -762,18 +762,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = buatTindakLanjut(state.hari);
     }
     pastikanTindakLanjut();
+    function infoDraf(pesan) { const info = $('sp-draf-info'); if (info) info.textContent = pesan; }
     let timerSimpan = null;
     function simpanDraf() {
       clearTimeout(timerSimpan);
       timerSimpan = setTimeout(() => {
+        state.diperbarui = Date.now();
         try {
           localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
-          const info = $('sp-draf-info');
-          if (info) info.textContent = 'Draf tersimpan otomatis di peramban ini.';
+          infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
         } catch {
-          const info = $('sp-draf-info');
-          if (info) info.textContent = 'Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.';
+          infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
         }
+        jadwalSinkronServer();
       }, 400);
     }
     // K20: tulis draf SECARA SINKRON (tanpa debounce 400 ms) — dipakai
@@ -783,13 +784,83 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function simpanDrafSegera() {
       clearTimeout(timerSimpan);
       timerSimpan = null;
+      state.diperbarui = Date.now();
       try {
         localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
-        const info = $('sp-draf-info');
-        if (info) info.textContent = 'Draf tersimpan otomatis di peramban ini.';
+        infoDraf('Draf tersimpan di peramban ini.');
       } catch {
-        const info = $('sp-draf-info');
-        if (info) info.textContent = 'Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.';
+        infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
+      }
+      // Kirim juga ke server tanpa menunggu jawaban (navigasi ke
+      // pratinjau membatalkan fetch biasa) — sendBeacon tetap terkirim.
+      kirimDrafServerBeacon();
+    }
+    // ---------- Draf di server (15 Nov 2026) ----------
+    // Draf juga disimpan di server per akun, supaya tetap ada walau
+    // logout lalu login lagi atau ganti perangkat — termasuk foto yang
+    // sudah diunggah (foto disimpan sebagai data URL di dalam JSON
+    // draf). localStorage tetap dipakai sebagai salinan cepat di
+    // peramban ini: tulis lokal dulu (sinkron, tidak pernah menggantung
+    // halaman), lalu kirim ke server secara debounce. Bila server tidak
+    // terjangkau (offline), draf tetap aman di localStorage dan sinkron
+    // dicoba lagi pada perubahan berikutnya. Bila dua perangkat
+    // mengedit bersamaan, simpanan terbaru (diperbarui) yang menang.
+    let timerSinkronServer = null;
+    let sinkronServerBerjalan = false;
+    let drafServerAda = false;
+    let drafServerTerakhir = 0;
+    function jadwalSinkronServer() {
+      clearTimeout(timerSinkronServer);
+      timerSinkronServer = setTimeout(simpanDrafServer, 1500);
+    }
+    async function simpanDrafServer() {
+      if (typeof workerPost !== 'function' || sinkronServerBerjalan) return;
+      sinkronServerBerjalan = true;
+      try {
+        state.diperbarui = Date.now();
+        const r = await workerPost('/redaksi/api/sepekan/draf', { data: state }, { timeoutMs: 30000 });
+        if (r && r.ok) {
+          drafServerAda = true;
+          drafServerTerakhir = r.diperbarui || Date.now();
+          infoDraf('Draf tersimpan di server ✓ — aman walau keluar lalu masuk lagi atau ganti perangkat.');
+        }
+      } catch (e) {
+        infoDraf('Draf tersimpan di peramban ini; server belum terjangkau — akan dikirim lagi saat ada perubahan berikutnya.');
+      } finally { sinkronServerBerjalan = false; }
+    }
+    function kirimDrafServerBeacon() {
+      try {
+        if (typeof navigator === 'undefined' || !navigator.sendBeacon) { jadwalSinkronServer(); return; }
+        const blob = new Blob([JSON.stringify({ data: state })], { type: 'application/json' });
+        navigator.sendBeacon('/redaksi/api/sepekan/draf', blob);
+      } catch { /* abaikan — sinkron berikutnya yang mengurus */ }
+    }
+    // Muat draf server saat aplikasi dibuka: draf server yang lebih baru
+    // menggantikan draf lokal; draf lokal (termasuk yang dibuat sebelum
+    // fitur server ini ada, tanpa stempel waktu) diunggah ke server.
+    // Mengembalikan true bila ada draf di server.
+    async function sinkronDrafServerAwal() {
+      if (typeof workerGet !== 'function') return false;
+      try {
+        const r = await workerGet('/redaksi/api/sepekan/draf', { timeoutMs: 15000 });
+        if (!r || !r.ok || !r.ada || !r.data || !Array.isArray(r.data.hari)) return false;
+        drafServerAda = true;
+        drafServerTerakhir = r.diperbarui || 0;
+        const lokalBaru = Number(state.diperbarui || 0);
+        if (drafTersimpan && (lokalBaru === 0 || lokalBaru >= drafServerTerakhir)) {
+          jadwalSinkronServer();
+          return true;
+        }
+        state = r.data;
+        ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
+        normalisasiPeriode();
+        pastikanTindakLanjut();
+        try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
+        tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
+        infoDraf('Draf dimuat dari server ✓ — data terakhir Anda, termasuk foto yang sudah diunggah.');
+        return true;
+      } catch (e) {
+        return false;
       }
     }
     function showStatus(pesan, ok) {
@@ -1981,6 +2052,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-bersihkan').addEventListener('click', () => {
         if (!confirm('Bersihkan draf laporan sepekan ini? Isi akan kembali kosong kecuali template dasar.')) return;
         try { localStorage.removeItem(KUNCI_DRAF); } catch {}
+        // Hapus juga draf di server supaya tidak dimuat lagi saat buka berikutnya.
+        drafServerAda = false;
+        if (typeof workerPost === 'function') workerPost('/redaksi/api/sepekan/draf/hapus', {}).catch(() => {});
         state = klon(TEMPLATE);
         state.hari = [];
         state.tindakLanjut = [];
@@ -2022,8 +2096,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Bila belum ada draf tersimpan, isi laporan otomatis dari berita
     // minggu berjalan (Senin–Sabtu) — tidak perlu mengetuk Tarik Berita.
     // Draf yang sudah ada tidak disentuh supaya editan manual tidak tertimpa.
-    if (!drafTersimpan) {
-      setMingguIni();
+    // Sejak 15 Nov 2026 draf juga bisa datang dari server: di mode editor,
+    // tunggu dulu hasil muat server — bila server punya draf, draf itu yang
+    // dipakai (atau draf lokal yang diunggah); tarik otomatis hanya jalan
+    // bila tidak ada draf di mana pun. Di mode pratinjau, draf sudah ditulis
+    // lokal sebelum navigasi, jadi perilaku lama dipertahankan.
+    if (MODE_PRATINJAU) {
+      if (!drafTersimpan) setMingguIni();
+    } else {
+      sinkronDrafServerAwal().then(() => {
+        if (!drafTersimpan && !drafServerAda) setMingguIni();
+      });
     }
     // Font web (Plus Jakarta Sans) bisa termuat setelah render pertama;
     // render ulang setelah font siap supaya paginasi memakai metrik font
