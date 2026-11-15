@@ -372,6 +372,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
        konversiRantaiSampul) karena html2canvas tidak merender clip-path. */
     .sepekan-rantai-sampul { position: absolute; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
     .sepekan-rantai-dalam { position: absolute; inset: 3px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: #F4F8FE; }
+    /* Rantai segi enam kecil di tengah footer halaman isi (15 Nov 2026,
+       perintah Bos Besar: "masukkan rantai segienam kecil ini di tengah
+       footer isi laporan agar lebih terlihat penuh") — wadah 184px
+       (5 segi enam 40px berselang 36px) di tengah halaman, menempel di
+       atas lajur biru bawah (bottom: 10px). Isi dalam putih karena
+       halaman isi berlatar putih (bukan #F4F8FE seperti sampul). */
+    .sepekan-rantai-footer { position: absolute; left: 50%; transform: translateX(-50%); bottom: 10px; width: 184px; height: 36px; }
+    .sepekan-rantai-footer .sepekan-rantai-dalam { background: #FFFFFF; }
     /* Pola titik emas halus di jalur bawah sampul (15 Nov 2026, Opsi 4
        yang dipilih Bos Besar): ubin PNG 20x20 berisi satu titik emas,
        diulang tiap 20px. Dipakai background-image data-URI (bukan
@@ -1753,10 +1761,23 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlLaporan() {
       const halaman = bagiHalaman(susunBlok());
       let html = '<div class="sepekan-bungkus" data-halaman="sampul"><div class="sepekan-halaman">' + htmlSampul() + '</div></div>';
-      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-titik"></div><div class="sepekan-latar-rantai"></div><div class="sepekan-latar-garis-biru"></div><div class="sepekan-latar-garis-kuning"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div><div class="sepekan-latar-logo-kuning"></div><div class="sepekan-latar-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-segitiga-bawah-kuning"></div><div class="sepekan-latar-segitiga-bawah-biru"></div><div class="sepekan-latar-bawah"></div></div>';
+      // Rantai segi enam kecil di tengah footer halaman isi (15 Nov 2026,
+      // perintah Bos Besar): 5 segi enam yang sama dengan rantai sampul
+      // (emas-dongker berselang-seling), di tengah footer di atas lajur
+      // biru bawah. data-dalam="#FFFFFF" karena halaman isi berlatar
+      // putih. Dipakai di LATAR dan LATAR_HASIL (semua halaman isi).
+      const RANTAI_FOOTER =
+        '<div class="sepekan-rantai-footer">' +
+        '<div class="sepekan-rantai-sampul" data-warna="#FFCC00" data-dalam="#FFFFFF" style="left:0px; top:0px; width:40px; height:36px; background:#FFCC00;"><div class="sepekan-rantai-dalam"></div></div>' +
+        '<div class="sepekan-rantai-sampul" data-warna="#0A2540" data-dalam="#FFFFFF" style="left:36px; top:0px; width:40px; height:36px; background:#0A2540;"><div class="sepekan-rantai-dalam"></div></div>' +
+        '<div class="sepekan-rantai-sampul" data-warna="#FFCC00" data-dalam="#FFFFFF" style="left:72px; top:0px; width:40px; height:36px; background:#FFCC00;"><div class="sepekan-rantai-dalam"></div></div>' +
+        '<div class="sepekan-rantai-sampul" data-warna="#0A2540" data-dalam="#FFFFFF" style="left:108px; top:0px; width:40px; height:36px; background:#0A2540;"><div class="sepekan-rantai-dalam"></div></div>' +
+        '<div class="sepekan-rantai-sampul" data-warna="#FFCC00" data-dalam="#FFFFFF" style="left:144px; top:0px; width:40px; height:36px; background:#FFCC00;"><div class="sepekan-rantai-dalam"></div></div>' +
+        '</div>';
+      const LATAR = '<div class="sepekan-latar"><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-latar-titik"></div><div class="sepekan-latar-rantai"></div><div class="sepekan-latar-garis-biru"></div><div class="sepekan-latar-garis-kuning"></div><div class="sepekan-latar-segitiga-biru"></div><div class="sepekan-latar-segitiga-kuning"></div><div class="sepekan-latar-logo-kuning"></div><div class="sepekan-latar-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-segitiga-bawah-kuning"></div><div class="sepekan-latar-segitiga-bawah-biru"></div>' + RANTAI_FOOTER + '<div class="sepekan-latar-bawah"></div></div>';
       // Latar khusus halaman Hasil (Motif 1 Emboss Segi Enam) — halaman
       // bab lain tetap memakai LATAR. Watermark lambang tetap ada.
-      const LATAR_HASIL = '<div class="sepekan-latar-hasil"><div class="sepekan-hasil-dots"></div><div class="sepekan-hasil-header"></div><div class="sepekan-hasil-header-hex"></div><div class="sepekan-hasil-stripe"></div><div class="sepekan-hasil-emboss"></div><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-hasil-tri-biru"></div><div class="sepekan-hasil-tri-kuning"></div><div class="sepekan-hasil-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div><div class="sepekan-latar-bawah"></div></div>';
+      const LATAR_HASIL = '<div class="sepekan-latar-hasil"><div class="sepekan-hasil-dots"></div><div class="sepekan-hasil-header"></div><div class="sepekan-hasil-header-hex"></div><div class="sepekan-hasil-stripe"></div><div class="sepekan-hasil-emboss"></div><div class="sepekan-latar-watermark"><img src="/images/lambang-pas-abu.png" alt="" /></div><div class="sepekan-hasil-tri-biru"></div><div class="sepekan-hasil-tri-kuning"></div><div class="sepekan-hasil-logo"><img src="/images/logo-kemenimipas.png" alt="" /></div>' + RANTAI_FOOTER + '<div class="sepekan-latar-bawah"></div></div>';
       halaman.forEach((hals, i) => {
         // Halaman Hasil = ada blok kegiatan (grup 'keg-...') di halaman itu.
         const isHasil = hals.some((b) => b.grup && String(b.grup).indexOf('keg-') === 0);
@@ -1918,15 +1939,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       gantiSlotDenganPng(slot, dataUrl);
     }
     async function konversiRantaiSampul(slot) {
-      // Rantai segi enam kecil pojok kanan atas (15 Nov 2026): segi enam
-      // outline — lapis luar warna rantai (data-warna), lapis dalam latar
-      // sampul #F4F8FE inset 3px. Tanpa foto, jadi tidak perlu menunggu.
+      // Rantai segi enam kecil (15 Nov 2026): segi enam outline — lapis
+      // luar warna rantai (data-warna), lapis dalam latar halaman
+      // (data-dalam: #F4F8FE di sampul, #FFFFFF di footer halaman isi)
+      // inset 3px. Tanpa foto, jadi tidak perlu menunggu.
       const lebar = slot.offsetWidth, tinggi = slot.offsetHeight;
       if (!lebar || !tinggi) return;
       const warna = slot.getAttribute('data-warna') || '#FFCC00';
+      // Isi dalam mengikuti latar halaman: #F4F8FE di sampul, #FFFFFF di
+      // footer halaman isi (data-dalam). Tanpa data-dalam = sampul.
+      const dalam = slot.getAttribute('data-dalam') || '#F4F8FE';
       const dataUrl = segiEnamPng(null, lebar, tinggi, 'flat', [
         { warna: warna, inset: 0 },
-        { warna: '#F4F8FE', inset: 3 },
+        { warna: dalam, inset: 3 },
       ]);
       gantiSlotDenganPng(slot, dataUrl);
     }
