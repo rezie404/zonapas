@@ -338,10 +338,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     /* Sampul */
     .sepekan-sampul { position: absolute; inset: 0; background: #F4F8FE; overflow: hidden; }
     .sepekan-sampul-garis { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, transparent 0 90px, rgba(30, 64, 175, 0.05) 90px 96px); }
+    /* Lambang Ditjenpas transparan di sampul (15 Nov 2026, perintah
+       Bos Besar): lambang PAS abu-abu yang sama dengan watermark
+       halaman bab (opacity 0.10), di tengah sampul di belakang isi. */
+    .sepekan-sampul-ditjenpas { position: absolute; left: 50%; top: 50%; width: 620px; transform: translate(-50%, -50%); opacity: 0.10; }
+    .sepekan-sampul-ditjenpas img { width: 100%; height: auto; display: block; }
     .sepekan-sampul-kepala { position: absolute; top: 34px; left: 44px; right: 44px; display: flex; align-items: center; gap: 14px; }
     .sepekan-sampul-kepala img { width: 74px; height: 74px; object-fit: contain; }
     .sepekan-sampul-kepala .t1 { font-size: 26px; font-weight: 800; color: #0A2540; letter-spacing: 1px; line-height: 1.1; }
-    .sepekan-sampul-kepala .t2 { font-size: 22px; font-weight: 800; line-height: 1.1; }
+    .sepekan-sampul-kepala .t2 { font-size: 22px; font-weight: 800; line-height: 1.1; text-shadow: 1px 0 0 #000000, -1px 0 0 #000000, 0 1px 0 #000000, 0 -1px 0 #000000, 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000; }
     .sepekan-sampul-kepala .t2 .biru { color: #1E40AF; }
     .sepekan-sampul-kepala .t2 .kuning { color: #FFCC00; }
     .sepekan-sampul-judul { position: absolute; top: 170px; left: 0; right: 0; text-align: center; }
@@ -1684,6 +1689,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function htmlSampul() {
       return '<div class="sepekan-sampul">' +
         '<div class="sepekan-sampul-garis"></div>' +
+        '<div class="sepekan-sampul-ditjenpas"><img src="/images/lambang-pas-abu.png" alt="" /></div>' +
         '<div class="sepekan-sampul-kepala">' +
           '<img src="/images/logo-kemenimipas.png" alt="Logo Kementerian Imigrasi dan Pemasyarakatan" />' +
           '<div><div class="t1">KANTOR WILAYAH</div><div class="t2"><span class="biru">DITJENPAS</span> <span class="kuning">Bengkulu</span></div></div>' +
@@ -1696,7 +1702,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         '<div class="sepekan-hex-luar" style="left:36px; top:582px; width:430px; height:430px; background:#0A2540;">' +
           '<div class="sepekan-hex-tengah"><div class="sepekan-hex-dalam"><img src="' + esc(state.fotoPotret || FOTO_POTRET_TEMPLATE) + '" alt="Foto Kakanwil" /></div></div>' +
         '</div>' +
-        '<div class="sepekan-hex-luar" style="left:430px; top:762px; width:330px; height:330px; background:#0A2540;">' +
+        '<div class="sepekan-hex-luar" style="left:371px; top:822px; width:330px; height:330px; background:#0A2540;">' +
           '<div class="sepekan-hex-tengah"><div class="sepekan-hex-dalam"><img src="' + esc(state.fotoLapangan || FOTO_LAPANGAN_TEMPLATE) + '" alt="Foto kegiatan" /></div></div>' +
         '</div>' +
         '<div class="sepekan-sampul-kaki"></div>' +
