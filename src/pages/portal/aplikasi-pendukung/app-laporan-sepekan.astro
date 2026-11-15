@@ -113,7 +113,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <button id="sp-tarik" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Minggu Ini</button>
           <button id="sp-minggu-ini" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Set ke minggu ini</button>
         </div>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan: saat aplikasi dibuka (bila belum ada draf) dan setiap kali periode diubah, berita Senin–Sabtu pada periode itu ditarik sendiri — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan: saat aplikasi dibuka (bila belum ada draf) dan setiap kali periode diubah, berita Senin–Minggu pada periode itu ditarik sendiri — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
       </section>
 
       <!-- Foto sampul -->
@@ -149,7 +149,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 6 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Sabtu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 6 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Minggu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -343,7 +343,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-sampul-kepala .t1 { font-size: 26px; font-weight: 800; color: #0A2540; letter-spacing: 1px; line-height: 1.1; }
     .sepekan-sampul-kepala .t2 { font-size: 22px; font-weight: 800; line-height: 1.1; }
     .sepekan-sampul-kepala .t2 .biru { color: #1E40AF; }
-    .sepekan-sampul-kepala .t2 .kuning { color: #FFCC00; background: #0A2540; padding: 1px 8px; border-radius: 3px; }
+    .sepekan-sampul-kepala .t2 .kuning { color: #FFCC00; }
     .sepekan-sampul-judul { position: absolute; top: 170px; left: 0; right: 0; text-align: center; }
     .sepekan-sampul-judul .besar { font-size: 76px; font-weight: 800; line-height: 1.02; letter-spacing: 1px; color: #111111; }
     .sepekan-sampul-judul .besar .biru { color: #1E40AF; }
@@ -443,14 +443,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function tglTtdPanjang() {
       const d = parseTgl(state.ttd);
       if (!d) return '';
-      return 'Bengkulu, ' + String(d.getDate()).padStart(2, '0') + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
+      // Nama bulan huruf kapital di awal saja (15 Nov 2026, perintah Bos
+      // Besar: "15 November 2026", bukan "15 NOVEMBER 2026").
+      const bln = BULAN_NAMA[d.getMonth()];
+      return 'Bengkulu, ' + String(d.getDate()).padStart(2, '0') + ' ' + bln.charAt(0) + bln.slice(1).toLowerCase() + ' ' + d.getFullYear();
     }
 
     // ---------- Tarik Berita Minggu Ini ----------
-    // Laporan sepekan diambil dari berita ZonaPas (Senin–Sabtu). Sumber:
+    // Laporan sepekan diambil dari berita ZonaPas (Senin–Minggu). Sumber:
     // /search-index.json (judul, tanggal, foto sampul) + halaman tiap
     // artikel untuk narasinya (#article-body p). Foto sampul laporan
     // ikut terisi dari foto berita. Semua hasil tarikan masih bisa diedit.
+    // Minggu ikut ditarik bila tanggalnya masuk periode (15 Nov 2026,
+    // perintah Bos Besar: tambah kolom kegiatan hari Minggu 15 Nov 2026).
     const BULAN_INDEKS = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, May: 4, Jun: 5, Jul: 6, Agu: 7, Aug: 7, Sep: 8, Okt: 9, Oct: 9, Nov: 10, Des: 11, Dec: 11 };
     function parseTanggalIndeks(str) {
       const m = /^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})$/.exec(String(str || '').trim());
@@ -509,20 +514,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (btn) { btn.disabled = true; btn.textContent = 'Menarik berita…'; }
       showStatus(perHariSaja
         ? 'Menarik berita ZonaPas ' + labelHari(hanyaTanggal) + '…'
-        : 'Menarik berita ZonaPas ' + teksPeriode() + ' (Senin–Sabtu)…', true);
+        : 'Menarik berita ZonaPas ' + teksPeriode() + ' (Senin–Minggu)…', true);
       try {
         const res = await fetch('/search-index.json');
         if (!res.ok) throw new Error('Indeks berita tidak bisa dimuat.');
         const indeks = await res.json();
         const artikel = indeks
           .map((a) => ({ ...a, tgl: parseTanggalIndeks(a.date) }))
-          .filter((a) => a.tgl && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir && a.tgl.getDay() !== 0)))
+          .filter((a) => a.tgl && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir)))
           .sort((x, y) => x.tgl - y.tgl);
         if (!artikel.length) {
           if (!perHariSaja) periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
           showStatus(perHariSaja
             ? 'Tidak ada berita ZonaPas pada ' + labelHari(hanyaTanggal) + ' — kegiatan hari itu tidak diubah.'
-            : 'Tidak ada berita ZonaPas pada periode ' + teksPeriode() + ' (Senin–Sabtu).', false);
+            : 'Tidak ada berita ZonaPas pada periode ' + teksPeriode() + ' (Senin–Minggu).', false);
           return;
         }
         const narasiList = await Promise.all(artikel.map((a) => ambilNarasiArtikel(a.url)));
@@ -559,7 +564,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           state.hari.forEach((h) => {
             if (h && h.kunci && h.tanggal) {
               const d = parseTgl(h.tanggal);
-              if (d && d >= mulai && d <= akhir && d.getDay() !== 0) terkunci[h.tanggal] = h;
+              if (d && d >= mulai && d <= akhir) terkunci[h.tanggal] = h;
             }
           });
           const semuaTgl = new Set(Object.keys(perHari));
@@ -668,7 +673,8 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let state = drafTersimpan || klon(TEMPLATE);
     // Isi bab dari draf lama dibuang — bab kini TETAP dari TEMPLATE.
     ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
-    // Normalisasi periode (Nov 2026): laporan ini mingguan (Senin–Sabtu).
+    // Normalisasi periode (Nov 2026): laporan ini mingguan (Senin–Sabtu;
+    // Minggu ikut ditarik bila periode diperpanjang sampai Minggu, maks 7 hari).
     // Bila draf lama memuat periode lebih dari 7 hari (mis. 02–14 karena
     // tanggal akhir sempat tertinggal di Sabtu minggu berjalan), kembalikan
     // tanggal akhir ke Sabtu pada minggu yang sama dengan tanggal mulai.
