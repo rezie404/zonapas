@@ -594,9 +594,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const res = await fetch('/search-index.json');
         if (!res.ok) throw new Error('Indeks berita tidak bisa dimuat.');
         const indeks = await res.json();
+        // Kategori yang TIDAK ditarik (15 Nov 2026, perintah Bos Besar):
+        // berita berkategori "Kegiatan UPT" tidak boleh masuk laporan
+        // sepekan lewat tarikan otomatis. Berlaku untuk semua jalur tarik
+        // (mingguan, harian, saat aplikasi dibuka, saat periode diubah)
+        // karena semuanya lewat fungsi ini. Artikel yang sudah ada di draf
+        // (dari tarikan lama) tidak ikut dihapus; yang berubah hanya
+        // tarikan berikutnya. Foto sampul pun ikut tidak diambil dari
+        // artikel berkategori itu (foto diambil dari daftar yang sama).
+        const KATEGORI_TIDAK_DITARIK = ['Kegiatan UPT'];
         const artikel = indeks
           .map((a) => ({ ...a, tgl: parseTanggalIndeks(a.date) }))
-          .filter((a) => a.tgl && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir)))
+          .filter((a) => a.tgl && !KATEGORI_TIDAK_DITARIK.includes(String(a.category || '').trim()) && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir)))
           .sort((x, y) => x.tgl - y.tgl);
         if (!artikel.length) {
           if (!perHariSaja) periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
