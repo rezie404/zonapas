@@ -13,6 +13,7 @@ breakingSince: "2026-11-15T08:40:55.925Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 392
 ---
 
 **Bengkulu** – Dalam semangat kebersamaan dan gaya hidup sehat, LPKA Kelas II Bengkulu turut memeriahkan kegiatan FUN WALK jajaran Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu dalam rangkaian Peringatan Hari Bakti Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) Ke-2 Tahun 2026.
