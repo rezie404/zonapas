@@ -147,6 +147,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <label class="flex items-center gap-2 text-sm font-bold"><input id="f-featured" type="checkbox" class="h-4 w-4" /> Tampilkan sebagai Headline (Pilihan Redaksi)</label>
               <label class="flex items-center gap-2 text-sm font-bold"><input id="f-breaking" type="checkbox" class="h-4 w-4" checked /> Breaking News</label>
               <span class="text-xs text-slate-500 dark:text-slate-400">Hanya satu berita yang bisa menjadi Headline — mencentang berita ini akan menggantikan Headline yang sekarang.</span>
+              <span id="catatan-headline" class="hidden text-xs font-bold text-slate-500 dark:text-slate-400">Headline hanya bisa diatur oleh Administrator.</span>
             </div>
             <div class="md:col-span-2">
               <label for="f-kota" class="mb-1 block text-sm font-bold">Kota</label>
@@ -278,7 +279,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=16"></script>
+  <script is:inline src="/kelola-umum.js?v=17"></script>
   <script>
 
 
@@ -286,6 +287,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       try {
         const res = await workerPost('/redaksi/api/berita/' + encodeURIComponent(id) + '/detail', {});
         const art = (res && res.article) || {};
+        // Guard aturan edit (15 Nov 2026): artikel terbit diedit lewat
+        // halaman Ubah (?edit=<slug>), bukan antrean; yang tidak boleh
+        // diedit (artikel Penyunting lain / Administrator) ditolak di sini
+        // — server juga menolaknya saat simpan.
+        if (art.status === 'terbit' && art.slug) {
+          window.location.href = '/portal/kelola-berita/tulis-artikel/?edit=' + encodeURIComponent(art.slug);
+          return;
+        }
+        if (res.bolehEdit === false) {
+          showStatus('Anda hanya bisa mengedit berita yang Anda tulis sendiri atau berita Penulis.', false);
+          setTimeout(() => { window.location.href = '/portal/kelola-berita/antrean/'; }, 2000);
+          return;
+        }
         resetForm();
         editingAntrean = { id, coverAda: !!(res.cover || art.image), breakingSince: art.breakingSince || '', author_picture: art.author_picture || '' };
         $('f-judul').value = normalisasiJudul(art.title || '');
@@ -315,10 +329,24 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('form-section').classList.remove('hidden');
         $('form-section').scrollIntoView({ behavior: 'smooth' });
         terapkanPenulis();
+        terapkanHeadline();
         tawarkanDraf();
       } catch (err) {
         showStatus('Gagal memuat berita antrean: ' + err.message, false);
       }
+    }
+
+
+    // Headline hanya Administrator (15 Nov 2026): nonaktifkan checkbox
+    // untuk Penulis/Penyunting supaya nilainya tidak bisa diubah dari
+    // formulir; server tetap menegakkannya (paksa nilai lama / tolak
+    // perubahan). Nilai checkbox yang tampil tetap nilai asli artikel.
+    function terapkanHeadline() {
+      const c = $('f-featured');
+      const n = $('catatan-headline');
+      if (!c) return;
+      c.disabled = peran !== 'admin';
+      if (n) n.classList.toggle('hidden', peran === 'admin');
     }
 
 
@@ -343,6 +371,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const ba = $('btn-antrean');
       if (ba) ba.textContent = peran === 'penulis' ? 'Kirim untuk Persetujuan' : 'Kirim ke Antrean';
       terapkanPenulis();
+      terapkanHeadline();
     }
 
 
@@ -1086,6 +1115,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
         const d = kumpulkanDataForm();
         const title = d.title;
+        // Headline hanya Administrator (15 Nov 2026): non-admin tidak bisa
+        // mengubah nilai Headline — artikel lama memakai nilai semula,
+        // artikel baru tidak bertanda Headline. (Server menegakkan hal
+        // yang sama; ini supaya simpan tidak gagal karena checkbox.)
+        if (peran !== 'admin') d.featured = editing ? !!editing.featured : false;
         const slug = editing ? editing.slug : slugify(title);
         let image = editing ? editing.image : '';
         if (pendingCover) {
@@ -1128,8 +1162,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         try { sessionStorage.setItem('zonapas-konfirmasi-berita', JSON.stringify({ teks: teksKonfirmasi })); } catch {}
         window.location.href = '/portal/kelola-berita/edit-artikel/';
       } catch (err) {
-        // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
-        if (err && (err.status === 403 || err.status === 404)) {
+        // 403 dari aturan peran/Headline: tampilkan pesan aslinya, bukan
+        // pesan token GitHub (15 Nov 2026).
+        if (err && err.status === 403 && err.message && /Headline|hanya bisa mengedit|tidak bisa mengedit|tidak ditemukan di antrean/i.test(err.message)) {
+          showStatus(err.message, false);
+        } else if (err && (err.status === 403 || err.status === 404)) {
+          // Akun GitHub tanpa akses tulis (bukan kolaborator): arahkan ke antrean.
           showStatus('Akun GitHub Anda tidak punya akses tulis ke repo — kirim berita lewat Antrean untuk persetujuan.', false);
           const ba = $('btn-antrean');
           if (ba) ba.classList.remove('hidden');
@@ -1171,32 +1209,33 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Muat satu artikel dari GitHub untuk diedit (?edit=<slug>).
     // Pengisian formulir sama persis dengan logika Ubah lama.
     async function muatUntukEdit(slug) {
-      // Mengubah artikel yang sudah publish hanya untuk Administrator
-      // (tombol Ubah di daftar lama pun hanya tampil untuk admin).
-      // Penyunting boleh TERBIT langsung, tapi tidak mengubah artikel
-      // yang sudah publish — jadi cek ini memakai peran, bukan
-      // bisaTerbitLangsung().
-      if (peran !== 'admin') {
-        showStatus('Hanya Administrator yang bisa mengubah berita yang sudah publish.', false);
-        setTimeout(() => { window.location.href = '/portal/kelola-berita/edit-artikel/'; }, 2000);
-        return;
-      }
+      // Mengubah artikel yang sudah publish (15 Nov 2026): Administrator
+      // boleh semua; Penyunting hanya beritanya sendiri dan berita Penulis
+      // (bolehEdit dari daftar Worker). Jalur darurat GitHub langsung tanpa
+      // data kepemilikan: khusus Administrator (gagal tertutup).
       try {
         // Muat lewat Worker dulu (same-origin). Memanggil api.github.com
         // langsung dari browser sering gagal total di HP Bos Besar
         // ("Failed to fetch") sehingga artikel tidak bisa dibuka untuk
         // diedit. Bila Worker gagal, kembali ke gh() langsung.
         let a = null;
+        let bolehEdit = peran === 'admin';
         try {
           const d = await workerGet('/redaksi/api/artikel-terbit');
           const daftar = (d && d.ok && Array.isArray(d.articles)) ? d.articles : [];
           const ketemu = daftar.find((x) => x.slug === slug);
           if (ketemu) {
+            bolehEdit = ketemu.bolehEdit === true || peran === 'admin';
             const parsed = parseFrontmatter(ketemu.content || '');
             a = { slug, path: ketemu.path, sha: ketemu.sha, data: parsed.data, body: parsed.body };
           }
         } catch (e) {
           console.warn('Muat artikel via Worker gagal, coba GitHub langsung:', e);
+        }
+        if (!bolehEdit) {
+          showStatus('Anda hanya bisa mengedit berita yang Anda tulis sendiri atau berita Penulis.', false);
+          setTimeout(() => { window.location.href = '/portal/kelola-berita/edit-artikel/'; }, 2000);
+          return;
         }
         if (!a) {
           const file = await gh('/contents/src/content/berita/' + encodeURIComponent(slug) + '.md?ref=main');
@@ -1204,7 +1243,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const parsed = parseFrontmatter(text);
           a = { slug, path: file.path, sha: file.sha, data: parsed.data, body: parsed.body };
         }
-editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '', authorImage: a.data.authorImage || '' };
+editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', breakingSince: a.data.breakingSince || '', authorImage: a.data.authorImage || '', featured: a.data.featured === true };
         $('f-judul').value = normalisasiJudul(a.data.title || '');
         $('f-kategori').value = a.data.category || '';
         $('f-tag').value = (a.data.tags || []).join(', ');
@@ -1230,6 +1269,8 @@ editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', b
         $('btn-save').textContent = 'Simpan Perubahan';
         $('form-section').classList.remove('hidden');
         $('form-section').scrollIntoView({ behavior: 'smooth' });
+        terapkanPenulis();
+        terapkanHeadline();
         tawarkanDraf();
       } catch (err) {
         showStatus('Artikel tidak ditemukan: ' + err.message, false);

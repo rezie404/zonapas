@@ -130,7 +130,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=16"></script>
+  <script is:inline src="/kelola-umum.js?v=17"></script>
   <script>
 
 
@@ -185,7 +185,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const approver = peran === 'admin' || peran === 'penyunting';
       el.innerHTML = antrean.map((a) => {
         const milikSaya = !!(identitas && ((a.author_email && (a.author_email === identitas.email || a.author_email === identitas.login)) || (a.author && identitas.nama && a.author === identitas.nama)));
-        const bisaEdit = approver || (peran === 'penulis' && milikSaya && (a.status === 'draf' || a.status === 'ditolak'));
+        // Edit memakai bolehEdit dari Worker (15 Nov 2026): admin semua;
+        // penyunting hanya miliknya sendiri dan milik Penulis; penulis hanya
+        // draf/ditolak miliknya sendiri. Bila Worker lama belum mengirim
+        // bolehEdit, pakai aturan lama sementara (jendela deploy).
+        const bisaEdit = a.bolehEdit === undefined
+          ? (approver || (peran === 'penulis' && milikSaya && (a.status === 'draf' || a.status === 'ditolak')))
+          : a.bolehEdit === true;
         const bisaSetujui = approver && a.status === 'menunggu';
         const bisaUlang = approver && a.status === 'disetujui' && !!a.publish_error;
         // K17: hapus draf/ditolak dari UI (endpoint hapus sudah ada di

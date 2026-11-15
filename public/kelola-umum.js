@@ -676,7 +676,10 @@
         for (const f of viaWorker) {
           try {
             const parsed = parseFrontmatter(f.content || '');
-            loaded.push({ slug: f.slug, path: f.path, sha: f.sha, data: parsed.data, body: parsed.body });
+            // bolehEdit dari Worker (15 Nov 2026): Penyunting hanya untuk
+            // miliknya sendiri dan milik Penulis; tanpa nilai ini tombol
+            // Ubah tidak tampil.
+            loaded.push({ slug: f.slug, path: f.path, sha: f.sha, data: parsed.data, body: parsed.body, bolehEdit: f.bolehEdit === true });
           } catch (e) {
             console.warn('Gagal memuat ' + f.slug, e);
           }
@@ -690,7 +693,9 @@
             const text = b64decodeUnicode(file.content || '');
             const parsed = parseFrontmatter(text);
             const slug = f.name.replace(/\.md$/, '');
-            loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data, body: parsed.body });
+            // Jalur darurat GitHub langsung: tanpa data kepemilikan dari
+            // Worker, hanya Administrator yang boleh mengubah (gagal tertutup).
+            loaded.push({ slug, path: f.path, sha: file.sha, data: parsed.data, body: parsed.body, bolehEdit: peran === 'admin' });
           } catch (e) {
             console.warn('Gagal memuat ' + f.name, e);
           }
@@ -731,12 +736,14 @@
         '<a href="/berita/' + esc(a.slug) + '/" target="_blank" rel="noopener" class="mt-0.5 block text-sm font-bold leading-snug hover:text-[#92400E] hover:underline">' + esc(d.title || '(tanpa judul)') + '</a>' +
         '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(formatDateShort(d.publishDate || '')) + (d.upt ? ' · ' + esc(d.upt) : '') + '</span>' +
         '<span data-tayang="' + esc(a.slug) + '" class="mt-1 block text-xs text-slate-500 dark:text-slate-400"></span>' +
-        (peran === 'admin'
-          ? '<div class="mt-2 flex gap-2">' +
-            '<button type="button" data-edit="' + esc(a.slug) + '" class="rounded-md border border-[#0A2540] px-2.5 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Ubah</button>' +
-            '<button type="button" data-delete="' + esc(a.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button>' +
-            '</div>'
-          : '') +
+        // Ubah: Administrator semua; Penyunting hanya miliknya sendiri dan
+        // milik Penulis (a.bolehEdit dari Worker, 15 Nov 2026). Hapus tetap
+        // khusus Administrator.
+        (function () {
+          const tombolUbah = (a.bolehEdit === true || peran === 'admin') ? '<button type="button" data-edit="' + esc(a.slug) + '" class="rounded-md border border-[#0A2540] px-2.5 py-1 text-xs font-bold text-[#0A2540] hover:bg-[#0A2540] hover:text-white dark:text-white">Ubah</button>' : '';
+          const tombolHapus = peran === 'admin' ? '<button type="button" data-delete="' + esc(a.slug) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button>' : '';
+          return (tombolUbah || tombolHapus) ? '<div class="mt-2 flex gap-2">' + tombolUbah + tombolHapus + '</div>' : '';
+        })() +
         '</div></article>';
     }
 
