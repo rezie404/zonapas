@@ -498,16 +498,60 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function fmtTglIso(d) {
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
+    // Daftar kota/kabupaten Bengkulu (sama dengan dropdown Kota di Kelola
+    // Berita) + sebutan ibu kota yang dipakai penulis di narasi.
+    const KOTA_BENGKULU = ['Bengkulu Selatan', 'Bengkulu Tengah', 'Bengkulu Utara', 'Rejang Lebong', 'Bengkulu', 'Arga Makmur', 'Kepahiang', 'Mukomuko', 'Seluma', 'Lebong', 'Curup', 'Manna', 'Kaur'];
+    // Hapus awalan lokasi di awal narasi (15 Nov 2026, perintah Bos
+    // Besar): narasi berita ZonaPas diawali "**Kota** – " (aturan Kota) —
+    // di teks polos menjadi "Kota – ". Narasi kegiatan di laporan sepekan
+    // TIDAK BOLEH lagi diawali kota/kabupaten; langsung ke isi berita.
+    // `kota` = nama kota dari <strong> di awal paragraf pertama artikel
+    // (paling akurat, termasuk kota ketikan "Lainnya"); bila kosong,
+    // cocokkan dengan daftar kota yang dikenal. Idempotent: bila tidak
+    // ada awalan kota, teks dikembalikan apa adanya.
+    function buangKotaAwal(teks, kota) {
+      let t = String(teks || '');
+      const lepas = (nama) => {
+        const re = new RegExp('^' + String(nama).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[–—-]\\s*');
+        if (re.test(t)) { t = t.replace(re, ''); return true; }
+        return false;
+      };
+      if (kota && lepas(kota)) return t;
+      for (const k of KOTA_BENGKULU) { if (lepas(k)) break; }
+      return t;
+    }
+    // Bersihkan awalan kota dari narasi kegiatan yang SUDAH tersimpan di
+    // draf (narasi hasil tarik berita lama masih berawalan "Bengkulu – ").
+    // Dijalankan saat draf dimuat (lokal maupun server) supaya laporan
+    // yang sedang dikerjakan ikut bersih TANPA perlu tarik ulang (tarik
+    // ulang menimpa editan manual; hari terkunci pun tidak tertimpa).
+    function bersihkanKotaNarasi() {
+      if (!state || !Array.isArray(state.hari)) return;
+      state.hari.forEach((h) => {
+        if (!h || !Array.isArray(h.kegiatan)) return;
+        h.kegiatan.forEach((k) => {
+          if (k && typeof k.narasi === 'string') k.narasi = buangKotaAwal(k.narasi);
+        });
+      });
+    }
     async function ambilNarasiArtikel(url) {
       try {
         const res = await fetch(url);
         if (!res.ok) return '';
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
-        const paras = Array.from(doc.querySelectorAll('#article-body p'))
+        const paras = Array.from(doc.querySelectorAll('#article-body p'));
+        // Kota dari <strong> di awal paragraf pertama (aturan Kota:
+        // "**Kota** – " di narasi artikel menjadi <strong>Kota</strong> – ).
+        let kota = '';
+        if (paras.length) {
+          const m = /^<strong[^>]*>([^<]{1,40})<\/strong>\s*[–—-]\s/.exec(paras[0].innerHTML.trim());
+          if (m) kota = m[1].trim();
+        }
+        const teksParagraf = paras
           .map((p) => p.textContent.replace(/\s+/g, ' ').trim())
           .filter((t) => t.length > 0);
-        let teks = paras.slice(0, 3).join('\n\n');
+        let teks = buangKotaAwal(teksParagraf.slice(0, 3).join('\n\n'), kota);
         if (teks.length > 1500) {
           teks = teks.slice(0, 1500);
           const titik = teks.lastIndexOf('. ');
@@ -568,7 +612,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (!perHari[kunci]) perHari[kunci] = { tanggal: kunci, kegiatan: [] };
           perHari[kunci].kegiatan.push({
             judul: a.title,
-            narasi: narasiList[i] || a.summary || '',
+            narasi: buangKotaAwal(narasiList[i] || a.summary || ''),
             foto: a.image ? [a.image] : [],
           });
         });
@@ -704,6 +748,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let state = drafTersimpan || klon(TEMPLATE);
     // Isi bab dari draf lama dibuang — bab kini TETAP dari TEMPLATE.
     ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
+    // Narasi hasil tarik berita lama yang masih berawalan kota dibersihkan
+    // saat draf dimuat (15 Nov 2026, perintah Bos Besar).
+    bersihkanKotaNarasi();
     // Normalisasi periode (Nov 2026): laporan ini mingguan (Senin–Sabtu;
     // Minggu ikut ditarik bila periode diperpanjang sampai Minggu, maks 7 hari).
     // Bila draf lama memuat periode lebih dari 7 hari (mis. 02–14 karena
@@ -884,6 +931,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
         state = r.data;
         ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
+        bersihkanKotaNarasi();
         normalisasiPeriode();
         pastikanTindakLanjut();
         try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
