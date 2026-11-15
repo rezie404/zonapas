@@ -334,7 +334,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     .sepekan-foto-item { flex: 1 1 0; min-width: 0; overflow: hidden; border-radius: 10px; border: 3px solid #FFCC00; box-sizing: border-box; box-shadow: 0 2px 8px rgba(10, 37, 64, 0.20); }
     .sepekan-foto-tunggal img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .sepekan-ttd { margin-top: 26px; text-align: right; font-size: 15px; line-height: 1.5; color: #16233D; }
-    .sepekan-ttd .nama { font-weight: 800; text-transform: uppercase; margin-top: 64px; }
+    .sepekan-ttd .nama { font-weight: 800; text-transform: uppercase; margin-top: 32px; }
     /* Sampul */
     .sepekan-sampul { position: absolute; inset: 0; background: #F4F8FE; overflow: hidden; }
     .sepekan-sampul-garis { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, transparent 0 90px, rgba(30, 64, 175, 0.05) 90px 96px); }
@@ -1527,7 +1527,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // Penutup + tanda tangan
       blok.push(blokJudulBab('Penutup'));
       blok.push(...blokParagraf(TEMPLATE.penutup));
-      const htmlTtd = '<div class="sepekan-ttd"><p style="margin:0">' + esc(tglTtdPanjang()) + '</p><p style="margin:0">Kepala Kantor Wilayah<br />Ditjenpas Bengkulu,</p><p style="margin:0">Ttd</p><p class="nama">Masjuno</p></div>';
+      const htmlTtd = '<div class="sepekan-ttd"><p style="margin:0">' + esc(tglTtdPanjang()) + '</p><p style="margin:0">Kepala Kantor Wilayah<br />Ditjenpas Bengkulu,</p><p style="margin:32px 0 0">Ttd</p><p class="nama">Masjuno</p></div>';
       blok.push({ tipe: 'ttd', html: htmlTtd, tinggi: ukurBlok(htmlTtd) });
       return blok;
     }
