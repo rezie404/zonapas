@@ -1466,22 +1466,33 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       };
       // Kolase SARANG LEBAH di bawah Peserta (Nov 2026, atas permintaan
       // Bos Besar): foto-foto kegiatan dalam segi enam (pointy-top)
-      // berangkai seperti sarang madu — 3 baris berselang-seling (4+3+3),
+      // berangkai seperti sarang madu — 3 baris berselang-seling (2+3+2),
       // tiap segi enam berbagi sisi dengan tetangganya. 1 foto per
-      // kegiatan (foto pertama), maksimal 11 foto; kerangka 11 slot
+      // kegiatan (foto pertama), maksimal 7 foto; kerangka 7 slot
       // selalu tampil (slot kosong = garis tepi) walau foto belum ada.
       const tambahKolaseMadu = () => {
         // KERANGKA kolase selalu tampil (Nov 2026, atas permintaan Bos
-        // Besar): 11 slot segi enam berukuran proporsional mengisi area
-        // kosong di bawah Peserta — 3 baris berselang-seling (4+3+4)
+        // Besar): 7 slot segi enam berukuran proporsional mengisi area
+        // kosong di bawah Peserta — 3 baris berselang-seling (2+3+2)
         // supaya tiap segi enam cukup besar dan kolase memenuhi area.
-        // Foto (maks 11, 1 per kegiatan) mengisi slotnya; slot tanpa
+        // Foto (maks 7, 1 per kegiatan) mengisi slotnya; slot tanpa
         // foto tampil sebagai garis tepi (outline) supaya kerangka tetap
         // ada walau foto belum diunggah.
-        const foto = fotoSepekan.slice(0, 11);
-        const BARIS = [4, 3, 4];
-        const JUMLAH_SLOT = 11;
-        const sTinggi = 500 / (2 + (BARIS.length - 1) * 1.5);
+        const foto = fotoSepekan.slice(0, 7);
+        const BARIS = [2, 3, 2];
+        const JUMLAH_SLOT = 7;
+        // Anggaran tinggi kolase = sisa ruang di halaman Ruang Lingkup +
+        // Peserta (15 Nov 2026, perintah Bos Besar: perbesar honeycomb
+        // dan maksimalkan ruang kosong di bawah halaman). Halaman itu
+        // selalu dimulai baru oleh grup 'ruang-lingkup', jadi tinggi yang
+        // sudah dipakai = jumlah tinggi blok sejak grup itu sampai Peserta
+        // (24px pengaman supaya kolase tidak terdorong ke halaman baru).
+        let awalRuang = -1;
+        for (let i = 0; i < blok.length; i++) { if (blok[i].grup === 'ruang-lingkup') { awalRuang = i; break; } }
+        let dipakai = 0;
+        if (awalRuang >= 0) for (let i = awalRuang; i < blok.length; i++) dipakai += blok[i].tinggi;
+        const anggaran = Math.max(320, TINGGI_ISI - dipakai - 24);
+        const sTinggi = anggaran / (2 + (BARIS.length - 1) * 1.5);
         const lebarSatuan = Math.max.apply(null, BARIS.map((n, r) => n + (r % 2 ? 0.5 : 0)));
         const sLebar = 701 / (lebarSatuan * 1.732);
         const s = Math.max(50, Math.min(220, Math.floor(Math.min(sTinggi, sLebar))));
