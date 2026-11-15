@@ -13,6 +13,7 @@ breakingSince: "2026-11-15T07:10:44.128Z"
 upt: "Semua UPT Pemasyarakatan Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 390
 ---
 
 **Bengkulu** – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menggelar kegiatan jalan santai (Funwalk) pada Minggu (15/11). Kegiatan yang dipusatkan di Rumah Tahanan Negara Kelas IIB Bengkulu ini menjadi salah satu bentuk perayaan yang mengedepankan kesehatan, kebugaran, dan semangat kebersamaan keluarga besar Kementerian Imigrasi dan Pemasyarakatan.
