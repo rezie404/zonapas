@@ -13,6 +13,7 @@ breakingSince: "2026-11-16T03:17:24.843Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 394
 ---
 
 **Bengkulu** – Sebagai bentuk komitmen dalam menjaga kesehatan dan meningkatkan kualitas layanan kesehatan, Klinik LPKA Kelas II Bengkulu melaksanakan skrining dan deteksi dini penyakit Tuberkulosis (TBC), HIV, dan Hepatitis melalui program Cek Kesehatan Gratis (CKG) bekerja sama dengan Puskesmas Kelurahan Bentiring.
