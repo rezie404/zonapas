@@ -13,6 +13,7 @@ breakingSince: "2026-11-16T04:40:21.431Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 396
 ---
 
 **Bengkulu** – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) Ke-2 Tahun 2026, LPKA Kelas II Bengkulu mengikuti kegiatan Focus Group Discussion (FGD) secara daring melalui Zoom Meeting, Senin (16/11).
