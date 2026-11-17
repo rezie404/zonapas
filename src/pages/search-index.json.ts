@@ -12,6 +12,8 @@ export const GET: APIRoute = async () => {
     title: e.data.title,
     summary: e.data.summary,
     category: e.data.category,
+    // UPT terkait artikel (dipakai tarikan Laporan Sepekan, 17 Nov 2026).
+    upt: e.data.upt ?? null,
     tags: e.data.tags,
     author: e.data.author,
     date: formatDateShort(e.data.publishDate),

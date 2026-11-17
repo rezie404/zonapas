@@ -603,9 +603,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // tarikan berikutnya. Foto sampul pun ikut tidak diambil dari
         // artikel berkategori itu (foto diambil dari daftar yang sama).
         const KATEGORI_TIDAK_DITARIK = ['Kegiatan UPT'];
+        // UPT yang ditarik (17 Nov 2026, perintah Bos Besar; RALAT
+        // 17 Nov 2026: hanya Kanwil Ditjenpas Bengkulu saja, BUKAN
+        // seluruh UPT): hanya berita yang UPT Terkait-nya 'Kanwil
+        // Ditjenpas Bengkulu'. Berita UPT lain (Lapas, Rutan, LPKA,
+        // LPP, Bapas) dan artikel tanpa UPT ("Tanpa UPT" di formulir,
+        // atau dari Decap yang tidak punya kolom UPT) TIDAK ikut
+        // ditarik. Perlu indeks membawa field upt
+        // (src/pages/search-index.json.ts).
+        const UPT_TERKAIT = ['Kanwil Ditjenpas Bengkulu'];
         const artikel = indeks
           .map((a) => ({ ...a, tgl: parseTanggalIndeks(a.date) }))
-          .filter((a) => a.tgl && !KATEGORI_TIDAK_DITARIK.includes(String(a.category || '').trim()) && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir)))
+          .filter((a) => a.tgl && UPT_TERKAIT.includes(String(a.upt || '').trim()) && !KATEGORI_TIDAK_DITARIK.includes(String(a.category || '').trim()) && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir)))
           .sort((x, y) => x.tgl - y.tgl);
         if (!artikel.length) {
           if (!perHariSaja) periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
@@ -849,6 +858,34 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = buatTindakLanjut(state.hari);
     }
     pastikanTindakLanjut();
+    // Hapus tindak lanjut kegiatan yang dihapus (17 Nov 2026, perintah
+    // Bos Besar): bila sebuah kegiatan dihapus, butir tindak lanjut
+    // untuk kegiatan itu ikut terhapus — kecuali bila masih ada kegiatan
+    // lain (hari apa pun) dengan ruang lingkup yang sama (teks tindak
+    // lanjut yang dihasilkan sama), butirnya dipertahankan karena masih
+    // menjadi tindak lanjut kegiatan yang tersisa. Butir yang sudah
+    // diedit manual sehingga teksnya tidak lagi sama dengan teks hasil
+    // aturan tidak ikut terhapus — hapus manual seperti biasa.
+    // Dipakai saat hapus kegiatan dan hapus hari. Kegiatan kosong
+    // (judul + narasi kosong) dilewati, sama seperti buatTindakLanjut.
+    function hapusTindakLanjutUntukKegiatan(kegiatanTerhapus) {
+      if (!Array.isArray(state.tindakLanjut) || !state.tindakLanjut.length) return;
+      const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
+      const masihDipakai = new Set();
+      (state.hari || []).forEach((h) => {
+        (h.kegiatan || []).forEach((k) => {
+          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+          masihDipakai.add(norm(tindakLanjutUntukJudul(k.judul, k.narasi)));
+        });
+      });
+      (kegiatanTerhapus || []).forEach((k) => {
+        if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+        const teks = norm(tindakLanjutUntukJudul(k.judul, k.narasi));
+        if (!teks || masihDipakai.has(teks)) return;
+        const idx = state.tindakLanjut.findIndex((t) => norm(t) === teks);
+        if (idx >= 0) state.tindakLanjut.splice(idx, 1);
+      });
+    }
     function infoDraf(pesan) { const info = $('sp-draf-info'); if (info) info.textContent = pesan; }
     let timerSimpan = null;
     function simpanDraf() {
@@ -2229,9 +2266,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           return;
         }
         const hapusHari = t.closest('[data-hapus-hari]');
-        if (hapusHari) { state.hari.splice(Number(hapusHari.dataset.hapusHari), 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
+        if (hapusHari) { const hiH = Number(hapusHari.dataset.hapusHari); const kegHapus = (state.hari[hiH] && state.hari[hiH].kegiatan) || []; state.hari.splice(hiH, 1); hapusTindakLanjutUntukKegiatan(kegHapus); renderHari(); renderTindakLanjut(); simpanDraf(); renderPratinjau(); return; }
         const hapusKeg = t.closest('[data-hapus-kegiatan]');
-        if (hapusKeg) { const [hi, ki] = hapusKeg.dataset.hapusKegiatan.split(':').map(Number); state.hari[hi].kegiatan.splice(ki, 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
+        if (hapusKeg) { const [hi, ki] = hapusKeg.dataset.hapusKegiatan.split(':').map(Number); const kegHapus = state.hari[hi].kegiatan[ki]; state.hari[hi].kegiatan.splice(ki, 1); hapusTindakLanjutUntukKegiatan([kegHapus]); renderHari(); renderTindakLanjut(); simpanDraf(); renderPratinjau(); return; }
         const hapusFoto = t.closest('[data-hapus-foto]');
         if (hapusFoto) { const [hi, ki, fi] = hapusFoto.dataset.hapusFoto.split(':').map(Number); state.hari[hi].kegiatan[ki].foto.splice(fi, 1); renderHari(); simpanDraf(); renderPratinjau(); return; }
         const tambahKeg = t.closest('[data-tambah-kegiatan]');
