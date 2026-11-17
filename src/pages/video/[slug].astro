@@ -62,7 +62,7 @@ const jsonLd = {
   description: description || title,
   thumbnailUrl: thumbAbs,
   uploadDate: publishDate.toISOString(),
-  embedUrl: `https://www.youtube-nocookie.com/embed/${id}`,
+  embedUrl: `https://www.youtube.com/embed/${id}`,
   author: { '@type': 'Person', name: author || 'Rezie' },
   publisher: {
     '@type': 'Organization',
@@ -105,7 +105,7 @@ const jsonLd = {
 
       <div class="relative mt-5 aspect-video overflow-hidden rounded-2xl bg-black">
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${id}?rel=0`}
+          src={`https://www.youtube.com/embed/${id}?rel=0`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowfullscreen

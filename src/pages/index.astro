@@ -48,7 +48,7 @@ const idYoutube = (tautan: string) => {
   const m = t.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/) || t.match(/^([A-Za-z0-9_-]{11})$/);
   return m ? m[1] : '';
 };
-const embedYoutube = (id: string) => `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+const embedYoutube = (id: string) => `https://www.youtube.com/embed/${id}?rel=0`;
 
 // ZonaPasTV: video YouTube redaksi, terbaru dulu (tautan tak valid dilewati).
 const videos = (await getCollection('video'))
