@@ -1,5 +1,5 @@
 ---
-title: "Kanwil Ditjenpas Bengkulu Ikuti Evaluasi Capaian Kinerja Triwulan Iii Kementerian Imigrasi Dan Pemasyarakatan"
+title: "Kanwil Ditjenpas Bengkulu Ikuti Evaluasi Capaian Kinerja Triwulan III Kementerian Imigrasi Dan Pemasyarakatan"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan koordinasi secara daring terkait penyesuaian jadwal pelaksanaan Rapat…"
 category: "Kepegawaian"
 tags: ["Kepegawaian", "Kanwil"]
