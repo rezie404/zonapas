@@ -13,7 +13,6 @@ breakingSince: "2026-11-16T11:04:56.594Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
-jurnalpas_id: 405
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Konsinyasi Percepatan Tindak Lanjut Hasil Pemeriksaan Badan Pemeriksa Keuangan Republik Indonesia (BPK RI) Periode Tahun 2005 s.d. Tahun 2026 secara daring. Kegiatan ini diselenggarakan oleh Inspektorat Jenderal Kementerian Imigrasi dan Pemasyarakatan dan diikuti oleh seluruh Unit Pelaksana Teknis (UPT) di lingkungan pemasyarakatan dan imigrasi. 
