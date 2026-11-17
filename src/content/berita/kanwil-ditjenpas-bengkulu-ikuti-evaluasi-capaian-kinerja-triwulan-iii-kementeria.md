@@ -13,6 +13,7 @@ breakingSince: "2026-11-17T08:02:29.030Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 411
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan koordinasi secara daring terkait penyesuaian jadwal pelaksanaan Rapat Analisis dan Evaluasi (Anev) Capaian Kinerja Triwulan III Tahun 2026, Selasa (17/11). 
