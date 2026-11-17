@@ -95,7 +95,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <div>
             <label for="v-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
             <input id="v-judul" required maxlength="100" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua; tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik, mis. *III jadi III) — sama seperti judul artikel. Maksimal 100 karakter (batas YouTube). <span id="v-judul-hitung" class="font-bold">0/100 karakter</span></p>
+            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua; tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik, mis. *III jadi III; untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir, mis. *BPK RI*) — sama seperti judul artikel. Maksimal 100 karakter (batas YouTube). <span id="v-judul-hitung" class="font-bold">0/100 karakter</span></p>
           </div>
           <div>
             <label for="v-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>
@@ -156,7 +156,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Olah video ZonaPasTV (public/olah-video.mjs) — trim + intro/outro via
        ffmpeg.wasm; diekspos ke window.__olahVideo. -->
   <script type="module" src="/olah-video.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=18"></script>
+  <script is:inline src="/kelola-umum.js?v=19"></script>
   <script>
 
     // Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js).

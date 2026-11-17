@@ -1182,13 +1182,30 @@
     // dipertahankan persis seperti diketik — huruf kecil/besar apa adanya —
     // dan tanda "*" dihapus ("*perbaikan" jadi "perbaikan", "*JAMUR" jadi
     // "JAMUR"). Kapitalisasi otomatis tidak berlaku untuk kata bertanda "*".
+    // Frasa manual *...* (18 Nov 2026, perintah Bos Besar): bintang pembuka
+    // + isi + bintang penutup mempertahankan isi persis seperti diketik —
+    // boleh 1 kata ("*perbaikan*") atau 2 kata atau lebih ("*BPK RI*").
+    // Bintang ganda ("**JAMUR**") juga ditangkap. Frasa dilindungi dulu
+    // dengan penanda, judul dinormalisasi per kata seperti biasa, lalu frasa
+    // dikembalikan apa adanya. Bintang pembuka tanpa penutup tetap memakai
+    // aturan per kata lama ("*perbaikan" jadi "perbaikan"). Bintang penutup
+    // harus diikuti spasi/akhir/tanda baca — bila diikuti huruf, itu tanda
+    // kata berikutnya, bukan penutup frasa ("*JAMUR dan *perbaikan" tetap
+    // dua kata manual, bukan satu frasa).
     // Angka Romawi I–XII masuk daftar singkatan supaya tetap kapital walau
     // tanpa tanda. Judul yang seluruhnya kapital tetap dirapikan ke kapital
     // tiap kata (aturan 05 Nov 2026).
     const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI', 'HUT', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
     function normalisasiJudul(judul) {
-      return String(judul || '').trim().replace(/\s+/g, ' ').split(' ').map((kata) => {
+      const frasa = [];
+      const lindungi = String(judul || '').trim().replace(/\s+/g, ' ')
+        .replace(/(?<![A-Za-z0-9])\*+([^*]+)\*+(?![A-Za-z])/g, (m, isi) => {
+          if (!isi.trim()) return m;
+          frasa.push(isi);
+          return '\u0000' + (frasa.length - 1) + '\u0000';
+        });
+      const hasil = lindungi.split(' ').map((kata) => {
         const mManual = kata.match(/^([^A-Za-z*]*)\*+([\s\S]*)$/);
         if (mManual && mManual[2]) return mManual[1] + mManual[2];
         const huruf = kata.replace(/[^A-Za-z]/g, '');
@@ -1198,6 +1215,7 @@
         if (!m) return kata;
         return m[1] + m[2].toUpperCase() + m[3].toLowerCase();
       }).join(' ');
+      return hasil.replace(/\u0000(\d+)\u0000/g, (m, i) => frasa[Number(i)] ?? m);
     }
 
 
