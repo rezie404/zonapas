@@ -13,6 +13,7 @@ breakingSince: "2026-11-17T05:53:07.570Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 407
 ---
 
 **Bengkulu** – Dalam upaya membentuk karakter dan kepribadian yang lebih baik, sejumlah Anak Binaan Lembaga Pembinaan Khusus Anak (LPKA) Kelas II Bengkulu mengikuti kegiatan pembinaan moralitas secara virtual melalui Zoom Meeting, bertempat di Aula LPKA Bengkulu.
