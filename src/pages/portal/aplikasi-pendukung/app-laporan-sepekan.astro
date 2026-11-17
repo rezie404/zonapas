@@ -174,7 +174,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <button id="sp-reset-template" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Template</button>
         <button id="sp-bersihkan" type="button" class="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-200 dark:hover:bg-red-900/20">Bersihkan Draf</button>
       </section>
-      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server (akun Anda) — aman walau keluar lalu masuk lagi atau ganti perangkat.</p>
+      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini — aman walau keluar lalu masuk lagi atau ganti perangkat.</p>
       </div>
 
       <!-- Pratinjau (halaman sendiri saat ?pratinjau=1) -->
@@ -221,7 +221,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
-  <script is:inline src="/kelola-umum.js?v=17"></script>
+  <script is:inline src="/kelola-umum.js?v=18"></script>
   <script type="module">
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -919,16 +919,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // pratinjau membatalkan fetch biasa) — sendBeacon tetap terkirim.
       kirimDrafServerBeacon();
     }
-    // ---------- Draf di server (15 Nov 2026) ----------
-    // Draf juga disimpan di server per akun, supaya tetap ada walau
+    // ---------- Draf di server (15 Nov 2026; draf bersama 17 Nov 2026) ----------
+    // Draf juga disimpan di server sebagai satu draf bersama untuk semua
+    // akun yang bisa mengakses aplikasi ini, supaya tetap ada walau
     // logout lalu login lagi atau ganti perangkat — termasuk foto yang
     // sudah diunggah (foto disimpan sebagai data URL di dalam JSON
     // draf). localStorage tetap dipakai sebagai salinan cepat di
     // peramban ini: tulis lokal dulu (sinkron, tidak pernah menggantung
     // halaman), lalu kirim ke server secara debounce. Bila server tidak
     // terjangkau (offline), draf tetap aman di localStorage dan sinkron
-    // dicoba lagi pada perubahan berikutnya. Bila dua perangkat
-    // mengedit bersamaan, simpanan terbaru (diperbarui) yang menang.
+    // dicoba lagi pada perubahan berikutnya. Bila dua perangkat atau
+    // dua akun mengedit bersamaan, simpanan terbaru (diperbarui) yang menang.
     let timerSinkronServer = null;
     let sinkronServerBerjalan = false;
     let drafServerAda = false;
@@ -982,7 +983,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         pastikanTindakLanjut();
         try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
         tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
-        infoDraf('Draf dimuat dari server ✓ — data terakhir Anda, termasuk foto yang sudah diunggah.');
+        infoDraf('Draf dimuat dari server ✓ — data terakhir bersama, termasuk foto yang sudah diunggah.');
         return true;
       } catch (e) {
         return false;
@@ -2359,7 +2360,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         showStatus('Isi dikembalikan ke template.', true);
       });
       $('sp-bersihkan').addEventListener('click', () => {
-        if (!confirm('Bersihkan draf laporan sepekan ini? Isi akan kembali kosong kecuali template dasar.')) return;
+        if (!confirm('Bersihkan draf laporan sepekan ini? Draf bersama ini akan terhapus untuk SEMUA akun yang bisa mengakses aplikasi ini, dan isi kembali kosong kecuali template dasar.')) return;
         try { localStorage.removeItem(KUNCI_DRAF); } catch {}
         // Hapus juga draf di server supaya tidak dimuat lagi saat buka berikutnya.
         drafServerAda = false;

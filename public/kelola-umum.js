@@ -570,7 +570,11 @@
 
     // Kumpulkan + validasi field formulir (dipakai jalur langsung & antrean).
     function kumpulkanDataForm() {
-      const title = normalisasiJudul($('f-judul').value);
+      // Judul dikirim APA ADANYA (termasuk tanda "*" kata manual) supaya
+      // server yang menormalisasi dan menghapus tandanya (17 Nov 2026).
+      // Jangan dinormalisasi di sini: normalisasi klien akan menghapus
+      // tanda "*" sebelum server sempat membacanya.
+      const title = String($('f-judul').value || '').trim().replace(/\s+/g, ' ');
       const category = $('f-kategori').value;
       // Kotak narasi hanya berisi narasi: bila ada baris gambar yang ditempel
       // di sana, pindahkan ke foto terpisah (bila belum ada) — total tetap
@@ -1174,10 +1178,19 @@
     // Judul artikel: setiap kata diawali huruf kapital lalu huruf kecil.
     // Singkatan resmi tetap kapital semua (UPT, TPP, IIA, ...). Logika SAMA
     // dengan normalisasiJudul di worker.js (server menegakkannya saat simpan).
-    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI'];
+    // Kata manual (17 Nov 2026, perintah Bos Besar): kata yang diawali "*"
+    // dipertahankan persis seperti diketik — huruf kecil/besar apa adanya —
+    // dan tanda "*" dihapus ("*perbaikan" jadi "perbaikan", "*JAMUR" jadi
+    // "JAMUR"). Kapitalisasi otomatis tidak berlaku untuk kata bertanda "*".
+    // Angka Romawi I–XII masuk daftar singkatan supaya tetap kapital walau
+    // tanpa tanda. Judul yang seluruhnya kapital tetap dirapikan ke kapital
+    // tiap kata (aturan 05 Nov 2026).
+    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI', 'HUT', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
     function normalisasiJudul(judul) {
       return String(judul || '').trim().replace(/\s+/g, ' ').split(' ').map((kata) => {
+        const mManual = kata.match(/^([^A-Za-z*]*)\*+([\s\S]*)$/);
+        if (mManual && mManual[2]) return mManual[1] + mManual[2];
         const huruf = kata.replace(/[^A-Za-z]/g, '');
         if (!huruf) return kata;
         if (AKRONIM_JUDUL.includes(huruf.toUpperCase())) return kata.replace(huruf, huruf.toUpperCase());

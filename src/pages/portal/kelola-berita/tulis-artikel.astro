@@ -104,7 +104,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <div class="md:col-span-2">
               <label for="f-judul" class="mb-1 block text-sm font-bold">Judul *</label>
               <input id="f-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua.</p>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua. Tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik (mis. *III jadi III, *perbaikan jadi perbaikan); tanda * dihapus saat disimpan.</p>
             </div>
             <div>
               <label for="f-kategori" class="mb-1 block text-sm font-bold">Kategori *</label>
@@ -279,7 +279,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=17"></script>
+  <script is:inline src="/kelola-umum.js?v=18"></script>
   <script>
 
 
@@ -1114,7 +1114,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           return;
         }
         const d = kumpulkanDataForm();
-        const title = d.title;
+        // Judul untuk slug + pesan commit memakai bentuk akhir (tanda "*"
+        // sudah dihapus); d.title tetap apa adanya untuk .md, karena server
+        // yang menghapus tanda "*" saat menulis berkas.
+        const title = normalisasiJudul(d.title);
         // Headline hanya Administrator (15 Nov 2026): non-admin tidak bisa
         // mengubah nilai Headline — artikel lama memakai nilai semula,
         // artikel baru tidak bertanda Headline. (Server menegakkan hal
