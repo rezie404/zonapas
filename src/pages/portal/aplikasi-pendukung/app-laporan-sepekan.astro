@@ -162,7 +162,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-tindak" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Tindak Lanjut</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Satu butir per kegiatan (1–2 baris): tindak lanjut yang sebaiknya dilakukan atas kegiatan minggu ini. Terisi otomatis dari kegiatan saat draf dibuat atau saat “Tarik Berita Minggu Ini” dijalankan — semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. “Tarik Berita Hari Ini” tidak mengubah butir-butir ini; ketuk “Isi Ulang” bila mau mengisi ulang semuanya dari kegiatan saat ini.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Satu butir per ruang lingkup (1–2 baris): tindak lanjut yang bisa dilakukan Kepala Kantor Wilayah atas kegiatan minggu ini. Butir muncul otomatis saat kegiatan baru diinput atau ditarik — semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Ketuk “Isi Ulang” untuk merefresh: butir baru ditambahkan untuk kegiatan yang belum punya tindak lanjut, butir yang sudah ada dipertahankan.</p>
         <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
       </section>
 
@@ -634,6 +634,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             foto: a.image ? [a.image] : [],
           });
         });
+        let tindakBaru = 0;
         if (perHariSaja) {
           // Hanya hari itu: ganti kegiatannya saja (atau sisipkan bila hari
           // itu belum ada); hari lain dan foto sampul TIDAK disentuh.
@@ -647,6 +648,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             if (lama.tutup !== undefined) state.hari[idx].tutup = lama.tutup;
             if (lama.kunci !== undefined) state.hari[idx].kunci = lama.kunci;
           } else { state.hari.push(hariBaru); state.hari.sort((x, y) => String(x.tanggal || '').localeCompare(String(y.tanggal || ''))); }
+          // Tindak lanjut otomatis (18 Nov 2026): kegiatan baru yang
+          // masuk lewat tarikan hari ini ikut memunculkan butir tindak
+          // lanjut bila ruang lingkupnya belum ada — butir yang sudah
+          // ada (termasuk yang diedit manual) tidak diubah.
+          tindakBaru = tambahTindakLanjutUntukKegiatan(hariBaru.kegiatan);
         } else {
           periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
           // Hari yang terkunci TIDAK ditimpa tarikan mingguan — hari fix
@@ -677,7 +683,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         tulisStateKeForm();
         renderPratinjau();
         showStatus(perHariSaja
-          ? 'Berhasil menarik ' + artikel.length + ' berita untuk ' + labelHari(hanyaTanggal) + '. Hanya kegiatan hari itu yang diperbarui; hari lain tidak berubah.'
+          ? 'Berhasil menarik ' + artikel.length + ' berita untuk ' + labelHari(hanyaTanggal) + '. Hanya kegiatan hari itu yang diperbarui; hari lain tidak berubah.' + (tindakBaru ? ' ' + tindakBaru + ' tindak lanjut baru ditambahkan.' : ' Tidak ada tindak lanjut baru (ruang lingkupnya sudah ada).')
           : 'Berhasil menarik ' + artikel.length + ' berita dari ' + state.hari.length + ' hari (' + teksPeriode() + '). Judul, narasi, dan foto kegiatan terisi dari berita ZonaPas; foto sampul juga dari foto berita. Semua masih bisa diedit.', true);
       } catch (e) {
         showStatus('Gagal menarik berita: ' + (e && e.message ? e.message : 'galat'), false);
@@ -797,7 +803,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // berbanding lurus dengan jumlah tindak lanjut (perintah Bos Besar
     // 14 Nov 2026; membatalkan aturan lama "satu butir per kegiatan
     // walau teksnya sama"). Terisi otomatis dari kegiatan saat draf
-    // dibuat / saat "Tarik Berita Minggu Ini" dijalankan, lalu BISA DIEDIT
+    // dibuat, saat kegiatan baru diinput (judul/narasi selesai diketik
+    // atau "Tarik Berita Hari Ini"), dan saat "Tarik Berita Minggu Ini"
+    // dijalankan, lalu BISA DIEDIT
     // bebas di kolom Tindak Lanjut di bawah (ubah, hapus, tambah butir).
     const ATURAN_TINDAK_LANJUT = [
       { pola: /disiplin|apel pagi|ketertiban|kepatuhan/i, teks: 'Memperkuat budaya disiplin, integritas, dan profesionalisme pegawai melalui pengawasan ketertiban dan kelengkapan atribut kedinasan secara konsisten di lingkungan Kanwil Ditjenpas Bengkulu.' },
@@ -885,6 +893,44 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const idx = state.tindakLanjut.findIndex((t) => norm(t) === teks);
         if (idx >= 0) state.tindakLanjut.splice(idx, 1);
       });
+    }
+    // Tambah tindak lanjut untuk ruang lingkup yang belum punya butir
+    // (18 Nov 2026, perintah Bos Besar: tindak lanjut muncul otomatis
+    // saat ada kegiatan baru diinput). Hanya MENAMBAH butir yang kurang
+    // — butir yang sudah ada (termasuk yang diedit manual) tidak pernah
+    // diubah atau dihapus di sini. Dipakai saat judul/narasi kegiatan
+    // selesai diinput, saat "Tarik Berita Hari Ini" selesai menarik
+    // kegiatan baru, dan saat "Isi Ulang Tindak Lanjut" ditekan
+    // (segarkanTindakLanjut di bawah). Mengembalikan jumlah butir baru.
+    // Batasan yang diketahui (sama seperti hapusTindakLanjutUntukKegiatan
+    // di atas): butir yang sudah diedit manual sehingga teksnya tidak
+    // lagi sama dengan teks hasil aturan tidak dikenali sebagai butir
+    // ruang lingkup itu — bila ada kegiatan baru dengan ruang lingkup
+    // yang sama, teks hasil aturan bisa muncul lagi sebagai butir baru
+    // dan butir yang diedit itu tetap ada; hapus salah satunya secara
+    // manual bila dobel.
+    function tambahTindakLanjutUntukKegiatan(daftarKegiatan) {
+      pastikanTindakLanjut();
+      const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
+      const ada = new Set(state.tindakLanjut.map(norm));
+      let tambah = 0;
+      (daftarKegiatan || []).forEach((k) => {
+        if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+        const teks = tindakLanjutUntukJudul(k.judul, k.narasi);
+        if (!teks || ada.has(norm(teks))) return;
+        state.tindakLanjut.push(teks);
+        ada.add(norm(teks));
+        tambah++;
+      });
+      return tambah;
+    }
+    // Refresh tindak lanjut dari SEMUA kegiatan saat ini (tombol
+    // "Isi Ulang Tindak Lanjut"): menambah butir untuk kegiatan yang
+    // belum punya tindak lanjut, tanpa mengubah butir yang sudah ada.
+    function segarkanTindakLanjut() {
+      const semua = [];
+      (state.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => semua.push(k)));
+      return tambahTindakLanjutUntukKegiatan(semua);
     }
     function infoDraf(pesan) { const info = $('sp-draf-info'); if (info) info.textContent = pesan; }
     let timerSimpan = null;
@@ -2278,6 +2324,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       wadah.addEventListener('change', async (e) => {
         const t = e.target;
         if (t.matches('[data-tanggal-hari]')) { const hi = Number(t.dataset.tanggalHari); const iso = dmyKeIso(t.value); if (iso) { state.hari[hi].tanggal = iso; } renderHari(); simpanDraf(); renderPratinjau(); return; }
+        // Tindak lanjut otomatis (18 Nov 2026): saat judul/narasi
+        // kegiatan selesai diinput (change = selesai ketik), butir
+        // tindak lanjut untuk ruang lingkup kegiatan itu muncul bila
+        // belum ada. Dijalankan di change (bukan tiap ketikan) supaya
+        // tidak menambah butir di tengah mengetik.
+        if (t.matches('[data-judul-kegiatan]') || t.matches('[data-narasi-kegiatan]')) {
+          const [hi, ki] = (t.dataset.judulKegiatan || t.dataset.narasiKegiatan).split(':').map(Number);
+          const k = state.hari[hi] && state.hari[hi].kegiatan[ki];
+          if (k) {
+            const n = tambahTindakLanjutUntukKegiatan([k]);
+            if (n) { renderTindakLanjut(); showStatus('Tindak lanjut baru ditambahkan untuk kegiatan ini.', true); }
+            simpanDraf(); renderPratinjau();
+          }
+          return;
+        }
         if (t.matches('[data-tambah-foto]')) {
           const [hi, ki] = t.dataset.tambahFoto.split(':').map(Number);
           const f = t.files && t.files[0];
@@ -2320,9 +2381,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       $('sp-isi-ulang-tindak').addEventListener('click', () => {
         const jmlKegiatan = (state.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
-        state.tindakLanjut = buatTindakLanjut(state.hari);
+        // Refresh (18 Nov 2026, perintah Bos Besar): BUKAN lagi isi
+        // ulang dari nol — hanya menambah butir untuk kegiatan yang
+        // belum punya tindak lanjut; butir yang sudah ada (termasuk
+        // yang diedit manual) dipertahankan.
+        const tambah = segarkanTindakLanjut();
         renderTindakLanjut(); simpanDraf(); renderPratinjau();
-        showStatus('Tindak Lanjut diisi ulang menjadi ' + state.tindakLanjut.length + ' butir dari ' + jmlKegiatan + ' kegiatan minggu ini (ruang lingkup yang sama digabung jadi satu butir). Butir yang sudah diubah ikut diganti — ubah lagi bila perlu.', true);
+        showStatus(tambah
+          ? 'Tindak Lanjut direfresh: ' + tambah + ' butir baru ditambahkan dari ' + jmlKegiatan + ' kegiatan minggu ini (ruang lingkup yang sama digabung jadi satu butir). Butir yang sudah ada dipertahankan.'
+          : 'Tindak Lanjut direfresh: tidak ada butir baru — semua kegiatan minggu ini sudah punya tindak lanjut. Butir yang sudah ada dipertahankan.', true);
       });
       const btnTutupSemua = $('sp-tutup-semua');
       if (btnTutupSemua) btnTutupSemua.addEventListener('click', () => {
