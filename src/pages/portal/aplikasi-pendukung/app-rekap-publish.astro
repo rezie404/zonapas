@@ -135,7 +135,7 @@ const PLATFORM = [
       <!-- Impor -->
       <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Impor laporan">
         <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Impor Laporan</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tempel teks chat/surat laporan UPT, atau pilih file .txt hasil export chat WA. Tautan duplikat dilewati otomatis; surat yang melaporkan 0 publikasi ditandai sebagai nihil.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tempel teks chat/surat laporan UPT, atau pilih file .txt hasil export chat WA. Tautan duplikat dilewati otomatis; surat yang melaporkan 0 publikasi ditandai sebagai nihil. Tanggal impor mengikuti tanggal yang dipilih di atas — bila mengimpor surat hari kemarin, ubah dulu tanggalnya ke tanggal surat itu.</p>
         <label class="mt-3 block">
           <span class="block text-sm font-bold">Teks chat / surat</span>
           <textarea id="impor-teks" rows="6" placeholder="Tempel teks laporan UPT di sini…" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
@@ -442,7 +442,12 @@ const PLATFORM = [
       const btn = $('btn-impor');
       if (btn) { btn.disabled = true; btn.textContent = 'Mengimpor…'; }
       try {
-        const res = await workerPost('/redaksi/api/rekap/impor', { teks });
+        // Tanggal impor = tanggal yang dipilih di pemilih tanggal di atas
+        // (19 Nov 2026: impor ulang surat kemarin tanpa ini jatuh ke hari
+        // ini, karena teks salinan WA tidak membawa stempel waktu — server
+        // memakai tanggal ini hanya bila pesan tidak punya stempel waktu
+        // sendiri, mis. file .txt hasil export chat).
+        const res = await workerPost('/redaksi/api/rekap/impor', { teks, tanggal: rekapTanggalDipilih() });
         const hasil = $('impor-hasil');
         const nihilTxt = (res.nihilDitandai || []).map((n) => (n.tanggal || '') + ' ' + (n.upt || '')).join(', ');
         const tglTxt = res.perTanggal ? Object.entries(res.perTanggal).map(([t, j]) => t + ': ' + j).join(', ') : '';
