@@ -6,12 +6,10 @@ interface Props {
 }
 
 const { items } = Astro.props;
+// Isi pita ditentukan saat build di index.astro (18 Nov 2026, perintah
+// Bos Besar): 1 berita Pilihan Redaksi (Headline) + 5 berita terbaru.
+// Daftar digandakan supaya animasi berjalan mulus tanpa putus.
 const tickerItems = [...items, ...items];
-// Waktu masuk pita per artikel (ISO): `breakingSince` bila ada, fallback
-// ke tanggal terbit — aturan yang sama dengan filter build di index.astro.
-function sinceISO(entry: CollectionEntry<'berita'>) {
-  return entry.data.breakingSince || entry.data.publishDate.toISOString();
-}
 ---
 
 {items.length > 0 && (
@@ -24,7 +22,7 @@ function sinceISO(entry: CollectionEntry<'berita'>) {
       <div class="relative flex-1 overflow-hidden py-2">
         <div class="ticker-track flex w-max whitespace-nowrap">
           {tickerItems.map((entry) => (
-            <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} data-breaking-since={sinceISO(entry)} class="mx-6 text-sm font-semibold hover:underline">
+            <a href={`/berita/${entry.id.replace(/\.md$/, '')}/`} class="mx-6 text-sm font-semibold hover:underline">
               {entry.data.title}
             </a>
           ))}
@@ -33,27 +31,3 @@ function sinceISO(entry: CollectionEntry<'berita'>) {
     </div>
   </div>
 )}
-
-<script>
-  // Kedaluwarsa Breaking News di sisi klien: sembunyikan butir yang sudah
-  // lewat 2×24 jam sejak masuk pita (aturan yang sama dengan filter build
-  // di index.astro), supaya artikel hilang dari pita secara otomatis tanpa
-  // menunggu rebuild situs. Sembunyikan seluruh pita bila tidak ada butir
-  // yang tersisa.
-  (function () {
-    var MS = 2 * 24 * 60 * 60 * 1000;
-    var now = Date.now();
-    var links = document.querySelectorAll('#ticker-berita a[data-breaking-since]');
-    if (!links.length) return;
-    var tersisa = 0;
-    links.forEach(function (a) {
-      var since = Date.parse(a.getAttribute('data-breaking-since') || '');
-      if (!isNaN(since) && now - since >= MS) { a.classList.add('hidden'); }
-      else { tersisa++; }
-    });
-    if (tersisa === 0) {
-      var bar = document.getElementById('ticker-berita');
-      if (bar) bar.classList.add('hidden');
-    }
-  })();
-</script>
