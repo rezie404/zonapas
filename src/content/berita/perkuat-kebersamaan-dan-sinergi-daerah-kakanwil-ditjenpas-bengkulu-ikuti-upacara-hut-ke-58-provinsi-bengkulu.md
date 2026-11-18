@@ -13,6 +13,7 @@ breakingSince: "2026-11-18T08:27:26.716Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 419
 ---
 
 **Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri Upacara Peringatan Hari Ulang Tahun (HUT) ke-58 Provinsi Bengkulu yang dilaksanakan pada Rabu (18/11/2026). Kegiatan ini menjadi momentum untuk memperkuat kebersamaan serta sinergi antarlembaga dalam mendukung pembangunan dan kemajuan Provinsi Bengkulu.
