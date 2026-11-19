@@ -13,6 +13,7 @@ breakingSince: "2026-11-19T08:38:14.081Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 424
 ---
 
 **Bengkulu** – Semangat pengabdian dan kebersamaan mewarnai peringatan Hari Bakti Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) ke-2 Tahun 2026. LPKA Kelas II Bengkulu turut mengikuti rangkaian kegiatan upacara yang diselenggarakan pada Kamis (19/11/2026), bertempat di Lapas Kelas IIA Bengkulu.
