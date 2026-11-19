@@ -13,6 +13,7 @@ breakingSince: "2026-11-19T08:42:11.695Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 426
 ---
 
 **Bengkulu** – Peringatan Hari Bakti Ke-2 Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) menjadi momentum untuk mempererat kebersamaan sekaligus memperkuat sinergi antarlembaga di Provinsi Bengkulu. Semangat tersebut tercermin dalam kegiatan tasyakuran yang digelar di Aula Lapas Kelas IIA Bengkulu (Lapas Bentiring), Kamis (19/11/2026).
