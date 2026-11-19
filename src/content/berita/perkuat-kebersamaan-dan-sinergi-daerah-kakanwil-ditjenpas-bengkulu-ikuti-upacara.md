@@ -5,7 +5,7 @@ category: "Umum"
 tags: ["Umum", "Kanwil"]
 author: "Miko Andriansyah"
 publishDate: 2026-11-18
-image: "/images/perkuat-kebersamaan-dan-sinergi-daerah-kakanwil-ditjenpas-bengkulu-ikuti-upacara.jpg"
+image: "/images/cover-perkuat-kebersamaan-dan-sinergi-daerah-kakanwil-ditjenpas-bengkulu-ikuti-upacara-20261119121013956170.jpg"
 imageCaption: "Dokumentasi kegiatan. (ZonaPas)"
 featured: false
 breaking: true
@@ -21,4 +21,4 @@ Upacara berlangsung dengan khidmat dan diikuti oleh unsur pemerintah daerah, ins
 
 Melalui momentum peringatan HUT ke-58 ini, Kanwil Ditjenpas Bengkulu berkomitmen untuk terus memperkuat koordinasi dan sinergi dengan pemerintah daerah serta seluruh pemangku kepentingan. Hal ini diharapkan dapat mendukung pelaksanaan tugas dan fungsi Pemasyarakatan sekaligus memberikan kontribusi positif bagi kemajuan Provinsi Bengkulu.
 
-![356310](/images/isi-perkuat-kebersamaan-dan-sinergi-daerah-kakanwil-ditjenpas-bengkulu-ikuti-upacara-hut-ke-58-provinsi-bengkulu-20261118163218757656.jpg)
+![357779](/images/isi-perkuat-kebersamaan-dan-sinergi-daerah-kakanwil-ditjenpas-bengkulu-ikuti-upacara-20261119121006249957.jpg)
