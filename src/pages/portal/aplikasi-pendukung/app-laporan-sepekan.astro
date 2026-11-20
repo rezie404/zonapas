@@ -69,7 +69,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </section>
 
     <div id="app" class="hidden">
-      <input type="date" id="sp-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;" />
+      <input type="date" id="sp-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
       <div id="sp-editor">
       <div class="mt-6 flex flex-wrap items-center gap-3">
         <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
@@ -162,7 +162,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-tindak" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Tindak Lanjut</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Satu butir per ruang lingkup (1–2 baris): tindak lanjut yang bisa dilakukan Kepala Kantor Wilayah atas kegiatan minggu ini. Butir muncul otomatis saat kegiatan baru diinput atau ditarik — semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Ketuk “Isi Ulang” untuk merefresh: butir baru ditambahkan untuk kegiatan yang belum punya tindak lanjut, butir yang sudah ada dipertahankan.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Satu butir per ruang lingkup (1–2 baris): tindak lanjut yang bisa dilakukan Kepala Kantor Wilayah atas kegiatan minggu ini. Butir muncul otomatis dan menyesuaikan saat kegiatan baru diinput atau ditarik — butir baru muncul untuk ruang lingkup yang belum ada, butir yang ruang lingkupnya sudah tidak ada ikut terhapus (butir yang diedit manual dipertahankan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Ketuk “Isi Ulang” untuk memperbarui dari kegiatan minggu ini: daftar butir dibuat ulang — butir untuk kegiatan yang sudah tidak ada dihapus, butir baru ditambahkan, dan butir yang diedit manual ikut diganti dengan butir baru dari aturan.</p>
         <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
       </section>
 
@@ -441,12 +441,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // disembunyikan di luar layar (bukan display:none) supaya showPicker
     // tetap bisa dibuka.
     let targetKalender = null;
-    function bukaKalender(elTeks) {
+    function bukaKalender(elTeks, btn) {
       const pemilih = $('sp-pemilih-tanggal');
       if (!pemilih || !elTeks) return;
       targetKalender = elTeks;
       pemilih.value = dmyKeIso(elTeks.value) || '';
-      try { pemilih.showPicker(); } catch { try { pemilih.focus(); pemilih.click(); } catch {} }
+      // 21 Nov 2026: pemilih dipindah ke posisi tombol SEBELUM showPicker —
+      // popup kalender Chrome desktop menempel di posisi input; bila input
+      // tetap di luar layar (left:-10000px), popup terbuka di luar layar
+      // dan tidak terlihat ("ikon kalender tidak ada respon"), sementara
+      // di HP kalender tampil sebagai dialog modal sehingga tidak
+      // terpengaruh. Bila showPicker tetap gagal, beri tahu caranya
+      // (ketik manual) supaya tidak diam saja.
+      try {
+        const r = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+        if (r) { pemilih.style.left = Math.max(0, r.left) + 'px'; pemilih.style.top = (r.bottom + 4) + 'px'; }
+        pemilih.showPicker();
+      } catch {
+        try { pemilih.focus(); pemilih.click(); } catch {}
+        showStatus('Kalender tidak bisa dibuka di peramban ini — ketik tanggal dengan format DD/MM/YYYY (contoh 21/11/2026).', false);
+      }
     }
     function labelHari(str) {
       const d = parseTgl(str);
@@ -634,7 +648,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             foto: a.image ? [a.image] : [],
           });
         });
-        let tindakBaru = 0;
+        let sesuaikan = { ditambah: 0, dihapus: 0 };
         if (perHariSaja) {
           // Hanya hari itu: ganti kegiatannya saja (atau sisipkan bila hari
           // itu belum ada); hari lain dan foto sampul TIDAK disentuh.
@@ -648,11 +662,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             if (lama.tutup !== undefined) state.hari[idx].tutup = lama.tutup;
             if (lama.kunci !== undefined) state.hari[idx].kunci = lama.kunci;
           } else { state.hari.push(hariBaru); state.hari.sort((x, y) => String(x.tanggal || '').localeCompare(String(y.tanggal || ''))); }
-          // Tindak lanjut otomatis (18 Nov 2026): kegiatan baru yang
-          // masuk lewat tarikan hari ini ikut memunculkan butir tindak
-          // lanjut bila ruang lingkupnya belum ada — butir yang sudah
-          // ada (termasuk yang diedit manual) tidak diubah.
-          tindakBaru = tambahTindakLanjutUntukKegiatan(hariBaru.kegiatan);
+          // Tindak lanjut otomatis (21 Nov 2026): kegiatan baru yang
+          // masuk lewat tarikan hari ini menyesuaikan butir tindak
+          // lanjut — butir baru muncul untuk ruang lingkup yang belum
+          // ada, butir hasil aturan yang ruang lingkupnya sudah tidak
+          // ada ikut terhapus; butir yang diedit manual dipertahankan.
+          sesuaikan = sesuaikanTindakLanjut();
         } else {
           periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
           // Hari yang terkunci TIDAK ditimpa tarikan mingguan — hari fix
@@ -683,7 +698,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         tulisStateKeForm();
         renderPratinjau();
         showStatus(perHariSaja
-          ? 'Berhasil menarik ' + artikel.length + ' berita untuk ' + labelHari(hanyaTanggal) + '. Hanya kegiatan hari itu yang diperbarui; hari lain tidak berubah.' + (tindakBaru ? ' ' + tindakBaru + ' tindak lanjut baru ditambahkan.' : ' Tidak ada tindak lanjut baru (ruang lingkupnya sudah ada).')
+          ? 'Berhasil menarik ' + artikel.length + ' berita untuk ' + labelHari(hanyaTanggal) + '. Hanya kegiatan hari itu yang diperbarui; hari lain tidak berubah.' + (sesuaikan.ditambah || sesuaikan.dihapus ? ' Tindak lanjut disesuaikan:' + (sesuaikan.ditambah ? ' ' + sesuaikan.ditambah + ' butir baru' : '') + (sesuaikan.ditambah && sesuaikan.dihapus ? ',' : '') + (sesuaikan.dihapus ? ' ' + sesuaikan.dihapus + ' butir lama dihapus' : '') + '.' : ' Tidak ada tindak lanjut baru (ruang lingkupnya sudah ada).')
           : 'Berhasil menarik ' + artikel.length + ' berita dari ' + state.hari.length + ' hari (' + teksPeriode() + '). Judul, narasi, dan foto kegiatan terisi dari berita ZonaPas; foto sampul juga dari foto berita. Semua masih bisa diedit.', true);
       } catch (e) {
         showStatus('Gagal menarik berita: ' + (e && e.message ? e.message : 'galat'), false);
@@ -924,13 +939,68 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       return tambah;
     }
-    // Refresh tindak lanjut dari SEMUA kegiatan saat ini (tombol
-    // "Isi Ulang Tindak Lanjut"): menambah butir untuk kegiatan yang
-    // belum punya tindak lanjut, tanpa mengubah butir yang sudah ada.
+    // Sesuaikan tindak lanjut dengan kegiatan saat ini (21 Nov 2026,
+    // perintah Bos Besar: tindak lanjut muncul otomatis dan ISINYA
+    // berubah mengikuti kegiatan — bukan cuma jumlahnya). Dipakai saat
+    // judul/narasi kegiatan selesai diinput (change) dan saat "Tarik
+    // Berita Hari Ini": menambah butir untuk ruang lingkup yang belum
+    // punya, DAN menghapus butir hasil aturan yang ruang lingkupnya
+    // sudah tidak ada di kegiatan mana pun (mis. judul kegiatan diubah
+    // dari Apel Pagi menjadi Kunjungan Kerja — butir disiplin ikut
+    // terhapus, butir kunker muncul). Butir yang diedit manual TIDAK
+    // ikut dihapus (teksnya tidak sama dengan teks hasil aturan mana
+    // pun, jadi tidak dikenali sebagai butir ruang lingkup itu — sama
+    // seperti hapusTindakLanjutUntukKegiatan). Berbeda dengan
+    // segarkanTindakLanjut ("Isi Ulang") yang membuat ulang dari nol
+    // termasuk mengganti editan manual. Mengembalikan
+    // {ditambah, dihapus}.
+    function sesuaikanTindakLanjut() {
+      pastikanTindakLanjut();
+      const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
+      const dipakai = new Set();
+      (state.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => {
+        if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+        dipakai.add(norm(tindakLanjutUntukJudul(k.judul, k.narasi)));
+      }));
+      let dihapus = 0;
+      state.tindakLanjut = state.tindakLanjut.filter((t) => {
+        if (dipakai.has(norm(t))) return true;
+        // Butir hasil aturan yang tak terpakai -> hapus; butir editan
+        // manual (teksnya bukan teks hasil aturan mana pun) -> simpan.
+        const teksAturan = ATURAN_TINDAK_LANJUT.some((a) => norm(a.teks) === norm(t)) || norm(TINDAK_LANJUT_UMUM) === norm(t);
+        if (teksAturan) { dihapus++; return false; }
+        return true;
+      });
+      const semuaKegiatan = (state.hari || []).flatMap((h) => h.kegiatan || []);
+      const ditambah = tambahTindakLanjutUntukKegiatan(semuaKegiatan);
+      return { ditambah, dihapus };
+    }
+    // Perbarui tindak lanjut dari kegiatan minggu ini (21 Nov 2026,
+    // perintah Bos Besar: "isi ulang" artinya perbarui menyesuaikan
+    // dengan kegiatan minggu tersebut). Daftar butir DIBUAT ULANG dari
+    // kegiatan yang ada sekarang — butir untuk kegiatan yang sudah
+    // tidak ada dihapus, butir baru ditambahkan. Ini MENGGANTIKAN
+    // aturan refresh 18 Nov 2026 (hanya menambah, butir lama
+    // dipertahankan): aturan itu membuat daftar tetap memakai tindak
+    // lanjut kegiatan minggu lalu, sehingga tombol terasa tidak ada
+    // respon bila semua kegiatan sudah punya butir. Butir yang diedit
+    // manual ikut diganti dengan butir baru dari aturan — sama seperti
+    // "Tarik Berita Minggu Ini" yang juga membuat ulang dari nol.
+    // Mengembalikan hitungan {sebelum, sesudah, ditambah, dihapus}.
     function segarkanTindakLanjut() {
-      const semua = [];
-      (state.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => semua.push(k)));
-      return tambahTindakLanjutUntukKegiatan(semua);
+      pastikanTindakLanjut();
+      const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
+      const lama = state.tindakLanjut.map(norm);
+      const baru = buatTindakLanjut(state.hari);
+      const baruNorm = baru.map(norm);
+      const hasil = {
+        sebelum: lama.length,
+        sesudah: baru.length,
+        ditambah: baruNorm.filter((t) => !lama.includes(t)).length,
+        dihapus: lama.filter((t) => !baruNorm.includes(t)).length,
+      };
+      state.tindakLanjut = baru;
+      return hasil;
     }
     function infoDraf(pesan) { const info = $('sp-draf-info'); if (info) info.textContent = pesan; }
     let timerSimpan = null;
@@ -1125,6 +1195,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       el.style.background = ok ? '#dcfce7' : '#fee2e2';
       el.style.color = ok ? '#166534' : '#991b1b';
       el.style.border = '1px solid ' + (ok ? '#86efac' : '#fca5a5');
+      // 21 Nov 2026: gulir pesan ke tampilan bila sedang di luar layar
+      // (pesan ada di atas halaman; pengguna yang sedang di bagian bawah
+      // — mis. menekan "Isi Ulang Tindak Lanjut" — tidak melihatnya,
+      // sehingga tombol terasa "tidak ada respon"). block:'nearest'
+      // hanya menggulir bila pesannya memang di luar tampilan.
+      try { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch {}
     }
 
     // ---------- Potong foto (crop) ----------
@@ -1815,19 +1891,23 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const sisa = Math.max(100, Math.min(520, TINGGI_ISI - tNarasi - (ki === 0 ? tinggiHari : 0) - 50));
           const htmlFotoGrup = (daftar) => {
             if (!daftar.length) return '';
+            // Foto kegiatan berfokus pada wajah orang di tengah foto
+            // (21 Nov 2026): object-position dari pindai kulit; bila
+            // belum dipindai, 50%/30% (agak ke atas) sebagai awal.
+            const imgFoto = (src) => '<img src="' + esc(src) + '"' + gayaFokusFoto(src) + ' alt="" />';
             if (daftar.length === 1) {
               const h1 = Math.max(120, Math.min(255, sisa));
               const w1 = Math.min(340, Math.round(h1 * 4 / 3));
-              return '<div class="sepekan-foto-tunggal" style="width:' + w1 + 'px;height:' + h1 + 'px"><img src="' + esc(daftar[0]) + '" alt="" /></div>';
+              return '<div class="sepekan-foto-tunggal" style="width:' + w1 + 'px;height:' + h1 + 'px">' + imgFoto(daftar[0]) + '</div>';
             }
             if (daftar.length === 2) {
               const h2 = Math.max(120, Math.min(252, sisa));
-              return '<div class="sepekan-foto-baris" style="height:' + h2 + 'px"><div class="sepekan-foto-item" style="height:' + h2 + 'px"><img src="' + esc(daftar[0]) + '" alt="" /></div><div class="sepekan-foto-item" style="height:' + h2 + 'px"><img src="' + esc(daftar[1]) + '" alt="" /></div></div>';
+              return '<div class="sepekan-foto-baris" style="height:' + h2 + 'px"><div class="sepekan-foto-item" style="height:' + h2 + 'px">' + imgFoto(daftar[0]) + '</div><div class="sepekan-foto-item" style="height:' + h2 + 'px">' + imgFoto(daftar[1]) + '</div></div>';
             }
             if (daftar.length === 3) {
               const h3 = Math.max(100, Math.min(200, sisa));
               let sel = '';
-              daftar.forEach((f) => { sel += '<div class="sepekan-foto-item" style="height:' + h3 + 'px"><img src="' + esc(f) + '" alt="" /></div>'; });
+              daftar.forEach((f) => { sel += '<div class="sepekan-foto-item" style="height:' + h3 + 'px">' + imgFoto(f) + '</div>'; });
               return '<div class="sepekan-foto-baris" style="height:' + h3 + 'px">' + sel + '</div>';
             }
             // 4 foto grid 2x2, 5 foto grid 3+2, 6 foto grid 3+3 —
@@ -1840,7 +1920,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               for (let c = 0; c < perBaris; c++) {
                 const idx = r * perBaris + c;
                 if (idx >= daftar.length) break;
-                sel += '<div class="sepekan-foto-item" style="height:' + hG + 'px"><img src="' + esc(daftar[idx]) + '" alt="" /></div>';
+                sel += '<div class="sepekan-foto-item" style="height:' + hG + 'px">' + imgFoto(daftar[idx]) + '</div>';
               }
               if (sel) baris += '<div class="sepekan-foto-baris" style="height:' + hG + 'px">' + sel + '</div>';
             }
@@ -2015,6 +2095,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!wadah) return;
       wadah.innerHTML = htmlLaporan();
       sesuaikanSkala();
+      // Foto kegiatan: hitung titik fokus wajah (sekali per foto,
+      // di memori saja) — bila sudah selesai, pratinjau dirender ulang
+      // dengan object-position yang baru.
+      (state.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => (k.foto || []).forEach((f) => { if (f) pastikanFokusFoto(f); })));
     }
     function sesuaikanSkala() {
       const wadah = $('sp-pratinjau');
@@ -2030,6 +2114,195 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
     }
     window.addEventListener('resize', () => { sesuaikanSkala(); });
+
+    // ---------- Fokus wajah foto kegiatan (21 Nov 2026) ----------
+    // Foto kegiatan di Hasil memakai kotak tetap + object-fit: cover,
+    // jadi foto yang lebih tinggi dari kotaknya terpotong atas-bawah
+    // dan wajah orang di tengah foto bisa terpotong di tepi atas
+    // (laporan Bos Besar 21 Nov 2026: wajah di 4 foto audiensi BNN
+    // terpotong di tepi atas pratinjau). Atas perintah Bos Besar:
+    // foto berfokus pada wajah orang di tengah foto — di pratinjau
+    // MAUPUN PDF.
+    //
+    // Cara kerja: pindai kulit (aturan warna Kovac) pada salinan kecil
+    // 200px — SAMA seperti scripts/hitung-fokus-wajah.mjs yang dipakai
+    // kartu berita (deteksi wajah ML dicoba 13 Nov 2026 dan
+    // mengembalikan 0 wajah di foto-foto ini) — kelompokkan piksel
+    // kulit jadi gumpalan seukuran wajah, lalu cari jendela 16:9 yang
+    // memuat wajah terbanyak (skor = piksel kulit + 60 x jumlah
+    // gumpalan, sedikit ditarik ke tengah kelompok wajah); titik fokus
+    // = tengah jendela itu. Hasilnya disimpan di memori saja (peta
+    // fokusFoto, per src) — TIDAK di draf, supaya draf lama tetap jalan
+    // dan draf tidak membengkak; dihitung ulang tiap halaman dibuka
+    // (sekali per foto). Bila tidak ada wajah (kurang dari 3 gumpalan),
+    // pakai 50%/30% — agak ke atas, karena wajah biasanya di sepertiga
+    // atas foto — supaya wajah yang tidak terdeteksi tetap lebih
+    // terlihat daripada tengah 50%/50%.
+    const FOKUS_AWAL = { x: 50, y: 30 };
+    const fokusFoto = new Map(); // src -> {x, y} persen | null (dipindai, tak ada wajah)
+    const pindaiFotoBerjalan = new Map(); // src -> Promise
+    function kulitKovac(r, g, b) {
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      return r > 95 && g > 40 && b > 20 && mx - mn > 15 && Math.abs(r - g) > 15 && r > g && r > b;
+    }
+    // Titik fokus (persen) dari piksel gambar kecil (data RGBA, lebar w,
+    // tinggi h) — murni, bisa diuji di Node. null bila tidak ada wajah.
+    // Jendela 16:9 yang memuat wajah terbanyak (porting
+    // cariJendelaWajah dari scripts/hitung-fokus-wajah.mjs, dihitung
+    // dalam koordinat salinan kecil — persennya sama); titik fokus =
+    // tengah jendela itu.
+    function fokusDariPiksel(data, w, h) {
+      const mask = new Uint8Array(w * h);
+      for (let i = 0; i < w * h; i++) {
+        const j = i * 4;
+        if (kulitKovac(data[j], data[j + 1], data[j + 2])) mask[i] = 1;
+      }
+      const label = new Int32Array(w * h).fill(-1);
+      const komps = [];
+      const tumpuk = [];
+      for (let s = 0; s < w * h; s++) {
+        if (!mask[s] || label[s] >= 0) continue;
+        const id = komps.length;
+        let minX = w, maxX = -1, minY = h, maxY = -1, luas = 0;
+        tumpuk.push(s);
+        label[s] = id;
+        while (tumpuk.length) {
+          const p = tumpuk.pop();
+          const px = p % w, py = Math.floor(p / w);
+          luas++;
+          if (px < minX) minX = px;
+          if (px > maxX) maxX = px;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (!dx && !dy) continue;
+              const nx = px + dx, ny = py + dy;
+              if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+              const q = ny * w + nx;
+              if (mask[q] && label[q] < 0) { label[q] = id; tumpuk.push(q); }
+            }
+          }
+        }
+        komps.push({ minX, maxX, minY, maxY, luas });
+      }
+      // Gumpalan seukuran wajah pada salinan 200px (sama seperti
+      // hitung-fokus-wajah.mjs): buang yang terlalu kecil (teks/ikon),
+      // terlalu besar (panel kayu/meja), dan yang setipis teks judul.
+      const barisPiksel = new Array(h).fill(0);
+      const kolomPiksel = new Array(w).fill(0);
+      const barisGumpal = new Array(h).fill(0);
+      const kolomGumpal = new Array(w).fill(0);
+      let totalPiksel = 0, totalGumpal = 0, sx = 0, sy = 0;
+      for (let k = 0; k < komps.length; k++) {
+        const c = komps[k];
+        const bw = c.maxX - c.minX + 1, bh = c.maxY - c.minY + 1;
+        if (bw < 3 || bh < 6 || bw > 45 || bh > 45 || c.luas < 12 || c.luas > 900) continue;
+        totalGumpal++;
+        const cxp = Math.round((c.minX + c.maxX) / 2), cyp = Math.round((c.minY + c.maxY) / 2);
+        barisGumpal[cyp]++;
+        kolomGumpal[cxp]++;
+        sx += cxp;
+        sy += cyp;
+        for (let y = c.minY; y <= c.maxY; y++) {
+          for (let x = c.minX; x <= c.maxX; x++) {
+            if (label[y * w + x] === k) { barisPiksel[y]++; kolomPiksel[x]++; totalPiksel++; }
+          }
+        }
+      }
+      if (totalGumpal < 3) return null;
+      const cx = sx / totalGumpal / w, cy = sy / totalGumpal / h;
+      const skorTotal = totalPiksel + 60 * totalGumpal;
+      const RASIO = 16 / 9;
+      let jendela;
+      if (w / h > RASIO) {
+        const jh = h, jw = Math.round(h * RASIO);
+        let terbaik = -1, bx = 0;
+        for (let x0 = 0; x0 + jw <= w; x0 += 2) {
+          let s = 0;
+          for (let x = x0; x < x0 + jw; x++) s += kolomPiksel[x] + 60 * kolomGumpal[x];
+          const tengah = (x0 + jw / 2) / w;
+          const skor = s - Math.abs(tengah - cx) * skorTotal * 0.05;
+          if (skor > terbaik) { terbaik = skor; bx = x0; }
+        }
+        jendela = { x: bx, y: 0, w: jw, h: jh };
+      } else {
+        const jw = w, jh = Math.round(w / RASIO);
+        let terbaik = -1, by = 0;
+        for (let y0 = 0; y0 + jh <= h; y0 += 2) {
+          let s = 0;
+          for (let y = y0; y < y0 + jh; y++) s += barisPiksel[y] + 60 * barisGumpal[y];
+          const tengah = (y0 + jh / 2) / h;
+          const skor = s - Math.abs(tengah - cy) * skorTotal * 0.05;
+          if (skor > terbaik) { terbaik = skor; by = y0; }
+        }
+        jendela = { x: 0, y: by, w: jw, h: jh };
+      }
+      const fx = Math.min(90, Math.max(10, Math.round(((jendela.x + jendela.w / 2) / w) * 1000) / 10));
+      const fy = Math.min(90, Math.max(10, Math.round(((jendela.y + jendela.h / 2) / h) * 1000) / 10));
+      return { x: fx, y: fy };
+    }
+    // Pindai satu foto (elemen <img> yang sudah termuat) -> {x, y} | null.
+    function hitungFokusWajah(img) {
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw || !nh) return null;
+      const LEBAR = 200;
+      const c = document.createElement('canvas');
+      c.width = LEBAR;
+      c.height = Math.max(1, Math.round(nh * LEBAR / nw));
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return null;
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const data = ctx.getImageData(0, 0, c.width, c.height).data;
+      return fokusDariPiksel(data, c.width, c.height);
+    }
+    function fokusUntukFoto(src) {
+      const f = fokusFoto.get(src);
+      return f || FOKUS_AWAL;
+    }
+    function gayaFokusFoto(src) {
+      const f = fokusUntukFoto(src);
+      return ' style="object-position:' + f.x + '% ' + f.y + '%"';
+    }
+    function pastikanFokusFoto(src) {
+      if (!src || fokusFoto.has(src) || pindaiFotoBerjalan.has(src)) return;
+      const janji = new Promise((res) => {
+        const img = new Image();
+        let selesai = false;
+        const akhir = (hasil) => {
+          if (selesai) return;
+          selesai = true;
+          pindaiFotoBerjalan.delete(src);
+          fokusFoto.set(src, hasil);
+          if (!sedangUnduh) renderPratinjau();
+          res(hasil);
+        };
+        img.onload = () => { let f = null; try { f = hitungFokusWajah(img); } catch {} akhir(f); };
+        img.onerror = () => akhir(null);
+        img.src = src;
+        // Jangan menahan selamanya: foto yang tak kunjung termuat
+        // dibiarkan memakai fokus awal, dan boleh dicoba lagi nanti.
+        setTimeout(() => { if (!selesai) { pindaiFotoBerjalan.delete(src); res(null); } }, 8000);
+      });
+      pindaiFotoBerjalan.set(src, janji);
+    }
+    // Tunggu semua pemindaian yang sedang berjalan (dipakai Unduh PDF
+    // supaya PDF memakai fokus yang sudah dihitung, bukan fokus awal).
+    async function tungguFokusFoto() {
+      const janji = Array.from(pindaiFotoBerjalan.values());
+      if (!janji.length) return;
+      await Promise.race([Promise.allSettled(janji), new Promise((r) => setTimeout(r, 6000))]);
+    }
+    // Jendela cover (seperti CSS object-fit: cover + object-position):
+    // bagian gambar (koordinat asli) yang tampil di kotak bw x bh
+    // dengan titik fokus fx%, fy%. Dipakai PDF supaya pratinjau dan
+    // PDF memakai potongan yang sama persis.
+    function jendelaCover(nw, nh, bw, bh, fx, fy) {
+      const s = Math.max(bw / nw, bh / nh);
+      const dw = nw * s, dh = nh * s;
+      const ox = (dw - bw) * (fx / 100), oy = (dh - bh) * (fy / 100);
+      return { sx: ox / s, sy: oy / s, sw: bw / s, sh: bh / s };
+    }
 
     // ---------- Unduh PDF ----------
     // PDF dibuat dari KLON halaman pratinjau yang sedang terlihat (bukan
@@ -2194,6 +2467,39 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       await Promise.all(kerja);
     }
 
+    // Foto kegiatan di PDF memakai potongan yang SAMA dengan pratinjau
+    // (21 Nov 2026): html2canvas tidak selalu menghormati
+    // object-position, jadi tiap foto digambar ulang ke canvas dengan
+    // jendela cover + titik fokus yang sama, lalu src diganti data URL
+    // hasil potongan — pratinjau dan PDF menampilkan wajah yang sama.
+    async function konversiSatuFotoPdf(img) {
+      const wadah = img.parentElement;
+      const bw = wadah ? wadah.offsetWidth : 0, bh = wadah ? wadah.offsetHeight : 0;
+      if (!bw || !bh) return;
+      await tungguImgSiap(img, 4000);
+      if (!img.naturalWidth) return; // foto macet: biarkan apa adanya
+      const f = fokusUntukFoto(img.getAttribute('src'));
+      const SKALA = 2;
+      const c = document.createElement('canvas');
+      c.width = Math.round(bw * SKALA);
+      c.height = Math.round(bh * SKALA);
+      const ctx = c.getContext('2d');
+      if (!ctx) return;
+      const j = jendelaCover(img.naturalWidth, img.naturalHeight, bw, bh, f.x, f.y);
+      ctx.drawImage(img, j.sx, j.sy, j.sw, j.sh, 0, 0, c.width, c.height);
+      img.src = c.toDataURL('image/jpeg', 0.92);
+      img.style.objectFit = 'fill';
+      img.style.objectPosition = '50% 50%';
+    }
+    async function konversiFotoPdf(fdoc) {
+      // Satu foto yang macet tidak boleh menahan PDF.
+      const kerja = [];
+      fdoc.querySelectorAll('.sepekan-foto-item img, .sepekan-foto-tunggal img').forEach((img) => {
+        kerja.push(Promise.race([konversiSatuFotoPdf(img), new Promise((r) => setTimeout(r, 6000))]));
+      });
+      await Promise.all(kerja);
+    }
+
     async function unduhPdf() {
       if (sedangUnduh) return;
       const btn = $('sp-unduh');
@@ -2203,6 +2509,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       bacaFormKeState();
       renderPratinjau();
+      // Tunggu pemindaian fokus wajah selesai supaya PDF memakai titik
+      // fokus yang sudah dihitung, bukan fokus awal (maks ~6 detik).
+      await tungguFokusFoto();
       sedangUnduh = true;
       if (btn) { btn.disabled = true; btn.textContent = 'Membuat PDF…'; }
       showStatus('Membuat PDF laporan…', true);
@@ -2232,6 +2541,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (!fdoc) throw new Error('Dokumen PDF tidak bisa dibuat.');
         await tungguGambar(fdoc);
         await konversiSegiEnamPdf(fdoc);
+        await konversiFotoPdf(fdoc);
         try { await fdoc.fonts.ready; } catch {}
         await new Promise((r) => setTimeout(r, 300));
         const { jsPDF } = window.jspdf;
@@ -2293,7 +2603,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const wadah = btn.closest('label') || btn.parentElement;
           input = wadah ? wadah.querySelector('.sp-tgl') : null;
         }
-        if (input) bukaKalender(input);
+        if (input) bukaKalender(input, btn);
       });
       const pemilihTgl = $('sp-pemilih-tanggal');
       // Terapkan pilihan kalender saat 'input' DAN 'change' (kalender bawaan
@@ -2406,17 +2716,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       wadah.addEventListener('change', async (e) => {
         const t = e.target;
         if (t.matches('[data-tanggal-hari]')) { const hi = Number(t.dataset.tanggalHari); const iso = dmyKeIso(t.value); if (iso) { state.hari[hi].tanggal = iso; } renderHari(); simpanDraf(); renderPratinjau(); return; }
-        // Tindak lanjut otomatis (18 Nov 2026): saat judul/narasi
+        // Tindak lanjut otomatis (21 Nov 2026): saat judul/narasi
         // kegiatan selesai diinput (change = selesai ketik), butir
-        // tindak lanjut untuk ruang lingkup kegiatan itu muncul bila
-        // belum ada. Dijalankan di change (bukan tiap ketikan) supaya
-        // tidak menambah butir di tengah mengetik.
+        // tindak lanjut MENYESUAIKAN dengan kegiatan — butir baru
+        // muncul untuk ruang lingkup yang belum ada, butir hasil aturan
+        // yang ruang lingkupnya sudah tidak ada ikut terhapus (mis.
+        // judul diubah dari Apel Pagi menjadi Kunjungan Kerja).
+        // Dijalankan di change (bukan tiap ketikan) supaya tidak
+        // mengubah butir di tengah mengetik. Butir yang diedit manual
+        // dipertahankan.
         if (t.matches('[data-judul-kegiatan]') || t.matches('[data-narasi-kegiatan]')) {
           const [hi, ki] = (t.dataset.judulKegiatan || t.dataset.narasiKegiatan).split(':').map(Number);
           const k = state.hari[hi] && state.hari[hi].kegiatan[ki];
           if (k) {
-            const n = tambahTindakLanjutUntukKegiatan([k]);
-            if (n) { renderTindakLanjut(); showStatus('Tindak lanjut baru ditambahkan untuk kegiatan ini.', true); }
+            const s = sesuaikanTindakLanjut();
+            if (s.ditambah || s.dihapus) { renderTindakLanjut(); showStatus('Tindak lanjut disesuaikan dengan kegiatan:' + (s.ditambah ? ' ' + s.ditambah + ' butir baru' : '') + (s.ditambah && s.dihapus ? ',' : '') + (s.dihapus ? ' ' + s.dihapus + ' butir lama dihapus' : '') + '.', true); }
             simpanDraf(); renderPratinjau();
           }
           return;
@@ -2463,15 +2777,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       $('sp-isi-ulang-tindak').addEventListener('click', () => {
         const jmlKegiatan = (state.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
-        // Refresh (18 Nov 2026, perintah Bos Besar): BUKAN lagi isi
-        // ulang dari nol — hanya menambah butir untuk kegiatan yang
-        // belum punya tindak lanjut; butir yang sudah ada (termasuk
-        // yang diedit manual) dipertahankan.
-        const tambah = segarkanTindakLanjut();
+        // Perbarui dari kegiatan minggu ini (21 Nov 2026): daftar butir
+        // dibuat ulang — butir basi minggu lalu dihapus, butir baru
+        // ditambahkan, editan manual ikut diganti butir baru dari aturan.
+        const h = segarkanTindakLanjut();
         renderTindakLanjut(); simpanDraf(); renderPratinjau();
-        showStatus(tambah
-          ? 'Tindak Lanjut direfresh: ' + tambah + ' butir baru ditambahkan dari ' + jmlKegiatan + ' kegiatan minggu ini (ruang lingkup yang sama digabung jadi satu butir). Butir yang sudah ada dipertahankan.'
-          : 'Tindak Lanjut direfresh: tidak ada butir baru — semua kegiatan minggu ini sudah punya tindak lanjut. Butir yang sudah ada dipertahankan.', true);
+        showStatus('Tindak Lanjut diperbarui dari ' + jmlKegiatan + ' kegiatan minggu ini: ' + h.sesudah + ' butir'
+          + (h.ditambah ? ' (' + h.ditambah + ' butir baru)' : '')
+          + (h.dihapus ? ' — ' + h.dihapus + ' butir lama yang sudah tidak sesuai kegiatan minggu ini dihapus, termasuk butir yang diedit manual' : '')
+          + ((h.ditambah || h.dihapus) ? '.' : ' — sudah sesuai, tidak ada yang berubah.'), true);
       });
       const btnTutupSemua = $('sp-tutup-semua');
       if (btnTutupSemua) btnTutupSemua.addEventListener('click', () => {

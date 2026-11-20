@@ -210,12 +210,21 @@ const PLATFORM = [
           <h3 class="text-base font-black uppercase tracking-tight">Laporan Bulanan</h3>
           <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Rekapitulasi publikasi per tanggal dan per satuan kerja untuk periode yang dipilih, dengan format dan susunan yang sama seperti laporan harian.</p>
           <div class="mt-3 flex flex-wrap items-end gap-3">
-            <label class="text-sm font-bold">Dari
-              <input id="bulanan-dari" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            </label>
-            <label class="text-sm font-bold">Sampai
-              <input id="bulanan-sampai" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            </label>
+            <div>
+              <span class="text-sm font-bold">Dari</span>
+              <span class="mt-1 flex items-center gap-1">
+                <input id="bulanan-dari" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                <button type="button" data-buka-kalender-bulanan="bulanan-dari" class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Buka kalender tanggal awal">📅</button>
+              </span>
+            </div>
+            <div>
+              <span class="text-sm font-bold">Sampai</span>
+              <span class="mt-1 flex items-center gap-1">
+                <input id="bulanan-sampai" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                <button type="button" data-buka-kalender-bulanan="bulanan-sampai" class="shrink-0 rounded-lg border border-slate-300 px-2.5 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="Buka kalender tanggal akhir">📅</button>
+              </span>
+            </div>
+            <input type="date" id="bulanan-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <button id="btn-bulanan-tampilkan" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tampilkan</button>
             <label class="text-sm font-bold">Pelapor
               <select id="bulanan-pelapor" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
@@ -403,19 +412,71 @@ const PLATFORM = [
     }
 
     // ---------- Laporan bulanan (20 Nov 2026) ----------
+    // Format tanggal DD/MM/YYYY (21 Nov 2026): <input type="date"> bawaan
+    // menampilkan MM/DD/YYYY di HP Bos Besar (mengikuti lokal perangkat,
+    // bukan lang halaman). Kolom bulanan kini berupa teks + tombol
+    // kalender (pemilih date bawaan yang disembunyikan) — pola yang sama
+    // seperti kolom tanggal Laporan Sepekan.
+    function bulananIsoKeDmy(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+      if (!m) return '';
+      return m[3] + '/' + m[2] + '/' + m[1];
+    }
+    function bulananDmyKeIso(str) {
+      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(str || '').trim());
+      if (!m) return null;
+      const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return null;
+      const dt = new Date(y, mo - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+      return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    // Sisipkan '/' otomatis selagi mengetik angka (DD/MM/YYYY).
+    function bulananFormatKetikDmy(el) {
+      const digit = el.value.replace(/\D/g, '').slice(0, 8);
+      let keluar = digit;
+      if (digit.length > 4) keluar = digit.slice(0, 2) + '/' + digit.slice(2, 4) + '/' + digit.slice(4);
+      else if (digit.length > 2) keluar = digit.slice(0, 2) + '/' + digit.slice(2);
+      el.value = keluar;
+    }
+    // Pemilih kalender bawaan (satu untuk kedua kolom bulanan). Inputnya
+    // disembunyikan di luar layar (bukan display:none) supaya showPicker
+    // tetap bisa dibuka; dipindah ke posisi tombol SEBELUM showPicker
+    // supaya popup kalender Chrome desktop tidak terbuka di luar layar
+    // (pelajaran dari ikon kalender Laporan Sepekan, 21 Nov 2026).
+    let bulananTargetKalender = null;
+    function bulananBukaKalender(elTeks, btn) {
+      const pemilih = $('bulanan-pemilih-tanggal');
+      if (!pemilih || !elTeks) return;
+      bulananTargetKalender = elTeks;
+      pemilih.value = bulananDmyKeIso(elTeks.value) || '';
+      try {
+        const r = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+        if (r) { pemilih.style.left = Math.max(0, r.left) + 'px'; pemilih.style.top = (r.bottom + 4) + 'px'; }
+        pemilih.showPicker();
+      } catch {
+        try { pemilih.focus(); pemilih.click(); } catch {}
+        showStatus('Kalender tidak bisa dibuka di peramban ini — ketik tanggal dengan format DD/MM/YYYY (contoh 21/11/2026).', false);
+      }
+    }
+    function bulananTerapkanPilihanKalender() {
+      const pemilih = $('bulanan-pemilih-tanggal');
+      if (!pemilih || !bulananTargetKalender || !pemilih.value) return;
+      bulananTargetKalender.value = bulananIsoKeDmy(pemilih.value);
+    }
     // Rentang bawaan: tanggal 1 bulan berjalan s.d. hari ini.
     let bulananData = null;
     function bulananAturBawaan() {
       const hariIni = todayISO();
       const [y, m] = String(hariIni || "").split("-");
       const dari = $('bulanan-dari'), sampai = $('bulanan-sampai');
-      if (dari && !dari.value && y && m) dari.value = y + "-" + m + "-01";
-      if (sampai && !sampai.value) sampai.value = hariIni;
+      if (dari && !dari.value && y && m) dari.value = bulananIsoKeDmy(y + "-" + m + "-01");
+      if (sampai && !sampai.value) sampai.value = bulananIsoKeDmy(hariIni);
     }
     async function muatBulanan() {
       const dariEl = $('bulanan-dari'), sampaiEl = $('bulanan-sampai');
-      const dari = dariEl ? dariEl.value : "", sampai = sampaiEl ? sampaiEl.value : "";
-      if (!dari || !sampai) { showStatus('Pilih tanggal awal dan tanggal akhir laporan bulanan.', false); return; }
+      const dari = bulananDmyKeIso(dariEl ? dariEl.value : ""), sampai = bulananDmyKeIso(sampaiEl ? sampaiEl.value : "");
+      if (!dari || !sampai) { showStatus('Isi tanggal awal dan tanggal akhir laporan bulanan dengan format DD/MM/YYYY (contoh 01/11/2026).', false); return; }
       if (dari > sampai) { showStatus('Tanggal awal tidak boleh lebih dari tanggal akhir.', false); return; }
       const btn = $('btn-bulanan-tampilkan');
       if (btn) { btn.disabled = true; btn.textContent = 'Memuat…'; }
@@ -470,6 +531,19 @@ const PLATFORM = [
     on('btn-bulanan-pdf', 'click', () => unduhBulanan('pdf'));
     on('btn-bulanan-docx', 'click', () => unduhBulanan('docx'));
     bulananAturBawaan();
+    // Ketik angka otomatis disisipi '/' + tombol 📅 membuka kalender.
+    ['bulanan-dari', 'bulanan-sampai'].forEach((id) => {
+      const el = $(id);
+      if (el) el.addEventListener('input', () => bulananFormatKetikDmy(el));
+    });
+    document.querySelectorAll('[data-buka-kalender-bulanan]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const el = $(btn.dataset.bukaKalenderBulanan);
+        if (el) bulananBukaKalender(el, btn);
+      });
+    });
+    const bulananPemilih = $('bulanan-pemilih-tanggal');
+    if (bulananPemilih) bulananPemilih.addEventListener('change', bulananTerapkanPilihanKalender);
 
     // K29: penghitung generasi — tiap muatSemua() menaikkan nomornya;
     // respons dari pemanggilan yang sudah kedaluwarsa (tanggal diganti
