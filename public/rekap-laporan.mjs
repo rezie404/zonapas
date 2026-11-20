@@ -1438,12 +1438,14 @@ export async function buildPdfBulanan(data) {
   // halaman berikut — jaga 55 tidak cukup, karena paragraf memakai
   // pastikan() utuh sehingga bisa melompat sendiri meninggalkan judul
   // yatim di akhir halaman (ketemu saat uji 21 Nov 2026).
-  const barisAnalisis = doc.bagiBaris([{ teks: hitung.analisis }], PDF_CW - TW(284) - TW(425)).length;
+  const barisAnalisis = doc.bagiBaris([{ teks: hitung.analisis }], PDF_CW - TW(386) - TW(425)).length;
   doc.paraTeks("2. Analisis", { indentKiri: TW(142), sebelum: 4, sesudah: 3, jaga: 4 + PDF_LH + 3 + barisAnalisis * PDF_LH + 3 }, true);
-  // Isi Analisis menjorok ke dalam seperti paragraf isi lain (pola tubuh:
-  // kiri 284 + baris pertama 425 twips) — 21 Nov 2026, atas perintah
-  // Bos Besar ("isi analisis, bukan isi penutup").
-  doc.paragraf([{ teks: hitung.analisis }], { rata: "both", indentKiri: TW(284), indentBarisPertama: TW(425), sesudah: 3 });
+  // Isi Analisis menjorok ke dalam seperti paragraf isi lain — baris
+  // lanjutannya TEPAT di bawah huruf A dari "Analisis" pada subjudul
+  // (21 Nov 2026, atas perintah Bos Besar): huruf A terukur di 70,3pt,
+  // margin 51pt, jadi indent kiri 19,3pt = 386 twips; baris pertama
+  // tetap 425 twips lebih dalam dari baris lanjutan (pola tubuh).
+  doc.paragraf([{ teks: hitung.analisis }], { rata: "both", indentKiri: TW(386), indentBarisPertama: TW(425), sesudah: 3 });
   // --- D. PENUTUP ---
   // Seluruh bab Penutup turun utuh ke halaman berikut bila tidak muat.
   // Jabatan pelapor dibungkus selebar kolom tanda tangan (180pt): jabatan
