@@ -448,7 +448,7 @@ const PLATFORM = [
     async function unduhBulanan(ext) {
       if (!bulananData || !bulananData.total || bulananData.total.jumlah === 0) { showStatus('Tampilkan dulu laporan bulanan untuk periode yang ada publikasinya.', false); return; }
       try {
-        const { buildDocxBulanan, buildPdfBulanan } = await import('/rekap-laporan.mjs?v=22');
+        const { buildDocxBulanan, buildPdfBulanan } = await import('/rekap-laporan.mjs?v=23');
         const blob = ext === 'pdf' ? await buildPdfBulanan(bulananData) : await buildDocxBulanan(bulananData);
         unduhBlob(blob, namaFileLaporanBulanan(bulananData.dari, bulananData.sampai, ext));
         showStatus('Laporan bulanan ' + ext.toUpperCase() + ' periode ' + tanggalIndonesiaTanpaHari(bulananData.dari) + ' s.d. ' + tanggalIndonesiaTanpaHari(bulananData.sampai) + ' diunduh.', true);
@@ -711,7 +711,7 @@ const PLATFORM = [
         // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
         // halaman) supaya halaman pertama terbuka cepat; modul di-cache
         // browser setelah unduhan pertama.
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=22');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=23');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));

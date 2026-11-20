@@ -190,7 +190,12 @@ async function muatTemplate(dasar = TEMPLATE_DASAR) {
   }));
   const biner = {};
   await Promise.all(TEMPLATE_BAGIAN_BINER.map(async (n) => {
-    const r = await fetch(dasar + n);
+    // Logo kop template bulanan (21 Nov 2026): berkas biner tidak bisa
+    // didorong ke repo lewat push-files, jadi logo kop diambil dari template
+    // harian — berkasnya sama persis (md5 e90431f003b1bf20063a43a160bc2732).
+    // Di dalam ZIP hasil, berkas tetap ditulis di jalurnya sendiri (n).
+    const sumber = dasar === TEMPLATE_BULANAN_DASAR ? TEMPLATE_DASAR + n : dasar + n;
+    const r = await fetch(sumber);
     if (!r.ok) throw new Error("Template laporan tidak dapat dimuat (" + n + ").");
     biner[n] = new Uint8Array(await r.arrayBuffer());
   }));
