@@ -1,5 +1,5 @@
 ---
-title: "15 Warga Binaan Lapas Bengkulu Bebas Pb, Siap Memulai Kehidupan Baru"
+title: "15 Warga Binaan Lapas Bengkulu Bebas PB, Siap Memulai Kehidupan Baru"
 summary: "Bengkulu – Sebanyak 15 orang Warga Binaan Pemasyarakatan (WBP) Lembaga Pemasyarakatan (Lapas) Kelas IIA Bengkulu resmi memperoleh hak Pembebasan Bersyarat (PB)…"
 category: "Integrasi & Remisi"
 tags: ["Lapas Bengkulu", "Pembebasan Bersyarat", "Warga Binaan", "Pemasyarakatan", "Reintegrasi Sosial", "Kementerian Imigrasi dan Pemasyarakatan"]

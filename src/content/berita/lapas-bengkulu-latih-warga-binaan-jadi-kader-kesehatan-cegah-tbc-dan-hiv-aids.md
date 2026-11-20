@@ -1,5 +1,5 @@
 ---
-title: "Lapas Bengkulu Latih Warga Binaan Jadi Kader Kesehatan, Cegah Tbc Dan Hiv-aids"
+title: "Lapas Bengkulu Latih Warga Binaan Jadi Kader Kesehatan, Cegah TBC Dan HIV/AIDS"
 summary: "Bengkulu – Lembaga Pemasyarakatan (Lapas) Kelas IIA Bengkulu terus memperkuat upaya pencegahan penyakit menular di lingkungan pemasyarakatan. Salah satunya…"
 category: "Kegiatan UPT"
 tags: ["Lapas Bengkulu", "Kader Kesehatan", "Warga Binaan", "Pencegahan TBC", "HIV AIDS", "Penyakit Menular", "Pelayanan Kesehatan Lapas", "Ditjen Pemasyarakatan"]

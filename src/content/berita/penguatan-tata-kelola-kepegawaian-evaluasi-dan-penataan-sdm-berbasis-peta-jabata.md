@@ -1,5 +1,5 @@
 ---
-title: "Penguatan Tata Kelola Kepegawaian Evaluasi Dan Penataan Sdm Berbasis Peta Jabatan Di Lingkungan Kanwil Ditjenpas Bengkulu"
+title: "Penguatan Tata Kelola Kepegawaian Evaluasi Dan Penataan SDM Berbasis Peta Jabatan Di Lingkungan Kanwil Ditjenpas Bengkulu"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menggelar kegiatan bedah Sumber Daya Manusia (SDM) yang berfokus pada penataan struktur…"
 category: "Umum"
 tags: ["Umum", "Kanwil"]

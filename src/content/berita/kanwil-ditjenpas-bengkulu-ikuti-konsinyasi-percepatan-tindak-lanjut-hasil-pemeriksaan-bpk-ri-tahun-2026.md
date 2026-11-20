@@ -1,5 +1,5 @@
 ---
-title: "Kanwil Ditjenpas Bengkulu Ikuti Konsinyasi Percepatan Tindak Lanjut Hasil Pemeriksaan Bpk Ri Tahun 2026"
+title: "Kanwil Ditjenpas Bengkulu Ikuti Konsinyasi Percepatan Tindak Lanjut Hasil Pemeriksaan BPK RI Tahun 2026"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Konsinyasi Percepatan Tindak Lanjut Hasil Pemeriksaan Badan Pemeriksa…"
 category: "Umum"
 tags: ["Konsinyasi", "BPK RI"]

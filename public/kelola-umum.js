@@ -1195,7 +1195,20 @@
     // Angka Romawi I–XII masuk daftar singkatan supaya tetap kapital walau
     // tanpa tanda. Judul yang seluruhnya kapital tetap dirapikan ke kapital
     // tiap kata (aturan 05 Nov 2026).
-    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI', 'HUT', 'BNN', 'BPK', 'ASN', 'PNS', 'BPKP', 'TNI', 'PPPK', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI', 'HUT', 'BNN', 'BPK', 'ASN', 'PNS', 'BPKP', 'TNI', 'PPPK',
+      // Diperkaya 21 Nov 2026 dari Kamus Abreviasi Bahasa Indonesia (Reniwati &
+      // Noviatri, LPTIK Unand 2015) + singkatan baku yang terbukti salah di judul
+      // live (PB, RI, SDM, TBC, HIV/AIDS). Hanya singkatan huruf yang dibaca
+      // per huruf dan ditulis kapital semua; kata-akronim yang dibaca sebagai
+      // kata (Ditjenpas, Kanwil, Bawaslu, Kemenkumham, Perpres, Amdal, Tipikor,
+      // Bapas, Lapas, Rutan) dan kata umum (Bakti, Di) SENGAJA tidak masuk —
+      // judulnya tetap kapital tiap kata. (Cermin worker.js — ubah di keduanya.)
+      'PB', 'RI', 'SDM', 'HIV', 'AIDS', 'TBC', 'DPR', 'MPR', 'DPD', 'DPRD', 'MA', 'MK', 'KY', 'KPK', 'KPU', 'DKPP', 'POLRI', 'BIN', 'BNPT', 'BNPB', 'BMKG', 'BPOM', 'OJK', 'BI', 'LPS', 'BPS', 'BKN', 'BPJS', 'HAM', 'KUHP', 'KUHAP', 'UU', 'UUD',
+      'APBN', 'APBD', 'DAK', 'DAU', 'DBH', 'PAD', 'PBB', 'NPWP', 'SPT', 'DJP', 'DIPA', 'UMKM', 'KUR', 'KPR', 'KTP', 'KK', 'BPHTB', 'RKA', 'RKAKL', 'SPM', 'KPA', 'PPK', 'BLT', 'PKH', 'KIP', 'JKN', 'KIS', 'BUMN', 'BUMD', 'PT', 'CV', 'UD', 'PD', 'RPJMD', 'RPJMN', 'RKPD', 'APIP', 'SAKIP', 'SPIP', 'LAKIP', 'WBK', 'WBBM', 'ZI', 'RB', 'SPBE', 'BPD', 'SK', 'SE', 'PP',
+      'SD', 'SMP', 'SMA', 'SMK', 'MI', 'UIN', 'IAIN', 'RS', 'RSUD', 'RSU', 'PAUD', 'STNK', 'SIM', 'BPKB', 'IMB', 'PBG', 'SLF', 'UKL', 'UPL', 'RKL', 'RPL', 'TPS', 'TPA', 'RT', 'RW', 'KUA',
+      'CB', 'CMB', 'PK', 'SDP', 'TPPO', 'TPPU', 'OTT', 'SPDP', 'BAP', 'LP', 'DPO', 'KDRT', 'LGBT',
+      'PGRI', 'IDI', 'IBI', 'PPNI', 'IAI', 'KAI', 'PLN', 'PDAM', 'SAR', 'PMI', 'KNPI', 'PKK', 'BKKBN', 'KB', 'DBD', 'ISPA', 'ODGJ', 'ODP', 'PDP',
+      'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
     function normalisasiJudul(judul) {
       const frasa = [];
@@ -1211,6 +1224,13 @@
         const huruf = kata.replace(/[^A-Za-z]/g, '');
         if (!huruf) return kata;
         if (AKRONIM_JUDUL.includes(huruf.toUpperCase())) return kata.replace(huruf, huruf.toUpperCase());
+        // Kata gabungan pemisah (21 Nov 2026, cermin worker.js): "HIV/AIDS",
+        // "HIV-AIDS", "BPK-RI" — bila SEMUA bagian hurufnya ada di daftar
+        // singkatan, seluruh kata dipertahankan kapital semua.
+        const bagian = kata.split(/([^A-Za-z]+)/).filter((b) => /^[A-Za-z]+$/.test(b));
+        if (bagian.length > 1 && bagian.every((b) => AKRONIM_JUDUL.includes(b.toUpperCase()))) {
+          return kata.replace(/[A-Za-z]+/g, (m) => m.toUpperCase());
+        }
         const m = kata.match(/^([^A-Za-z]*)([A-Za-z])([\s\S]*)$/);
         if (!m) return kata;
         return m[1] + m[2].toUpperCase() + m[3].toLowerCase();
