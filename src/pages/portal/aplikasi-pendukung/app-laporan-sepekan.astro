@@ -951,19 +951,28 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // sebelum navigasi ke halaman pratinjau (?pratinjau=1), supaya editan
     // terakhir tidak hilang karena timer dibatalkan navigasi. simpanDraf()
     // biasa tetap dipakai untuk autosave saat mengetik.
-    function simpanDrafSegera() {
+    // K20 + perbaikan 20 Nov 2026: tulis draf SECARA SINKRON dan
+    // TERKONFIRMASI sebelum navigasi ke pratinjau, lalu kembalikan
+    // hasilnya supaya tombol pratinjau bisa menahan navigasi bila
+    // kedua simpanan gagal. Versi lama mengirim ke server lewat
+    // sendBeacon yang diam-diam dibuang peramban bila draf besar
+    // (>64KB — draf berisi foto data URL bisa bermega-byte),
+    // sehingga foto yang baru diunggah tidak sampai ke server dan
+    // hilang saat halaman pratinjau dimuat ulang.
+    async function simpanDrafSegera() {
       clearTimeout(timerSimpan);
       timerSimpan = null;
       state.diperbarui = Date.now();
+      let lokalOk = false;
       try {
         localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
-        infoDraf('Draf tersimpan di peramban ini.');
+        lokalOk = true;
+        infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
       } catch {
         infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
       }
-      // Kirim juga ke server tanpa menunggu jawaban (navigasi ke
-      // pratinjau membatalkan fetch biasa) — sendBeacon tetap terkirim.
-      kirimDrafServerBeacon();
+      const serverOk = await kirimDrafKeServer();
+      return { lokalOk, serverOk };
     }
     // ---------- Draf di server (15 Nov 2026; draf bersama 17 Nov 2026) ----------
     // Draf juga disimpan di server sebagai satu draf bersama untuk semua
@@ -974,37 +983,65 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // peramban ini: tulis lokal dulu (sinkron, tidak pernah menggantung
     // halaman), lalu kirim ke server secara debounce. Bila server tidak
     // terjangkau (offline), draf tetap aman di localStorage dan sinkron
-    // dicoba lagi pada perubahan berikutnya. Bila dua perangkat atau
-    // dua akun mengedit bersamaan, simpanan terbaru (diperbarui) yang menang.
+    // dicoba lagi otomatis (maks 3 kali ulangan) lalu pada perubahan
+    // berikutnya. Bila dua perangkat atau dua akun mengedit bersamaan,
+    // simpanan terbaru (diperbarui) yang menang.
     let timerSinkronServer = null;
     let sinkronServerBerjalan = false;
+    let sinkronTertunda = false;
+    let sinkronGagalUlang = 0;
     let drafServerAda = false;
     let drafServerTerakhir = 0;
     function jadwalSinkronServer() {
       clearTimeout(timerSinkronServer);
       timerSinkronServer = setTimeout(simpanDrafServer, 1500);
     }
-    async function simpanDrafServer() {
-      if (typeof workerPost !== 'function' || sinkronServerBerjalan) return;
-      sinkronServerBerjalan = true;
+    // Kirim draf ke server sekali; mengembalikan true bila server
+    // mengonfirmasi. Dipakai autosave (simpanDrafServer) dan simpan
+    // terkonfirmasi sebelum pratinjau (simpanDrafSegera).
+    async function kirimDrafKeServer() {
+      if (typeof workerPost !== 'function') return false;
       try {
         state.diperbarui = Date.now();
         const r = await workerPost('/redaksi/api/sepekan/draf', { data: state }, { timeoutMs: 30000 });
         if (r && r.ok) {
           drafServerAda = true;
           drafServerTerakhir = r.diperbarui || Date.now();
+          sinkronGagalUlang = 0;
           infoDraf('Draf tersimpan di server ✓ — aman walau keluar lalu masuk lagi atau ganti perangkat.');
+          return true;
         }
+        return false;
       } catch (e) {
-        infoDraf('Draf tersimpan di peramban ini; server belum terjangkau — akan dikirim lagi saat ada perubahan berikutnya.');
-      } finally { sinkronServerBerjalan = false; }
+        return false;
+      }
     }
-    function kirimDrafServerBeacon() {
+    async function simpanDrafServer() {
+      if (typeof workerPost !== 'function') return;
+      // Perbaikan 20 Nov 2026: jangan buang sinkronisasi diam-diam
+      // bila satu sedang berjalan — tandai tertunda, jalankan lagi
+      // begitu yang berjalan selesai.
+      if (sinkronServerBerjalan) { sinkronTertunda = true; return; }
+      sinkronServerBerjalan = true;
       try {
-        if (typeof navigator === 'undefined' || !navigator.sendBeacon) { jadwalSinkronServer(); return; }
-        const blob = new Blob([JSON.stringify({ data: state })], { type: 'application/json' });
-        navigator.sendBeacon('/redaksi/api/sepekan/draf', blob);
-      } catch { /* abaikan — sinkron berikutnya yang mengurus */ }
+        const ok = await kirimDrafKeServer();
+        if (!ok) {
+          // Perbaikan 20 Nov 2026: coba lagi otomatis (maks 3 kali
+          // ulangan), jangan hanya menunggu perubahan berikutnya —
+          // bila tidak ada perubahan, server tidak pernah menerima
+          // drafnya.
+          sinkronGagalUlang++;
+          if (sinkronGagalUlang <= 3) {
+            infoDraf('Draf tersimpan di peramban ini; server belum terjangkau — mencoba lagi otomatis…');
+            setTimeout(jadwalSinkronServer, 5000);
+          } else {
+            infoDraf('Draf tersimpan di peramban ini; server belum terjangkau — akan dikirim lagi saat ada perubahan berikutnya.');
+          }
+        }
+      } finally {
+        sinkronServerBerjalan = false;
+        if (sinkronTertunda) { sinkronTertunda = false; jadwalSinkronServer(); }
+      }
     }
     // Muat draf server saat aplikasi dibuka: draf server yang lebih baru
     // menggantikan draf lokal; draf lokal (termasuk yang dibuat sebelum
@@ -2416,7 +2453,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // K20: simpan SECARA SINKRON (simpanDrafSegera) — simpanDraf() biasa
       // hanya menjadwalkan tulis 400 ms kemudian dan timer itu dibatalkan
       // navigasi, sehingga editan terakhir hilang.
-      $('sp-lihat').addEventListener('click', () => { bacaFormKeState(); simpanDrafSegera(); location.href = location.pathname + '?pratinjau=1'; });
+      // Perbaikan 20 Nov 2026: tunggu draf tersimpan dan terkonfirmasi
+      // dulu sebelum pindah ke pratinjau. Bila draf tidak tersimpan di
+      // mana pun (peramban penuh DAN server tak terjangkau), tahan dan
+      // tanya dulu — pratinjau akan menampilkan draf lama tanpa foto
+      // yang baru diunggah.
+      $('sp-lihat').addEventListener('click', async () => {
+        bacaFormKeState();
+        const hasil = await simpanDrafSegera();
+        if (!hasil.lokalOk && !hasil.serverOk) {
+          showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh dan server tidak terjangkau. Pratinjau akan menampilkan draf lama.', false);
+          if (!confirm('Draf belum tersimpan (penyimpanan peramban penuh dan server tidak terjangkau). Pratinjau akan menampilkan draf lama tanpa foto yang baru diunggah. Tetap buka pratinjau?')) return;
+        }
+        location.href = location.pathname + '?pratinjau=1';
+      });
       const btnUnduhPratinjau = $('sp-unduh-pratinjau');
       if (btnUnduhPratinjau) btnUnduhPratinjau.addEventListener('click', unduhPdf);
       $('sp-reset-template').addEventListener('click', () => {
