@@ -962,6 +962,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     async function simpanDrafSegera() {
       clearTimeout(timerSimpan);
       timerSimpan = null;
+      // 20 Nov 2026: pastikan draf server sudah dimuat dulu — bila halaman
+      // baru dimuat ulang, draf lokal bisa masih kosong dan belum tentu
+      // draf yang sebenarnya.
+      if (!sinkronAwalBerhasil) await sinkronDrafServerAwal();
       state.diperbarui = Date.now();
       let lokalOk = false;
       try {
@@ -992,6 +996,21 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let sinkronGagalUlang = 0;
     let drafServerAda = false;
     let drafServerTerakhir = 0;
+    // 20 Nov 2026 (reload tidak boleh menghilangkan draf): sinkron awal
+    // berhasil = server berhasil dihubungi (ada draf atau tidak). Selama
+    // belum berhasil, JANGAN kirim apa pun ke server — draf lokal bisa
+    // jadi template kosong (halaman dimuat ulang saat server belum
+    // terjangkau) dan mengirimnya akan menimpa draf berisi di server.
+    let sinkronAwalBerhasil = false;
+    // Apakah draf di server (saat terakhir berhasil dimuat) berisi
+    // kegiatan — dipakai penjaga "isi mengalahkan stempel waktu".
+    let serverPunyaKegiatan = false;
+    // Draf disebut berisi bila ada satu kegiatan dengan judul/narasi
+    // terisi atau foto. Draf kosong = semua kartu hari tanpa kegiatan.
+    function adaKegiatan(draf) {
+      if (!draf || !Array.isArray(draf.hari)) return false;
+      return draf.hari.some((h) => Array.isArray(h.kegiatan) && h.kegiatan.some((k) => String(k.judul || '').trim() || String(k.narasi || '').trim() || (Array.isArray(k.foto) && k.foto.length > 0)));
+    }
     function jadwalSinkronServer() {
       clearTimeout(timerSinkronServer);
       timerSinkronServer = setTimeout(simpanDrafServer, 1500);
@@ -1001,6 +1020,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // terkonfirmasi sebelum pratinjau (simpanDrafSegera).
     async function kirimDrafKeServer() {
       if (typeof workerPost !== 'function') return false;
+      // 20 Nov 2026: jangan kirim sebelum sinkron awal berhasil. Coba
+      // sinkron dulu; bila server tetap tidak terjangkau, tahan
+      // pengiriman — draf aman di peramban ini dan akan dikirim begitu
+      // server terjangkau (percobaan diulang otomatis tiap ada perubahan).
+      if (!sinkronAwalBerhasil) {
+        const okAwal = await sinkronDrafServerAwal();
+        if (!okAwal) {
+          infoDraf('Server belum terjangkau — draf aman di peramban ini; akan dikirim begitu server terjangkau.');
+          return false;
+        }
+      }
       try {
         state.diperbarui = Date.now();
         const r = await workerPost('/redaksi/api/sepekan/draf', { data: state }, { timeoutMs: 30000 });
@@ -1051,11 +1081,25 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (typeof workerGet !== 'function') return false;
       try {
         const r = await workerGet('/redaksi/api/sepekan/draf', { timeoutMs: 15000 });
-        if (!r || !r.ok || !r.ada || !r.data || !Array.isArray(r.data.hari)) return false;
+        // 20 Nov 2026: bedakan "server tidak terjangkau" dari "server
+        // tidak punya draf". Hanya bila server berhasil dihubungi, kirim
+        // ke server diizinkan dan tarik otomatis boleh jalan.
+        if (!r || !r.ok) {
+          infoDraf('Server belum terjangkau — menampilkan draf peramban ini; draf tidak akan hilang, dan draf server akan dimuat begitu terjangkau.');
+          return false;
+        }
+        sinkronAwalBerhasil = true;
+        if (!r.ada || !r.data || !Array.isArray(r.data.hari)) return true;
         drafServerAda = true;
         drafServerTerakhir = r.diperbarui || 0;
+        serverPunyaKegiatan = adaKegiatan(r.data);
         const lokalBaru = Number(state.diperbarui || 0);
-        if (drafTersimpan && (lokalBaru === 0 || lokalBaru >= drafServerTerakhir)) {
+        // 20 Nov 2026: isi mengalahkan stempel waktu. Draf lokal kosong
+        // (mis. template setelah reload) tidak boleh menimpa draf server
+        // yang berisi walau stempelnya lebih baru — draf server yang dipakai.
+        // Draf lokal berisi tetap menang bila lebih baru, dan draf lokal
+        // tanpa stempel (dari sebelum fitur server) tetap diunggah.
+        if (drafTersimpan && (lokalBaru === 0 || lokalBaru >= drafServerTerakhir) && (adaKegiatan(state) || !serverPunyaKegiatan)) {
           jadwalSinkronServer();
           return true;
         }
@@ -1069,6 +1113,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         infoDraf('Draf dimuat dari server ✓ — data terakhir bersama, termasuk foto yang sudah diunggah.');
         return true;
       } catch (e) {
+        infoDraf('Server belum terjangkau — menampilkan draf peramban ini; draf tidak akan hilang, dan draf server akan dimuat begitu terjangkau.');
         return false;
       }
     }
@@ -2469,14 +2514,28 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       const btnUnduhPratinjau = $('sp-unduh-pratinjau');
       if (btnUnduhPratinjau) btnUnduhPratinjau.addEventListener('click', unduhPdf);
-      $('sp-reset-template').addEventListener('click', () => {
+      $('sp-reset-template').addEventListener('click', async () => {
+        // 20 Nov 2026: jangan reset sebelum draf server dimuat — bila
+        // halaman baru dimuat ulang, yang terlihat bisa jadi template
+        // kosong padahal draf ada di server.
+        if (!sinkronAwalBerhasil) {
+          await sinkronDrafServerAwal();
+          if (!sinkronAwalBerhasil) { showStatus('Server belum terjangkau — reset ditahan sampai draf server berhasil dimuat, supaya draf yang sudah dibuat tidak tertimpa.', false); return; }
+        }
         if (!confirm('Kembalikan semua isi ke template laporan 02–07 November 2026? Draf saat ini akan diganti.')) return;
         state = klon(TEMPLATE);
         state.tindakLanjut = klon(TEMPLATE.tindak);
         tulisStateKeForm(); simpanDraf(); renderPratinjau();
         showStatus('Isi dikembalikan ke template.', true);
       });
-      $('sp-bersihkan').addEventListener('click', () => {
+      $('sp-bersihkan').addEventListener('click', async () => {
+        // 20 Nov 2026: jangan bersihkan sebelum draf server dimuat — bila
+        // halaman baru dimuat ulang, yang terlihat bisa jadi kosong padahal
+        // draf ada di server.
+        if (!sinkronAwalBerhasil) {
+          await sinkronDrafServerAwal();
+          if (!sinkronAwalBerhasil) { showStatus('Server belum terjangkau — bersihkan draf ditahan sampai draf server berhasil dimuat, supaya draf yang sudah dibuat tidak terhapus.', false); return; }
+        }
         if (!confirm('Bersihkan draf laporan sepekan ini? Draf bersama ini akan terhapus untuk SEMUA akun yang bisa mengakses aplikasi ini, dan isi kembali kosong kecuali template dasar.')) return;
         try { localStorage.removeItem(KUNCI_DRAF); } catch {}
         // Hapus juga draf di server supaya tidak dimuat lagi saat buka berikutnya.
@@ -2523,18 +2582,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Bila belum ada draf tersimpan, isi laporan otomatis dari berita
     // minggu berjalan (Senin–Sabtu) — tidak perlu mengetuk Tarik Berita.
     // Draf yang sudah ada tidak disentuh supaya editan manual tidak tertimpa.
-    // Sejak 15 Nov 2026 draf juga bisa datang dari server: di mode editor,
-    // tunggu dulu hasil muat server — bila server punya draf, draf itu yang
-    // dipakai (atau draf lokal yang diunggah); tarik otomatis hanya jalan
-    // bila tidak ada draf di mana pun. Di mode pratinjau, draf sudah ditulis
-    // lokal sebelum navigasi, jadi perilaku lama dipertahankan.
-    if (MODE_PRATINJAU) {
-      if (!drafTersimpan) setMingguIni();
-    } else {
-      sinkronDrafServerAwal().then(() => {
-        if (!drafTersimpan && !drafServerAda) setMingguIni();
-      });
-    }
+    // 20 Nov 2026: di mode pratinjau pun muat dulu draf server — pratinjau
+    // yang dibuka langsung (?pratinjau=1) sebelumnya hanya membaca draf
+    // lokal, sehingga tampak kosong walau draf ada di server. Tarik
+    // otomatis hanya jalan bila sinkron awal berhasil memastikan memang
+    // tidak ada draf di mana pun — bukan saat server belum terjangkau.
+    sinkronDrafServerAwal().then(() => {
+      if (sinkronAwalBerhasil && !drafTersimpan && !drafServerAda) setMingguIni();
+    });
     // Font web (Plus Jakarta Sans) bisa termuat setelah render pertama;
     // render ulang setelah font siap supaya paginasi memakai metrik font
     // yang benar dan pratinjau sama dengan PDF.
