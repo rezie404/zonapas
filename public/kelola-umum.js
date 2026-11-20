@@ -1195,7 +1195,7 @@
     // Angka Romawi I–XII masuk daftar singkatan supaya tetap kapital walau
     // tanpa tanda. Judul yang seluruhnya kapital tetap dirapikan ke kapital
     // tiap kata (aturan 05 Nov 2026).
-    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI', 'HUT', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    const AKRONIM_JUDUL = ['UPT', 'LPP', 'WBP', 'LPKA', 'TPP', 'KPLP', 'IIA', 'IIB', 'BIMTEK', 'FGD', 'KPPN', 'PKBI', 'HUT', 'BNN', 'BPK', 'ASN', 'PNS', 'BPKP', 'TNI', 'PPPK', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
     function normalisasiJudul(judul) {
       const frasa = [];

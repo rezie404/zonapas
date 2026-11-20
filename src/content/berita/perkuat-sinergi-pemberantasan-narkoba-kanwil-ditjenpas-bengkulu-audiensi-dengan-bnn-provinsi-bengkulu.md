@@ -1,5 +1,5 @@
 ---
-title: "Perkuat Sinergi Pemberantasan Narkoba, Kanwil Ditjenpas Bengkulu Audiensi Dengan Bnn Provinsi Bengkulu"
+title: "Perkuat Sinergi Pemberantasan Narkoba, Kanwil Ditjenpas Bengkulu Audiensi Dengan BNN Provinsi Bengkulu"
 summary: "Bengkulu – Dalam upaya memperkuat sinergi dan komitmen bersama dalam pemberantasan penyalahgunaan serta peredaran gelap narkoba, Kantor Wilayah Direktorat…"
 category: "Sinergi"
 tags: []
