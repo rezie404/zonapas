@@ -582,6 +582,17 @@ function teksAnalisisBulanan(perUpt, perTanggal) {
   bagian.push("Capaian tersebut menjadi bahan evaluasi bagi seluruh satuan kerja dalam meningkatkan kualitas dan konsistensi publikasi pada periode berikutnya.");
   return bagian.join(" ");
 }
+// Pilihan pelapor laporan bulanan (21 Nov 2026): Kepala Kantor Wilayah
+// (bawaan) atau Ketua Tim TI dan Komunikasi Publik. Hanya laporan
+// bulanan — laporan harian tetap ditandatangani Kakanwil.
+export const PELAPOR_BULANAN = {
+  kakanwil: { jabatan: "Kepala Kantor Wilayah,", nama: "MASJUNO" },
+  "ketua-tim-ti": { jabatan: "Ketua Tim TI dan Komunikasi Publik,", nama: "REZIE NOVIAN PUTRA" },
+};
+export function pelaporBulanan(data) {
+  const kunci = data && data.pelapor;
+  return PELAPOR_BULANAN[kunci] || PELAPOR_BULANAN.kakanwil;
+}
 export function hitungBulanan(data) {
   const dari = data.dari || "";
   const sampai = data.sampai || "";
@@ -603,6 +614,7 @@ export function hitungBulanan(data) {
     periodePanjang,
     periodeHurufBesar: periodePanjang.toUpperCase(),
     tglTtd: tanggalIndonesiaTanpaHari(sampai),
+    pelapor: pelaporBulanan(data),
   };
 }
 
@@ -655,6 +667,8 @@ export async function buildDocxBulanan(data) {
     "{{TERBANYAK_JUMLAH}}": String(hitung.terbanyakJumlah),
     "{{ANALISIS}}": hitung.analisis,
     "{{TGL_TTD}}": hitung.tglTtd,
+    "{{JABATAN_PELAPOR}}": hitung.pelapor.jabatan,
+    "{{NAMA_PELAPOR}}": hitung.pelapor.nama,
   };
   for (const [k, v] of Object.entries(token)) xml = xml.split(k).join(escXml(v));
   if (/{{[A-Z_]+}}/.test(xml)) throw new Error("Template laporan bulanan masih mengandung token yang belum terisi.");
@@ -858,10 +872,11 @@ class PdfDokumen {
   paraTeks(teks, opts = {}, tebal = false, warna = PDF_HITAM) {
     this.paragraf([{ teks, tebal, warna }], opts);
   }
-  tabelRekap(perUpt, total, judulKolom2 = "Satuan Kerja") {
+  // Ukuran tabel rekapitulasi (dipakai tabelRekap saat menggambar, dan
+  // buildPdfBulanan saat menjaga pengantar tabel sehalaman dengan tabelnya
+  // — subjudul tidak boleh berbeda halaman dengan isinya, 21 Nov 2026).
+  ukuranTabelRekap(perUpt, total, judulKolom2 = "Satuan Kerja") {
     const lebarKol = [27.8, 213.2, 72.35, 72.35, 57.85];
-    const x0 = PDF_M + 7.6;
-    const lebarTotal = lebarKol.reduce((a, b) => a + b, 0);
     const isi = perUpt.map((u, i) => [String(i + 1), u.nama, String(u.sosial), String(u.massa), String(u.jumlah)]);
     isi.push(["", "JUMLAH", String(total.sosial), String(total.massa), String(total.jumlah)]);
     const kepala = ["No.", judulKolom2, "Media Sosial", "Media Massa", "Jumlah"];
@@ -876,12 +891,21 @@ class PdfDokumen {
       });
       return maks * PDF_LH + 2;
     });
-    const totalTinggi = tinggiBaris.reduce((a, b) => a + b, 0);
+    return { lebarKol, semuaBaris, tinggiBaris, totalTinggi: tinggiBaris.reduce((a, b) => a + b, 0) };
+  }
+  tabelRekap(perUpt, total, judulKolom2 = "Satuan Kerja") {
+    const { lebarKol, semuaBaris, tinggiBaris, totalTinggi } = this.ukuranTabelRekap(perUpt, total, judulKolom2);
+    const x0 = PDF_M + 7.6;
+    const lebarTotal = lebarKol.reduce((a, b) => a + b, 0);
     // Bila tabel muat utuh di sisa halaman, gambar di sini (perilaku
-    // laporan harian tidak berubah). Bila tidak, pindah halaman baru
-    // dulu; tabel yang tetap lebih panjang dari satu halaman dibagi
-    // per halaman dengan kepala diulang (laporan bulanan rentang panjang).
-    if (this.y - totalTinggi < PDF_M) this.halBaru();
+    // laporan harian tidak berubah). Bila tidak muat di sisa halaman
+    // tetapi muat di satu halaman penuh, pindah halaman baru dulu.
+    // Bila tabel lebih panjang dari satu halaman, mulai di sini saja
+    // dan bagi per halaman dengan kepala diulang (laporan bulanan
+    // rentang panjang) — jangan pindah halaman, supaya pengantar tabel
+    // tidak tertinggal sendiri di halaman sebelumnya (21 Nov 2026).
+    const tinggiIsiHalaman = PDF_H - 2 * PDF_M;
+    if (this.y - totalTinggi < PDF_M && totalTinggi <= tinggiIsiHalaman) this.halBaru();
     let y = this.y;
     let batasSegmen = [y];
     const gambarBaris = (ri) => {
@@ -1306,7 +1330,9 @@ async function buildPdfLegacy(data) {
 // ---------- PDF laporan BULANAN (dari nol, tanpa pustaka) ----------
 // Cermin buildPdfLegacy dengan substansi bulanan: kop, judul, bab A/B/C/D
 // yang sama, dua tabel rekapitulasi (per tanggal + per satuan kerja),
-// dan paragraf Analisis. Pukul laporan tetap 19.00 WIB seperti harian.
+// dan paragraf Analisis. Laporan bulanan TIDAK memakai baris Pukul
+// (21 Nov 2026, atas perintah Bos Besar) — hanya laporan harian yang
+// memakai pukul 19.00 WIB.
 export async function buildPdfBulanan(data) {
   const tpl = await muatTemplate(TEMPLATE_BULANAN_DASAR);
   const hitung = hitungBulanan(data);
@@ -1371,7 +1397,7 @@ export async function buildPdfBulanan(data) {
   subJudul("3. Ruang Lingkup", 3);
   tubuhSub(TEKS_RUANG_LINGKUP_BULANAN, 3);
   barisLabelTab("• Periode", hitung.periodePanjang + " (" + hitung.jumlahHari + " hari)", 1, 720, TAB_TITIK_DUA_TANGGAL);
-  barisLabelTab("• Pukul", "19.00 WIB", 1, 720, TAB_TITIK_DUA_TANGGAL);
+  // Baris "• Pukul" TIDAK ada di laporan bulanan (21 Nov 2026).
   // --- B. KEGIATAN YANG DILAKSANAKAN ---
   judulBagian("B. KEGIATAN YANG DILAKSANAKAN");
   tubuh(TEKS_KEGIATAN_1_BULANAN);
@@ -1392,33 +1418,56 @@ export async function buildPdfBulanan(data) {
   garisHitung("Jumlah", total.jumlah);
   doc.paragraf([{ teks: "Rata-rata jumlah publikasi adalah " + hitung.rataRata + " publikasi per hari." }], { rata: "both", indentBarisPertama: TW(567), sesudah: 1 });
   doc.paragraf([{ teks: "Jumlah publikasi terbanyak dicapai pada " + hitung.terbanyakTanggalTeks + " sebanyak " + hitung.terbanyakJumlah + " publikasi." }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
-  doc.paragraf([{ teks: "Rekapitulasi jumlah publikasi per tanggal disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
-  doc.tabelRekap(hitung.perTanggal.map((d) => ({ nama: d.tanggalPanjang, sosial: d.sosial, massa: d.massa, jumlah: d.jumlah })), total, "Hari/Tanggal");
-  doc.y -= 2 * PDF_LH;
-  doc.paragraf([{ teks: "Rekapitulasi jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
+  // Pengantar tabel dijaga sehalaman dengan tabelnya (jaga = tinggi
+  // pengantar + tinggi tabel utuh): bila tidak muat di sisa halaman,
+  // pengantar ikut pindah ke halaman baru bersama tabelnya (21 Nov 2026).
+  const barisTanggal = hitung.perTanggal.map((d) => ({ nama: d.tanggalPanjang, sosial: d.sosial, massa: d.massa, jumlah: d.jumlah }));
+  const tinggiTabelTanggal = doc.ukuranTabelRekap(barisTanggal, total, "Hari/Tanggal").totalTinggi;
+  const tinggiTabelUpt = doc.ukuranTabelRekap(hitung.perUpt, total).totalTinggi;
+  doc.paragraf([{ teks: "Rekapitulasi jumlah publikasi per tanggal disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3, jaga: PDF_LH + 3 + tinggiTabelTanggal });
+  doc.tabelRekap(barisTanggal, total, "Hari/Tanggal");
+  // Satu baris kosong antara tabel dan pengantar tabel berikut, seperti
+  // satu paragraf kosong di template DOCX (21 Nov 2026).
+  doc.y -= PDF_LH;
+  doc.paragraf([{ teks: "Rekapitulasi jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3, jaga: PDF_LH + 3 + tinggiTabelUpt });
   doc.tabelRekap(hitung.perUpt, total);
-  doc.y -= 2 * PDF_LH;
-  doc.paraTeks("2. Analisis", { indentKiri: TW(142), sebelum: 4, sesudah: 3, jaga: 55 }, true);
-  doc.paragraf([{ teks: hitung.analisis }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  // Satu baris kosong antara tabel dan "2. Analisis" (21 Nov 2026).
+  doc.y -= PDF_LH;
+  // "2. Analisis" dijaga sehalaman dengan isi Analisis UTUH: bila judul
+  // + paragraf tidak muat di sisa halaman, keduanya turun bersama ke
+  // halaman berikut — jaga 55 tidak cukup, karena paragraf memakai
+  // pastikan() utuh sehingga bisa melompat sendiri meninggalkan judul
+  // yatim di akhir halaman (ketemu saat uji 21 Nov 2026).
+  const barisAnalisis = doc.bagiBaris([{ teks: hitung.analisis }], PDF_CW - TW(284) - TW(425)).length;
+  doc.paraTeks("2. Analisis", { indentKiri: TW(142), sebelum: 4, sesudah: 3, jaga: 4 + PDF_LH + 3 + barisAnalisis * PDF_LH + 3 }, true);
+  // Isi Analisis menjorok ke dalam seperti paragraf isi lain (pola tubuh:
+  // kiri 284 + baris pertama 425 twips) — 21 Nov 2026, atas perintah
+  // Bos Besar ("isi analisis, bukan isi penutup").
+  doc.paragraf([{ teks: hitung.analisis }], { rata: "both", indentKiri: TW(284), indentBarisPertama: TW(425), sesudah: 3 });
   // --- D. PENUTUP ---
   // Seluruh bab Penutup turun utuh ke halaman berikut bila tidak muat.
+  // Jabatan pelapor dibungkus selebar kolom tanda tangan (180pt): jabatan
+  // panjang ("Ketua Tim TI dan Komunikasi Publik,") bisa jadi 2 baris —
+  // tinggi blok tanda tangan mengikuti jumlah baris jabatan (21 Nov 2026).
+  const barisJabatan = doc.bagiBaris([{ teks: hitung.pelapor.jabatan }], 180);
+  const tinggiTtd = (6 + barisJabatan.length) * PDF_LH; // celah 1 + 5 baris + jabatan
   const barisPenutup1 = doc.bagiBaris([{ teks: TEKS_PENUTUP_1_BULANAN }], PDF_CW - TW(284) - TW(425)).length;
   const barisPenutup2 = doc.bagiBaris([{ teks: TEKS_PENUTUP_2 }], PDF_CW - TW(709)).length;
-  const tinggiPenutup = 12 + PDF_LH + 4 + (barisPenutup1 * PDF_LH + 3) + (barisPenutup2 * PDF_LH + 3) + PDF_LH + 7 * PDF_LH;
+  const tinggiPenutup = 12 + PDF_LH + 4 + (barisPenutup1 * PDF_LH + 3) + (barisPenutup2 * PDF_LH + 3) + tinggiTtd;
   doc.pastikan(tinggiPenutup);
   judulBagian("D. PENUTUP");
   tubuh(TEKS_PENUTUP_1_BULANAN, 3);
   tubuh(TEKS_PENUTUP_2, 3, 0, 709);
   doc.y -= PDF_LH;
-  doc.pastikan(7 * PDF_LH);
+  doc.pastikan(tinggiTtd);
   const xKanan = PDF_M + PDF_CW;
   const barisTtd = [
     [`Bengkulu, ${hitung.tglTtd}`, false],
-    ["Kepala Kantor Wilayah,", false],
+    ...barisJabatan.map((b) => [b.map((k) => k.teks).join(""), false]),
     ["", false],
     ["ttd", false],
     ["", false],
-    ["MASJUNO", true],
+    [hitung.pelapor.nama, true],
   ];
   for (const [t, tebal] of barisTtd) {
     if (t) doc.gambarBaris([{ teks: t, tebal }], xKanan - 180, doc.y, "left", 180);

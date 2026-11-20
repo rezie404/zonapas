@@ -217,6 +217,12 @@ const PLATFORM = [
               <input id="bulanan-sampai" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
             </label>
             <button id="btn-bulanan-tampilkan" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tampilkan</button>
+            <label class="text-sm font-bold">Pelapor
+              <select id="bulanan-pelapor" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                <option value="kakanwil">Kepala Kantor Wilayah — Masjuno</option>
+                <option value="ketua-tim-ti">Ketua Tim TI dan Komunikasi Publik — Rezie Novian Putra</option>
+              </select>
+            </label>
           </div>
           <p id="bulanan-ringkasan" class="mt-3 text-sm text-slate-600 dark:text-slate-400"></p>
           <div id="bulanan-pratinjau" class="mt-3 overflow-x-auto text-sm"></div>
@@ -448,8 +454,12 @@ const PLATFORM = [
     async function unduhBulanan(ext) {
       if (!bulananData || !bulananData.total || bulananData.total.jumlah === 0) { showStatus('Tampilkan dulu laporan bulanan untuk periode yang ada publikasinya.', false); return; }
       try {
-        const { buildDocxBulanan, buildPdfBulanan } = await import('/rekap-laporan.mjs?v=23');
-        const blob = ext === 'pdf' ? await buildPdfBulanan(bulananData) : await buildDocxBulanan(bulananData);
+        const { buildDocxBulanan, buildPdfBulanan } = await import('/rekap-laporan.mjs?v=27');
+        // Pelapor yang dipilih di kartu (21 Nov 2026): Kakanwil (bawaan)
+        // atau Ketua Tim TI dan Komunikasi Publik.
+        const pelaporEl = $('bulanan-pelapor');
+        const dataUnduh = { ...bulananData, pelapor: pelaporEl ? pelaporEl.value : 'kakanwil' };
+        const blob = ext === 'pdf' ? await buildPdfBulanan(dataUnduh) : await buildDocxBulanan(dataUnduh);
         unduhBlob(blob, namaFileLaporanBulanan(bulananData.dari, bulananData.sampai, ext));
         showStatus('Laporan bulanan ' + ext.toUpperCase() + ' periode ' + tanggalIndonesiaTanpaHari(bulananData.dari) + ' s.d. ' + tanggalIndonesiaTanpaHari(bulananData.sampai) + ' diunduh.', true);
       } catch (err) {
@@ -711,7 +721,7 @@ const PLATFORM = [
         // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
         // halaman) supaya halaman pertama terbuka cepat; modul di-cache
         // browser setelah unduhan pertama.
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=23');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=27');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));
