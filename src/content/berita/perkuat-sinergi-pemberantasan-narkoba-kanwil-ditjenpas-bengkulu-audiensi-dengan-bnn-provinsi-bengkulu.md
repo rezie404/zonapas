@@ -13,6 +13,7 @@ breakingSince: "2026-11-20T10:26:11.879Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 437
 ---
 
 **Bengkulu** – Dalam upaya memperkuat sinergi dan komitmen bersama dalam pemberantasan penyalahgunaan serta peredaran gelap narkoba, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan audiensi dengan Badan Narkotika Nasional (BNN) Provinsi Bengkulu pada Jumat (20/11/2026).
