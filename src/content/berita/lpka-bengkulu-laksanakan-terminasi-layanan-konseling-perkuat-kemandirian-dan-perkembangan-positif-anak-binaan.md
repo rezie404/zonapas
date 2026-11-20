@@ -13,7 +13,6 @@ breakingSince: "2026-11-20T07:11:26.188Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
-jurnalpas_id: 435
 ---
 
 **Bengkulu** – Sebagai bagian dari upaya mendukung perkembangan mental, emosional, dan pembentukan karakter Anak Binaan, Lembaga Pembinaan Khusus Anak (LPKA) Kelas II Bengkulu melaksanakan kegiatan terminasi layanan konseling pada Jumat (20/11/2026), pukul 08.30 hingga 10.00 WIB, bertempat di Ruang Perpustakaan LPKA Kelas II Bengkulu.
@@ -28,4 +27,4 @@ Terminasi konseling bukan sekadar mengakhiri rangkaian pendampingan, tetapi juga
 
 Melalui kegiatan ini, LPKA Kelas II Bengkulu terus berupaya menghadirkan pembinaan yang memperhatikan kebutuhan psikososial Anak Binaan. Diharapkan, hasil pendampingan konseling dapat menjadi bekal positif bagi Anak Binaan untuk menjalani keseharian dengan lebih baik serta mempersiapkan diri menjadi pribadi yang lebih mandiri dan bertanggung jawab.
 
-![16](/images/isi-lpka-bengkulu-laksanakan-terminasi-layanan-konseling-perkuat-kemandirian-dan-perkembangan-positif-anak-binaan-20261120141048883219.jpg)
+![16](/images/isi-lpka-bengkulu-laksanakan-terminasi-layanan-konseling-perkuat-kemandirian-dan-perkembangan-positif-anak-binaan-20261120175520046489.jpg)
