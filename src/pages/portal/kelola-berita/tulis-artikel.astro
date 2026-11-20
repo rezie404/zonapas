@@ -136,8 +136,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <label class="mb-1 block text-sm font-bold">Foto Sampul *</label>
               <input id="f-foto" type="file" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               <p id="f-foto-saat-ini" class="mt-1 hidden text-xs text-slate-500"></p>
-              <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, Anda bisa memotong dulu bagian yang dipakai. Foto diubah ukurannya di browser (maks. sisi terpanjang 1600px, hasil akhir maks. 2 MB). Foto otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+              <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, Anda bisa memotong dulu bagian yang dipakai. Foto sampul yang sudah ada (mis. kiriman Penulis lain) bisa dipotong lewat tombol di bawah pratinjau, tanpa upload ulang. Foto diubah ukurannya di browser (maks. sisi terpanjang 1600px, hasil akhir maks. 2 MB). Foto otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
               <img id="f-foto-preview" src="" alt="Pratinjau foto sampul" class="mt-2 hidden max-h-48 rounded-lg border border-slate-200 object-cover dark:border-slate-800" />
+              <button id="btn-potong-sampul" type="button" class="mt-2 hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✂️ Potong foto sampul</button>
             </div>
             <div class="md:col-span-2">
               <label for="f-keterangan" class="mb-1 block text-sm font-bold">Keterangan Foto</label>
@@ -181,6 +182,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
                   <p class="text-xs font-bold">Foto badan narasi</p>
                   <p id="f-isi-foto-nama" class="truncate text-xs text-slate-500 dark:text-slate-400"></p>
                 </div>
+                <button id="btn-potong-foto-isi" type="button" class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✂️ Potong</button>
                 <button id="btn-hapus-foto-isi" type="button" class="shrink-0 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950">Hapus foto</button>
               </div>
               <textarea id="f-isi" required rows="12" placeholder="Tulis narasi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
@@ -324,6 +326,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const cur = $('f-foto-saat-ini');
         cur.textContent = art.image ? ('Foto saat ini: ' + art.image + ' (biarkan kosong bila tidak diganti)') : (res.cover ? 'Foto sampul sudah ada (biarkan kosong bila tidak diganti)' : '');
         cur.classList.toggle('hidden', !(art.image || res.cover));
+        perbaruiTombolPotongSampul();
         $('form-title').textContent = 'Edit Berita (Antrean)';
         $('btn-save').textContent = 'Simpan Perubahan';
         $('form-section').classList.remove('hidden');
@@ -364,6 +367,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('f-tanggal').value = todayISO();
       $('f-foto-preview').classList.add('hidden');
       $('f-foto-preview').src = '';
+      perbaruiTombolPotongSampul();
       $('f-foto-saat-ini').classList.add('hidden');
       $('f-foto-saat-ini').textContent = '';
       $('form-title').textContent = 'Buat Berita Baru';
@@ -492,12 +496,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           pendingCover = coverLama;
           if (pratinjauTampil) { preview.src = pratinjauLama; preview.classList.remove('hidden'); }
           else { preview.classList.add('hidden'); }
+          perbaruiTombolPotongSampul();
           return;
         }
         const dataUrl = await resizeImage(terpotong);
         pendingCover = { dataUrl };
         preview.src = dataUrl;
         preview.classList.remove('hidden');
+        perbaruiTombolPotongSampul();
       } catch (err) {
         pendingCover = null;
         e.target.value = '';
@@ -610,31 +616,162 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       btn.textContent = 'Mengunggah…';
       isiStatus('Mengunggah gambar…', false);
       try {
-        if (jalurAntreanAktif()) {
-          // Mode antrean: JANGAN unggah ke GitHub — tahan dataUrl, unggah
-          // via Worker saat simpan (pola pendingGambar Redaksi).
-          const dataUrl = await resizeImage(terpotong);
-          const slug = editingAntrean ? slugify($('f-judul').value.trim() || 'berita') : (editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita'));
-          const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
-          pendingGambarIsi.push({ filename, dataUrl });
-          previewImgMap['/images/' + filename] = dataUrl;
-          const alt = cleanAlt(file.name);
-          const safeAlt = alt.replace(/[\[\])]/g, '');
-          aturFotoIsi('![' + safeAlt + '](' + '/images/' + filename + ')', '/images/' + filename);
-          isiStatus('Foto badan narasi ditahan untuk antrean — akan diunggah saat disimpan: /images/' + filename, false);
-        } else {
-          const path = await uploadBodyImage(terpotong);
-          const alt = cleanAlt(file.name);
-          const safeAlt = alt.replace(/[\[\])]/g, '');
-          aturFotoIsi('![' + safeAlt + '](' + path + ')', path);
-          isiStatus('Foto badan narasi ditambahkan: ' + path, false);
-        }
+        await terapkanFotoIsiTerpotong(file, terpotong);
       } catch (err) {
         isiStatus('Gagal mengunggah gambar: ' + err.message, true);
       } finally {
         btn.disabled = false;
         btn.textContent = label;
         e.target.value = '';
+      }
+    });
+
+
+    // ---------- Potong foto yang sudah ada (20 Nov 2026, perintah Bos Besar) ----------
+    // Tombol "Potong" di samping foto sampul / foto badan yang sudah
+    // terunggah (mis. kiriman Penulis lain) memakai modal crop yang sama
+    // dengan foto baru — tanpa perlu upload ulang dari perangkat.
+    //
+    // PENTING soal watermark: foto yang disajikan situs (zonapas.web.id)
+    // SUDAH ber-watermark (script build me-watermark salinan di
+    // dist/images), sementara file asli di repo (public/images/...) masih
+    // bersih. Memotong foto tayang akan memanggang watermark ke dalam
+    // hasil potongan, lalu build menempel watermark kedua di atasnya.
+    // Karena itu foto lama SELALU diambil dari repo mentah
+    // (raw.githubusercontent.com), bukan dari URL tayang.
+    const RAW_GITHUB_FOTO = 'https://raw.githubusercontent.com/rezie404/zonapas/main/public';
+
+    function namaFileDariPath(p) {
+      const s = String(p || '').split('?')[0].split('#')[0];
+      return s.split('/').filter(Boolean).pop() || 'foto.jpg';
+    }
+
+    async function fileDariDataUrl(dataUrl, nama) {
+      const res = await fetch(dataUrl);
+      if (!res.ok) throw new Error('Data foto tidak bisa dibaca.');
+      const blob = await res.blob();
+      return new File([blob], nama || 'foto.jpg', { type: blob.type || 'image/jpeg' });
+    }
+
+    async function fileDariRepo(pathRepo) {
+      const path = String(pathRepo || '');
+      if (!path.startsWith('/images/')) throw new Error('Alamat foto tidak dikenal: ' + path);
+      const res = await fetch(RAW_GITHUB_FOTO + path);
+      if (!res.ok) throw new Error('Foto asli tidak bisa dimuat dari repo (HTTP ' + res.status + '). Periksa koneksi lalu coba lagi.');
+      const blob = await res.blob();
+      return new File([blob], namaFileDariPath(path), { type: blob.type || 'image/jpeg' });
+    }
+
+    // Ambil File foto sampul yang sedang tampil: bila sampul baru sudah
+    // dipilih di sesi ini (pendingCover) pakai dataUrl-nya; bila pratinjau
+    // berupa data URL (foto antrean) pakai itu; bila berupa URL tayang,
+    // ambil file aslinya dari repo.
+    async function ambilFileSampulLama() {
+      if (pendingCover && pendingCover.dataUrl) return fileDariDataUrl(pendingCover.dataUrl, 'sampul.jpg');
+      const prev = $('f-foto-preview');
+      const src = (prev && prev.src) || '';
+      if (!src || (prev && prev.classList.contains('hidden'))) throw new Error('Tidak ada foto sampul untuk dipotong.');
+      if (src.startsWith('data:')) return fileDariDataUrl(src, 'sampul.jpg');
+      let path = src;
+      try { path = new URL(src).pathname; } catch (e) {}
+      if (path.startsWith('/images/')) return fileDariRepo(path);
+      const res = await fetch(src);
+      if (!res.ok) throw new Error('Foto tidak bisa dimuat (HTTP ' + res.status + ').');
+      const blob = await res.blob();
+      return new File([blob], namaFileDariPath(path), { type: blob.type || 'image/jpeg' });
+    }
+
+    // Ambil File foto badan yang sedang tampil: bila diunggah di sesi ini
+    // (previewImgMap) pakai dataUrl-nya; bila sudah tersimpan, ambil file
+    // aslinya dari repo.
+    async function ambilFileIsiLama() {
+      if (!fotoIsi) throw new Error('Tidak ada foto badan narasi untuk dipotong.');
+      const nama = fotoIsi.nama || namaDariBarisFoto(fotoIsi.baris);
+      const dataUrl = previewImgMap[nama];
+      if (dataUrl) return fileDariDataUrl(dataUrl, namaFileDariPath(nama));
+      return fileDariRepo(nama);
+    }
+
+    // Tampilkan/sembunyikan tombol potong sampul mengikuti pratinjau.
+    function perbaruiTombolPotongSampul() {
+      const btn = $('btn-potong-sampul');
+      const prev = $('f-foto-preview');
+      if (!btn || !prev) return;
+      btn.classList.toggle('hidden', prev.classList.contains('hidden') || !prev.src);
+    }
+
+    // Lanjutan yang sama untuk foto badan baru (dipilih dari perangkat)
+    // maupun foto lama (dipotong ulang): resize -> tahan untuk antrean
+    // atau unggah langsung -> sisipkan sebagai foto badan narasi.
+    // altLama (bila ada) mempertahankan keterangan foto yang sudah ada.
+    async function terapkanFotoIsiTerpotong(fileAsli, terpotong, altLama) {
+      if (jalurAntreanAktif()) {
+        // Mode antrean: JANGAN unggah ke GitHub — tahan dataUrl, unggah
+        // via Worker saat simpan (pola pendingGambar Redaksi).
+        const dataUrl = await resizeImage(terpotong);
+        const slug = editingAntrean ? slugify($('f-judul').value.trim() || 'berita') : (editing ? editing.slug : slugify($('f-judul').value.trim() || 'berita'));
+        const filename = 'isi-' + slug + '-' + stampId() + '.jpg';
+        pendingGambarIsi.push({ filename, dataUrl });
+        previewImgMap['/images/' + filename] = dataUrl;
+        const alt = altLama || cleanAlt(fileAsli.name);
+        const safeAlt = String(alt).replace(/[\[\])]/g, '');
+        aturFotoIsi('![' + safeAlt + '](' + '/images/' + filename + ')', '/images/' + filename);
+        isiStatus('Foto badan narasi ditahan untuk antrean — akan diunggah saat disimpan: /images/' + filename, false);
+      } else {
+        const path = await uploadBodyImage(terpotong);
+        const alt = altLama || cleanAlt(fileAsli.name);
+        const safeAlt = String(alt).replace(/[\[\])]/g, '');
+        aturFotoIsi('![' + safeAlt + '](' + path + ')', path);
+        isiStatus('Foto badan narasi ditambahkan: ' + path, false);
+      }
+    }
+
+    on('btn-potong-sampul', 'click', async () => {
+      const btn = $('btn-potong-sampul');
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Memuat foto…';
+      try {
+        const file = await ambilFileSampulLama();
+        const terpotong = await bukaCrop(file);
+        if (!terpotong) return; // Batal = sampul lama tetap.
+        const dataUrl = await resizeImage(terpotong);
+        pendingCover = { dataUrl };
+        const prev = $('f-foto-preview');
+        prev.src = dataUrl;
+        prev.classList.remove('hidden');
+        perbaruiTombolPotongSampul();
+        showStatus('Foto sampul dipotong — tekan Simpan Perubahan untuk menerapkannya.', true);
+      } catch (err) {
+        showStatus('Gagal memotong foto sampul: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
+    on('btn-potong-foto-isi', 'click', async () => {
+      const btn = $('btn-potong-foto-isi');
+      if (!fotoIsi) return;
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Memuat foto…';
+      isiStatus('Memuat foto asli…', false);
+      try {
+        const file = await ambilFileIsiLama();
+        const terpotong = await bukaCrop(file);
+        if (!terpotong) { isiStatus('', false); return; } // Batal = foto lama tetap.
+        // Bila foto lama masih ditahan untuk antrean (belum tersimpan),
+        // buang tahanannya supaya tidak ikut terunggah saat simpan.
+        const namaLama = fotoIsi.nama || namaDariBarisFoto(fotoIsi.baris);
+        if (namaLama) pendingGambarIsi = pendingGambarIsi.filter((g) => '/images/' + g.filename !== namaLama);
+        const altLama = (String(fotoIsi.baris || '').match(/!\[([^\]]*)\]/) || [])[1] || '';
+        await terapkanFotoIsiTerpotong(file, terpotong, altLama);
+      } catch (err) {
+        isiStatus('Gagal memotong foto: ' + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
       }
     });
 
@@ -1268,6 +1405,7 @@ editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', b
         const cur = $('f-foto-saat-ini');
         cur.textContent = a.data.image ? ('Foto saat ini: ' + a.data.image + ' (biarkan kosong bila tidak diganti)') : '';
         cur.classList.toggle('hidden', !a.data.image);
+        perbaruiTombolPotongSampul();
         $('form-title').textContent = 'Ubah Berita';
         $('btn-save').textContent = 'Simpan Perubahan';
         $('form-section').classList.remove('hidden');
