@@ -129,10 +129,76 @@ export function hitungRekap(data) {
     // urutan pasangan (media massa dulu). Tidak ada tautan yang dibuang.
     const judul = [...new Set(pasanganUrut.map((p) => p.judul))];
     const tautan = pasanganUrut.map((p) => p.url);
-    return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judul : ["Nihil"], tautan: rs.length ? tautan : ["Nihil"] };
+    return { nama, rows: rs, sosial, massa, jumlah: rs.length, nihil: rs.length === 0 && nihilSet.has(nama), judul: rs.length ? judul : ["Nihil"], tautan: rs.length ? tautan : ["Nihil"], pasangan: pasanganUrut };
   });
   const total = perUpt.reduce((a, u) => ({ sosial: a.sosial + u.sosial, massa: a.massa + u.massa, jumlah: a.jumlah + u.jumlah }), { sosial: 0, massa: 0, jumlah: 0 });
   return { tanggal, perUpt, total };
+}
+
+// ---------- Teks laporan versi chat WA (20 Nov 2026, atas permintaan Bos Besar) ----------
+// Satu daftar RATA semua publikasi hari itu (tanpa pengelompokan per UPT),
+// seperti surat rekap Jateng yang dijadikan contoh template: tiap butir
+// judulnya langsung diikuti tautannya di baris berikut, TANPA nomor urut
+// (perintah Bos Besar 20 Nov 2026 — persis seperti surat contoh Jateng).
+// Urutan sama seperti laporan PDF/Word: urutan UPT laporan, di tiap UPT
+// media massa dulu baru media sosial. Judul dinormalisasi seperti di
+// laporan (kapital tiap kata, tanda "*" dibuang). UPT nihil tidak muncul
+// di daftar (tidak ada publikasinya). Jumlah butir = jumlah publikasi
+// hari itu, sama persis dengan laporan PDF/Word.
+// Judul yang SAMA dengan tautan berbeda TIDAK berdekatan (20 Nov 2026,
+// perintah Bos Besar): butir kedua dari judul yang sama ditukar dengan
+// butir berbeda judul terdekat di bawahnya, supaya daftar tidak tampak
+// seperti duplikat beruntun.
+export function bangunTeksWa(data) {
+  const hitung = hitungRekap(data);
+  const tglPanjang = tanggalIndonesia(hitung.tanggal);
+  const baris = [];
+  baris.push("Assalamualaikum Wr. Wb.");
+  baris.push("");
+  baris.push("Mohon izin menyampaikan Rekapitulasi Berita Online dari Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu.");
+  baris.push("");
+  baris.push("Kepada:");
+  baris.push("Yth. Menteri Imigrasi dan Pemasyarakatan");
+  baris.push("");
+  baris.push("Cq.");
+  baris.push("1. Direktur Jenderal Pemasyarakatan;");
+  baris.push("2. Sekretaris Direktorat Jenderal Pemasyarakatan.");
+  baris.push("");
+  baris.push("Bersama ini dengan hormat kami laporkan hasil rilis kegiatan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu beserta UPT Pemasyarakatan Wilayah Bengkulu pada hari " + tglPanjang + ", sebagai berikut:");
+  baris.push("");
+  // Daftar rata (urutan UPT laporan; media massa dulu di tiap UPT),
+  // lalu jauhkan judul yang sama supaya tidak berdekatan.
+  const semua = [];
+  for (const u of hitung.perUpt) {
+    for (const p of u.pasangan) semua.push(p);
+  }
+  for (let i = 0; i + 1 < semua.length; i++) {
+    if (semua[i].judul === semua[i + 1].judul) {
+      let j = i + 2;
+      while (j < semua.length && semua[j].judul === semua[i].judul) j++;
+      if (j < semua.length) {
+        const t = semua[i + 1];
+        semua[i + 1] = semua[j];
+        semua[j] = t;
+      }
+    }
+  }
+  for (const p of semua) {
+    baris.push(p.judul);
+    baris.push(p.url);
+    baris.push("");
+  }
+  baris.push("Demikian untuk menjadi maklum.");
+  baris.push("Terima kasih.");
+  baris.push("");
+  baris.push("Wassalamualaikum Wr. Wb.");
+  baris.push("");
+  baris.push("Kepala Kantor Wilayah");
+  baris.push("");
+  baris.push("Ttd.");
+  baris.push("");
+  baris.push("MASJUNO");
+  return baris.join("\n");
 }
 
 // ---------- Pratinjau laporan lengkap (seperti aplikasi Rekap di Jarvis) ----------
