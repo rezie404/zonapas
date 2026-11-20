@@ -344,6 +344,63 @@ export function decideAction(status, hasId) {
   return { action: 'skip', reason: `status tidak dikenal: ${status}` };
 }
 
+// ---------------------------------------------------------------------------
+// Filter kontributor JurnalPas (20 Nov 2026, perintah Bos Besar)
+// ---------------------------------------------------------------------------
+// Hanya artikel yang penulisnya TERDAFTAR sebagai pengguna JurnalPas yang
+// disinkronkan — rezienovian@gmail.com (Administrator, pemilik token) dan
+// akun lain yang sudah diterima sebagai kontributor di JurnalPas. Penulis
+// ZonaPas yang bukan pengguna JurnalPas (mis. Wiratomo Prakoso) dilewati:
+// tidak dibuat, tidak diperbarui, tidak dipulihkan dari judul.
+// Undangan yang masih pending (Miko, Kukuh — 20 Nov 2026) BELUM terdaftar
+// sebagai pengguna, jadi artikel mereka belum ikut tersync sampai mereka
+// menerima undangan; begitu diterima, otomatis ikut tanpa ubah apa pun.
+//
+// Daftar pengguna diambil SEKALI per run dari API WordPress.com
+// (GET /sites/{site}/users) — sumber kebenarannya adalah pendaftaran di
+// JurnalPas sendiri, bukan daftar nama yang ditulis manual di skrip ini.
+// Peran yang dihitung: administrator, editor, author, contributor.
+// Subscriber/pengikut (tanpa peran tulis) tidak dihitung.
+
+export const PERAN_KONTRIBUTOR = ['administrator', 'editor', 'author', 'contributor'];
+
+// Alias nama penulis ZonaPas -> nama tampil di JurnalPas. Normalisasi saja
+// tidak cukup: artikel Administrator ditulis "Rezie", sementara di
+// JurnalPas namanya "Rezie Novian Putra".
+export const ALIAS_PENULIS = { rezie: 'rezie novian putra' };
+
+export function normalisasiNamaPenulis(nama) {
+  return String(nama ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Ubah payload /users menjadi Set nama ternormalisasi yang berhak sync.
+ * Setiap pengguna menyumbang `name`, `login`, dan `nice_name` (bila ada)
+ * supaya variasi penulisan nama tetap cocok. Pengguna tanpa peran tulis
+ * (atau tanpa `roles`) tidak masuk.
+ */
+export function namaKontributorDariPengguna(users) {
+  const set = new Set();
+  for (const u of Array.isArray(users) ? users : []) {
+    const peran = Array.isArray(u && u.roles) ? u.roles : [];
+    if (!peran.some((r) => PERAN_KONTRIBUTOR.includes(String(r).toLowerCase()))) continue;
+    for (const n of [u.name, u.login, u.nice_name]) {
+      const norm = normalisasiNamaPenulis(n);
+      if (norm) set.add(norm);
+    }
+  }
+  return set;
+}
+
+/** True bila penulis artikel terdaftar sebagai kontributor JurnalPas. */
+export function penulisAdalahKontributor(author, kontributor) {
+  const nama = normalisasiNamaPenulis(author);
+  if (!nama || !kontributor || typeof kontributor.has !== 'function') return false;
+  if (kontributor.has(nama)) return true;
+  const alias = ALIAS_PENULIS[nama];
+  return alias ? kontributor.has(alias) : false;
+}
+
 export function bodyStartsWithSummary(bodyText, summary) {
   if (!summary) return false;
   const b = normText(bodyText);
@@ -432,6 +489,11 @@ export function wpClient({ site = DEFAULT_SITE, token }) {
   }
   return {
     listCategories: () => call('/categories?number=100'),
+    // Daftar pengguna situs (20 Nov 2026, filter kontributor): butuh
+    // token Administrator — mengembalikan { users: [{ ID, login, name,
+    // roles: [...] }] }. Dipakai untuk memutuskan artikel siapa saja
+    // yang boleh disinkronkan.
+    listUsers: () => call('/users?number=100'),
     createCategory: (name) => call('/categories/new', { method: 'POST', body: { name } }),
     uploadMedia: async (bytes, filename, mime) => {
       const form = new FormData();
@@ -562,7 +624,7 @@ export function cariIdDariJudul(posts, judul) {
   return cocokLonggar.length === 1 ? cocokLonggar[0].ID : null;
 }
 
-async function processFile({ root, site, client, dryRun, change, categoriesCache }) {
+async function processFile({ root, site, client, dryRun, change, categoriesCache, kontributor }) {
   const { status, path } = change;
   const absPath = join(root, path);
   if (status === 'D') {
@@ -583,6 +645,15 @@ async function processFile({ root, site, client, dryRun, change, categoriesCache
   }
   const hasId = Number.isInteger(fm.jurnalpas_id);
   let { action, reason } = decideAction(status, hasId);
+  // Filter kontributor (20 Nov 2026): penulis ZonaPas yang bukan pengguna
+  // JurnalPas tidak disinkronkan — baik buat baru, ubah, maupun pulihkan
+  // dari judul. Berlaku juga untuk artikel yang sudah punya jurnalpas_id
+  // (tidak lagi diperbarui). Di dry-run kontributor = null (tanpa token)
+  // sehingga pemeriksaan dilewati — dry-run tidak mengirim apa pun.
+  if (kontributor && !penulisAdalahKontributor(fm.author, kontributor)) {
+    console.log(`SKIP ${path} — penulis "${fm.author || '(tanpa penulis)'}" bukan kontributor JurnalPas.`);
+    return { decision: 'skip', path, reason: 'penulis bukan kontributor JurnalPas' };
+  }
   let recovered = false;
   // Perbaikan ID yang hilang (12 Nov 2026): artikel yang diubah tanpa
   // jurnalpas_id sebelumnya dilewati SELAMANYA — termasuk bila ID-nya
@@ -701,13 +772,39 @@ export async function main(argv = process.argv.slice(2)) {
   }
   console.log(`Memproses ${changes.length} file artikel yang berubah (situs: ${site}, mode: ${dryRun ? 'dry-run' : 'kirim'}).`);
   const client = dryRun ? null : wpClient({ site, token });
+  // Filter kontributor (20 Nov 2026): ambil daftar pengguna JurnalPas
+  // sekali per run; artikel yang penulisnya bukan pengguna JurnalPas
+  // dilewati di processFile. Bila daftar tidak bisa diambil, GAGAL
+  // (exit 1) supaya tidak ada yang terkirim salah secara diam-diam —
+  // mengikuti aturan 12 Nov 2026 (token hilang = gagal, bukan dry-run
+  // diam-diam). Daftar kosong juga gagal: Administrator sendiri
+  // seharusnya selalu ada di daftar.
+  let kontributor = null;
+  if (!dryRun) {
+    let resUsers;
+    try {
+      resUsers = await client.listUsers();
+    } catch (err) {
+      console.error('ERROR: gagal mengambil daftar pengguna JurnalPas: ' + err.message);
+      console.error('Sinkronisasi dibatalkan supaya tidak ada artikel yang terkirim salah.');
+      return 1;
+    }
+    kontributor = namaKontributorDariPengguna(resUsers.users || resUsers.authors || []);
+    console.log(`Pengguna JurnalPas yang bisa berkontribusi: ${kontributor.size} (${[...kontributor].join(', ') || 'tidak ada'}).`);
+    if (!kontributor.size) {
+      console.error('ERROR: tidak ada pengguna JurnalPas dengan peran tulis (administrator/editor/author/contributor) — sinkronisasi dibatalkan supaya tidak ada artikel yang terkirim salah.');
+      return 1;
+    }
+  } else {
+    console.log('Mode dry-run: filter kontributor tidak dicek (tanpa token) — tidak ada yang dikirim.');
+  }
   const categoriesCache = { list: null };
   const results = [];
   const errors = [];
   const newIds = [];
   for (const change of changes) {
     try {
-      const r = await processFile({ root, site, client, dryRun, change, categoriesCache });
+      const r = await processFile({ root, site, client, dryRun, change, categoriesCache, kontributor });
       results.push(r);
       if (!dryRun && r.postId && (r.decision === 'create' || r.recovered)) {
         const absPath = join(root, change.path);
