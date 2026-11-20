@@ -54,7 +54,7 @@
 //  - docProps/app.xml template (jumlah kata/halaman) dibiarkan apa adanya;
 //    Word/WPS menghitung ulang saat berkas dibuka.
 
-import { hitungRekap, namaLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from "./rekap-ringan.mjs?v=7";
+import { hitungRekap, namaLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from "./rekap-ringan.mjs?v=8";
 
 function escXml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -156,34 +156,46 @@ const TEKS_KEGIATAN_3 = "Selanjutnya, dilakukan penghitungan jumlah publikasi pa
 const TEKS_PENUTUP_1 = "Demikian laporan pelaksanaan pendataan dan rekapitulasi hasil rilis dan publikasi media sosial serta media massa pada Kantor Wilayah dan Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu ini disusun sebagai bentuk dokumentasi dan bahan monitoring pelaksanaan publikasi harian.";
 const TEKS_PENUTUP_2 = "Atas perhatian dan kerja sama seluruh pihak, disampaikan terima kasih.";
 
+// ---------- Teks laporan BULANAN (20 Nov 2026) ----------
+// Narasi bulanan memakai kalimat yang sama dengan laporan harian di
+// bagian yang tidak bergantung pada periode (Umum, Maksud dan Tujuan,
+// daftar tujuan, daftar sembilan satuan kerja, penutup kedua); bagian
+// yang menyebut periode memakai kalimat bulanannya sendiri di bawah.
+const TEKS_PENDAHULUAN_BULANAN = "Dalam rangka mendukung keterbukaan informasi publik serta penyebarluasan informasi mengenai pelaksanaan tugas dan fungsi pemasyarakatan kepada masyarakat, diperlukan publikasi yang informatif, aktual, dan berkesinambungan melalui media sosial maupun media massa. Sehubungan dengan hal tersebut, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan pendataan dan rekapitulasi terhadap hasil rilis dan publikasi yang dilakukan oleh Kantor Wilayah dan seluruh Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu selama periode pelaporan.";
+const TEKS_RUANG_LINGKUP_BULANAN = "Ruang lingkup laporan ini meliputi pendataan, rekapitulasi, dan rincian hasil rilis serta publikasi media sosial dan media massa yang dilaksanakan oleh Kantor Wilayah dan Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu pada";
+const TEKS_KEGIATAN_1_BULANAN = "Kegiatan yang dilaksanakan berupa pengumpulan, pendataan, dan rekapitulasi hasil rilis serta publikasi yang dilakukan oleh Kantor Wilayah dan Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melalui media sosial dan media massa selama periode pelaporan.";
+const TEKS_KEGIATAN_3_BULANAN = "Selanjutnya, dilakukan penghitungan jumlah publikasi pada masing-masing tanggal dan masing-masing satuan kerja sebagai bahan dokumentasi, pemantauan, dan evaluasi hasil publikasi selama periode pelaporan.";
+const TEKS_PENUTUP_1_BULANAN = "Demikian laporan rekapitulasi hasil rilis dan publikasi media sosial serta media massa pada Kantor Wilayah dan Unit Pelaksana Teknis Pemasyarakatan di lingkungan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu selama periode pelaporan ini disusun sebagai bentuk dokumentasi dan bahan monitoring serta evaluasi pelaksanaan publikasi.";
+
 // ---------- DOCX: merge data ke template kiriman Bos Besar ----------
 // Template dipecah jadi bagian-bagian di public/template-laporan/.
 // Bagian teks dimuat sebagai teks, gambar sebagai biner; dimuat sekali
 // lalu di-cache (modul dimuat malas, jadi unduhan pertama yang memuatnya).
 const TEMPLATE_DASAR = "/template-laporan/";
+const TEMPLATE_BULANAN_DASAR = "/template-laporan-bulanan/";
 const TEMPLATE_BAGIAN_TEKS = ["Content_Types.xml", "_rels/.rels", "docProps/core.xml", "word/document.xml", "word/_rels/document.xml.rels", "word/footer1.xml"];
 const TEMPLATE_BAGIAN_BINER = ["word/media/image1.jpeg"];
 // Tanggal yang tertulis di template (8 Nov 2026) — dipakai untuk
 // memperbarui judul di docProps/core.xml.
 const TEMPLATE_TANGGAL_SINGKAT = "8 November 2026";
 
-let _templateCache = null;
-async function muatTemplate() {
-  if (_templateCache) return _templateCache;
+const _templateCachePerDasar = {};
+async function muatTemplate(dasar = TEMPLATE_DASAR) {
+  if (_templateCachePerDasar[dasar]) return _templateCachePerDasar[dasar];
   const teks = {};
   await Promise.all(TEMPLATE_BAGIAN_TEKS.map(async (n) => {
-    const r = await fetch(TEMPLATE_DASAR + n);
+    const r = await fetch(dasar + n);
     if (!r.ok) throw new Error("Template laporan tidak dapat dimuat (" + n + ").");
     teks[n] = await r.text();
   }));
   const biner = {};
   await Promise.all(TEMPLATE_BAGIAN_BINER.map(async (n) => {
-    const r = await fetch(TEMPLATE_DASAR + n);
+    const r = await fetch(dasar + n);
     if (!r.ok) throw new Error("Template laporan tidak dapat dimuat (" + n + ").");
     biner[n] = new Uint8Array(await r.arrayBuffer());
   }));
-  _templateCache = { teks, biner };
-  return _templateCache;
+  _templateCachePerDasar[dasar] = { teks, biner };
+  return _templateCachePerDasar[dasar];
 }
 
 // Teks sebuah paragraf: gabungan semua <w:t> (instrText field HYPERLINK
@@ -519,6 +531,151 @@ export async function buildDocx(data) {
   return new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
 }
 
+// ---------- Laporan BULANAN (20 Nov 2026) ----------
+// data dari GET /redaksi/api/rekap/statistik-bulanan:
+//   { dari, sampai, jumlahHari,
+//     perTanggal: [{tanggal, sosial, massa, total}],
+//     perUpt: [{nama, sosial, massa, total}], total: {sosial, massa, jumlah} }
+function gabungDaftar(nama) {
+  // Daftar nama dalam bahasa baku: "A dan B" / "A, B, dan C".
+  const n = (nama || []).filter(Boolean);
+  if (n.length <= 1) return n.join("");
+  if (n.length === 2) return n[0] + " dan " + n[1];
+  return n.slice(0, -1).join(", ") + ", dan " + n[n.length - 1];
+}
+function formatRataRata(total, hari) {
+  // Rata-rata 1 desimal, koma Indonesia ("297,4").
+  if (!hari) return "0,0";
+  return (Math.round((total / hari) * 10) / 10).toFixed(1).replace(".", ",");
+}
+function teksAnalisisBulanan(perUpt, perTanggal) {
+  const maksUpt = Math.max(...perUpt.map((u) => u.jumlah));
+  const terbanyakUpt = perUpt.filter((u) => u.jumlah === maksUpt);
+  const maksHari = Math.max(...perTanggal.map((d) => d.jumlah));
+  const terbanyakHari = perTanggal.filter((d) => d.jumlah === maksHari);
+  const minUpt = Math.min(...perUpt.map((u) => u.jumlah));
+  const bagian = [];
+  if (terbanyakUpt.length === 1) {
+    const u = terbanyakUpt[0];
+    bagian.push(`Berdasarkan rekapitulasi di atas, ${u.nama} merupakan satuan kerja dengan jumlah publikasi terbanyak selama periode pelaporan, yaitu ${u.jumlah} publikasi (${u.sosial} media sosial dan ${u.massa} media massa).`);
+  } else {
+    bagian.push(`Berdasarkan rekapitulasi di atas, ${gabungDaftar(terbanyakUpt.map((u) => u.nama))} merupakan satuan kerja dengan jumlah publikasi terbanyak selama periode pelaporan, masing-masing ${maksUpt} publikasi.`);
+  }
+  bagian.push(`Jumlah publikasi terbanyak dalam satu hari dicapai pada ${gabungDaftar(terbanyakHari.map((d) => d.tanggalPanjang))} sebanyak ${maksHari} publikasi.`);
+  // Kalimat satuan kerja paling sedikit — dilewati bila semua sama banyak
+  // (terbanyak = tersedikit) supaya tidak bertentangan dengan kalimat pertama.
+  if (minUpt < maksUpt) {
+    const tersedikit = perUpt.filter((u) => u.jumlah === minUpt);
+    if (minUpt === 0) {
+      bagian.push(`${gabungDaftar(tersedikit.map((u) => u.nama))} belum memiliki publikasi selama periode pelaporan.`);
+    } else if (tersedikit.length === 1) {
+      bagian.push(`Sementara itu, ${tersedikit[0].nama} merupakan satuan kerja dengan jumlah publikasi paling sedikit, yaitu ${minUpt} publikasi.`);
+    } else {
+      bagian.push(`Sementara itu, ${gabungDaftar(tersedikit.map((u) => u.nama))} merupakan satuan kerja dengan jumlah publikasi paling sedikit, masing-masing ${minUpt} publikasi.`);
+    }
+  }
+  bagian.push("Capaian tersebut menjadi bahan evaluasi bagi seluruh satuan kerja dalam meningkatkan kualitas dan konsistensi publikasi pada periode berikutnya.");
+  return bagian.join(" ");
+}
+export function hitungBulanan(data) {
+  const dari = data.dari || "";
+  const sampai = data.sampai || "";
+  const jumlahHari = data.jumlahHari || 0;
+  const total = data.total || { sosial: 0, massa: 0, jumlah: 0 };
+  const perTanggal = (data.perTanggal || []).map((d) => ({ tanggal: d.tanggal, sosial: d.sosial || 0, massa: d.massa || 0, jumlah: d.total || 0, tanggalPanjang: tanggalIndonesia(d.tanggal) }));
+  const perUpt = (data.perUpt || []).map((u) => ({ nama: namaLaporan(u.nama), sosial: u.sosial || 0, massa: u.massa || 0, jumlah: u.total || 0 }));
+  const maksHari = perTanggal.length ? Math.max(...perTanggal.map((d) => d.jumlah)) : 0;
+  const terbanyakHari = perTanggal.filter((d) => d.jumlah === maksHari);
+  const periodePanjang = tanggalIndonesiaTanpaHari(dari) && tanggalIndonesiaTanpaHari(sampai)
+    ? tanggalIndonesiaTanpaHari(dari) + " s.d. " + tanggalIndonesiaTanpaHari(sampai)
+    : "";
+  return {
+    dari, sampai, jumlahHari, total, perTanggal, perUpt,
+    rataRata: formatRataRata(total.jumlah, jumlahHari),
+    terbanyakTanggalTeks: gabungDaftar(terbanyakHari.map((d) => d.tanggalPanjang)),
+    terbanyakJumlah: maksHari,
+    analisis: perTanggal.length ? teksAnalisisBulanan(perUpt, perTanggal) : "",
+    periodePanjang,
+    periodeHurufBesar: periodePanjang.toUpperCase(),
+    tglTtd: tanggalIndonesiaTanpaHari(sampai),
+  };
+}
+
+// Ganti baris contoh (yang mengandung {{NO}}) sebuah tabel bulanan dengan
+// satu baris per butir data, lalu isi baris JUMLAH tabel itu.
+function isiTabelBulanan(xmlDokumen, judulKolom2, barisData, total) {
+  let sudah = false;
+  const xmlBaru = xmlDokumen.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, (tabel) => {
+    if (sudah || !tabel.includes(judulKolom2) || !tabel.includes("{{NO}}")) return tabel;
+    sudah = true;
+    const baris = [...tabel.matchAll(/<w:tr[ >][\s\S]*?<\/w:tr>/g)];
+    const contoh = baris.find((b) => b[0].includes("{{NO}}"));
+    if (!contoh) throw new Error("Template laporan bulanan tidak dikenali (baris contoh tidak ditemukan).");
+    const klon = barisData.map((r) => contoh[0]
+      .split("{{NO}}").join(String(r.no))
+      .split("{{TANGGAL}}").join(escXml(r.kolom2))
+      .split("{{NAMA_UPT}}").join(escXml(r.kolom2))
+      .split("{{SOSIAL}}").join(String(r.sosial))
+      .split("{{MASSA}}").join(String(r.massa))
+      .split("{{JUMLAH}}").join(String(r.jumlah))).join("");
+    let tabelBaru = tabel.replace(contoh[0], klon);
+    tabelBaru = tabelBaru
+      .split("{{TOTAL_SOSIAL}}").join(String(total.sosial))
+      .split("{{TOTAL_MASSA}}").join(String(total.massa))
+      .split("{{TOTAL_JUMLAH}}").join(String(total.jumlah));
+    return tabelBaru;
+  });
+  if (!sudah) throw new Error("Template laporan bulanan tidak dikenali (tabel " + judulKolom2 + " tidak ditemukan).");
+  return xmlBaru;
+}
+
+export async function buildDocxBulanan(data) {
+  const hitung = hitungBulanan(data);
+  const tpl = await muatTemplate(TEMPLATE_BULANAN_DASAR);
+  let xml = tpl.teks["word/document.xml"];
+  // Fase 1: kloning baris contoh kedua tabel (sebelum token paragraf
+  // diganti, supaya token baris tidak tertukar dengan token total).
+  xml = isiTabelBulanan(xml, "Hari/Tanggal", hitung.perTanggal.map((d, i) => ({ no: i + 1, kolom2: d.tanggalPanjang, sosial: d.sosial, massa: d.massa, jumlah: d.jumlah })), hitung.total);
+  xml = isiTabelBulanan(xml, "Satuan Kerja", hitung.perUpt.map((u, i) => ({ no: i + 1, kolom2: u.nama, sosial: u.sosial, massa: u.massa, jumlah: u.jumlah })), hitung.total);
+  // Fase 2: token paragraf (nama token berbeda dari token baris).
+  const token = {
+    "{{PERIODE_HURUF_BESAR}}": hitung.periodeHurufBesar,
+    "{{PERIODE_PANJANG}}": hitung.periodePanjang,
+    "{{JUMLAH_HARI}}": String(hitung.jumlahHari),
+    "{{TOT_SOSIAL}}": String(hitung.total.sosial),
+    "{{TOT_MASSA}}": String(hitung.total.massa),
+    "{{TOT_JUMLAH}}": String(hitung.total.jumlah),
+    "{{RATA_RATA}}": hitung.rataRata,
+    "{{TERBANYAK_TANGGAL}}": hitung.terbanyakTanggalTeks,
+    "{{TERBANYAK_JUMLAH}}": String(hitung.terbanyakJumlah),
+    "{{ANALISIS}}": hitung.analisis,
+    "{{TGL_TTD}}": hitung.tglTtd,
+  };
+  for (const [k, v] of Object.entries(token)) xml = xml.split(k).join(escXml(v));
+  if (/{{[A-Z_]+}}/.test(xml)) throw new Error("Template laporan bulanan masih mengandung token yang belum terisi.");
+  const tglSingkat = hitung.tglTtd;
+  const [y, m, d] = String(hitung.sampai || "2026-01-01").split("-");
+  const dibuat = `${y}-${m}-${d}T12:00:00Z`; // 19.00 WIB = 12.00 UTC
+  let core = tpl.teks["docProps/core.xml"];
+  core = core.replace(TEMPLATE_TANGGAL_SINGKAT, tglSingkat);
+  core = core.replace(/<dcterms:created[^>]*>[^<]*<\/dcterms:created>/, `<dcterms:created xsi:type="dcterms:W3CDTF">${dibuat}</dcterms:created>`);
+  core = core.replace(/<dcterms:modified[^>]*>[^<]*<\/dcterms:modified>/, `<dcterms:modified xsi:type="dcterms:W3CDTF">${dibuat}</dcterms:modified>`);
+  core = core.replace(/<dc:creator>[^<]*<\/dc:creator>/, "<dc:creator>ZonaPas</dc:creator>");
+  core = core.replace(/<lastModifiedBy>[^<]*<\/lastModifiedBy>/, "<lastModifiedBy>ZonaPas</lastModifiedBy>");
+  // Laporan bulanan tidak punya tautan — relasi template dipakai apa adanya
+  // (hanya gambar logo + footer, hyperlink 8 Nov sudah dibuang di template).
+  const zip = zipStored([
+    ["[Content_Types].xml", tpl.teks["Content_Types.xml"]],
+    ["_rels/.rels", tpl.teks["_rels/.rels"]],
+    ["docProps/core.xml", core],
+    ["word/document.xml", xml],
+    ["word/_rels/document.xml.rels", tpl.teks["word/_rels/document.xml.rels"]],
+    ["word/footer1.xml", tpl.teks["word/footer1.xml"]],
+    ["word/media/image1.jpeg", tpl.biner["word/media/image1.jpeg"]],
+  ]);
+  return new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+}
+
 // ---------- PDF (dari nol, tanpa pustaka) ----------
 // A4, margin 51pt (= 1020 twips template), Arial 11 -> Helvetica 11
 // (pengganti metrik Arial; lihat catatan fidelity di kepala file).
@@ -696,12 +853,13 @@ class PdfDokumen {
   paraTeks(teks, opts = {}, tebal = false, warna = PDF_HITAM) {
     this.paragraf([{ teks, tebal, warna }], opts);
   }
-  tabelRekap(perUpt, total) {
+  tabelRekap(perUpt, total, judulKolom2 = "Satuan Kerja") {
     const lebarKol = [27.8, 213.2, 72.35, 72.35, 57.85];
     const x0 = PDF_M + 7.6;
+    const lebarTotal = lebarKol.reduce((a, b) => a + b, 0);
     const isi = perUpt.map((u, i) => [String(i + 1), u.nama, String(u.sosial), String(u.massa), String(u.jumlah)]);
     isi.push(["", "JUMLAH", String(total.sosial), String(total.massa), String(total.jumlah)]);
-    const kepala = ["No.", "Satuan Kerja", "Media Sosial", "Media Massa", "Jumlah"];
+    const kepala = ["No.", judulKolom2, "Media Sosial", "Media Massa", "Jumlah"];
     const semuaBaris = [kepala, ...isi];
     const tinggiBaris = semuaBaris.map((baris, ri) => {
       let maks = 1;
@@ -714,9 +872,15 @@ class PdfDokumen {
       return maks * PDF_LH + 2;
     });
     const totalTinggi = tinggiBaris.reduce((a, b) => a + b, 0);
-    this.pastikan(totalTinggi);
+    // Bila tabel muat utuh di sisa halaman, gambar di sini (perilaku
+    // laporan harian tidak berubah). Bila tidak, pindah halaman baru
+    // dulu; tabel yang tetap lebih panjang dari satu halaman dibagi
+    // per halaman dengan kepala diulang (laporan bulanan rentang panjang).
+    if (this.y - totalTinggi < PDF_M) this.halBaru();
     let y = this.y;
-    semuaBaris.forEach((baris, ri) => {
+    let batasSegmen = [y];
+    const gambarBaris = (ri) => {
+      const baris = semuaBaris[ri];
       const h = tinggiBaris[ri];
       const yBawah = y - h;
       let x = x0;
@@ -734,19 +898,33 @@ class PdfDokumen {
         x += lebarKol[ci];
       });
       y = yBawah;
-    });
-    // Garis tepi + garis dalam.
-    const ops = this.hal.ops;
-    const yAtas = this.y, yBawahAkhir = y;
-    ops.push(`${rgb(PDF_GARIS_TABEL)} 0.5 w`);
-    let x = x0;
-    ops.push(`${x0.toFixed(2)} ${yAtas.toFixed(2)} m ${(x0 + lebarKol.reduce((a, b) => a + b, 0)).toFixed(2)} ${yAtas.toFixed(2)} l S`);
-    ops.push(`${x0.toFixed(2)} ${yBawahAkhir.toFixed(2)} m ${(x0 + lebarKol.reduce((a, b) => a + b, 0)).toFixed(2)} ${yBawahAkhir.toFixed(2)} l S`);
-    let yJalan = yAtas;
-    tinggiBaris.forEach((h) => { yJalan -= h; ops.push(`${x0.toFixed(2)} ${yJalan.toFixed(2)} m ${(x0 + lebarKol.reduce((a, b) => a + b, 0)).toFixed(2)} ${yJalan.toFixed(2)} l S`); });
-    lebarKol.reduce((acc, w) => { const xx = acc + w; ops.push(`${xx.toFixed(2)} ${yAtas.toFixed(2)} m ${xx.toFixed(2)} ${yBawahAkhir.toFixed(2)} l S`); return xx; }, x0);
-    ops.push(`${x0.toFixed(2)} ${yAtas.toFixed(2)} m ${x0.toFixed(2)} ${yBawahAkhir.toFixed(2)} l S`);
-    this.y = yBawahAkhir - 1;
+      batasSegmen.push(y);
+    };
+    // Garis tepi + garis dalam untuk segmen halaman yang baru digambar.
+    const garisSegmen = () => {
+      const ops = this.hal.ops;
+      const yAtas = batasSegmen[0], yBawah = batasSegmen[batasSegmen.length - 1];
+      ops.push(`${rgb(PDF_GARIS_TABEL)} 0.5 w`);
+      ops.push(`${x0.toFixed(2)} ${yAtas.toFixed(2)} m ${(x0 + lebarTotal).toFixed(2)} ${yAtas.toFixed(2)} l S`);
+      ops.push(`${x0.toFixed(2)} ${yBawah.toFixed(2)} m ${(x0 + lebarTotal).toFixed(2)} ${yBawah.toFixed(2)} l S`);
+      batasSegmen.forEach((yy) => { if (yy !== yAtas && yy !== yBawah) ops.push(`${x0.toFixed(2)} ${yy.toFixed(2)} m ${(x0 + lebarTotal).toFixed(2)} ${yy.toFixed(2)} l S`); });
+      let xx = x0;
+      ops.push(`${x0.toFixed(2)} ${yAtas.toFixed(2)} m ${x0.toFixed(2)} ${yBawah.toFixed(2)} l S`);
+      lebarKol.forEach((w) => { xx += w; ops.push(`${xx.toFixed(2)} ${yAtas.toFixed(2)} m ${xx.toFixed(2)} ${yBawah.toFixed(2)} l S`); });
+    };
+    gambarBaris(0); // kepala di halaman pertama
+    for (let ri = 1; ri < semuaBaris.length; ri++) {
+      if (y - tinggiBaris[ri] < PDF_M) {
+        garisSegmen();
+        this.halBaru();
+        y = this.y;
+        batasSegmen = [y];
+        gambarBaris(0); // kepala diulang di halaman berikut
+      }
+      gambarBaris(ri);
+    }
+    garisSegmen();
+    this.y = y - 1;
   }
   rakit() {
     // Susun objek PDF -> Uint8Array.
@@ -1107,6 +1285,130 @@ async function buildPdfLegacy(data) {
   const xKanan = PDF_M + PDF_CW;
   const barisTtd = [
     [`Bengkulu, ${tglSingkat}`, false],
+    ["Kepala Kantor Wilayah,", false],
+    ["", false],
+    ["ttd", false],
+    ["", false],
+    ["MASJUNO", true],
+  ];
+  for (const [t, tebal] of barisTtd) {
+    if (t) doc.gambarBaris([{ teks: t, tebal }], xKanan - 180, doc.y, "left", 180);
+    doc.y -= PDF_LH;
+  }
+  return new Blob([doc.rakit()], { type: "application/pdf" });
+}
+
+// ---------- PDF laporan BULANAN (dari nol, tanpa pustaka) ----------
+// Cermin buildPdfLegacy dengan substansi bulanan: kop, judul, bab A/B/C/D
+// yang sama, dua tabel rekapitulasi (per tanggal + per satuan kerja),
+// dan paragraf Analisis. Pukul laporan tetap 19.00 WIB seperti harian.
+export async function buildPdfBulanan(data) {
+  const tpl = await muatTemplate(TEMPLATE_BULANAN_DASAR);
+  const hitung = hitungBulanan(data);
+  const total = hitung.total;
+  const doc = new PdfDokumen(tpl.biner["word/media/image1.jpeg"]);
+  const TW = (n) => n / 20; // twips -> pt
+  const judulBagian = (teks) => doc.paraTeks(teks, { sebelum: 12, sesudah: 4, jaga: 100 }, true, PDF_BIRU_TUA);
+  const subJudul = (teks, sesudah = 0) => doc.paraTeks(teks, { indentKiri: TW(284), sebelum: 8, sesudah, jaga: 85 }, true);
+  const tubuh = (teks, sesudah = 0, kiri = 284, barisPertama = 425) =>
+    doc.paraTeks(teks, { rata: "both", indentKiri: TW(kiri), indentBarisPertama: TW(barisPertama), sesudah });
+  const tubuhSub = (teks, sesudah = 0) => tubuh(teks, sesudah, 567, 426);
+
+  // --- Kop: logo 72x72pt + 5 baris nama instansi (tengah, kolom kanan) ---
+  {
+    const yAtas = doc.y + 11;
+    const xLogo = PDF_M + 1.5, yLogo = yAtas - 72;
+    doc.hal.ops.push(`q 72 0 0 72 ${xLogo.toFixed(2)} ${yLogo.toFixed(2)} cm /Logo Do Q`);
+    const xTeks = PDF_M + 75, lebarTeks2 = 418.3;
+    const kop = [
+      ["KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA", true, PDF_BIRU_TUA],
+      ["DIREKTORAT JENDERAL PEMASYARAKATAN", true, PDF_BIRU_TUA],
+      ["KANTOR WILAYAH BENGKULU", true, PDF_BIRU_TUA],
+      ["Jl. Batang Hari No.17, Kec. Ratu Agung, Kota Bengkulu", false, PDF_HITAM],
+      ["Pos-el : bengkuluditjenpas@gmail.com", false, PDF_HITAM],
+    ];
+    kop.forEach(([t, tebal, warna], i) => {
+      doc.gambarBaris([{ teks: t, tebal, warna }], xTeks, yAtas - 11 - i * PDF_LH, "center", lebarTeks2);
+    });
+    doc.hal.ops.push(`${rgb(PDF_GARIS_KOP)} 0.5 w`);
+    doc.hal.ops.push(`${PDF_M.toFixed(2)} ${(yAtas - 74).toFixed(2)} m ${(PDF_M + PDF_CW).toFixed(2)} ${(yAtas - 74).toFixed(2)} l S`);
+    doc.hal.ops.push(`${PDF_M.toFixed(2)} ${(yAtas - 76).toFixed(2)} m ${(PDF_M + PDF_CW).toFixed(2)} ${(yAtas - 76).toFixed(2)} l S`);
+    doc.y = yAtas - 72 - PDF_LH - 12;
+  }
+  // --- Judul laporan ---
+  for (const baris of ["LAPORAN", "TENTANG", "DATA REKAPITULASI PUBLIKASI MEDIA SOSIAL DAN MEDIA MASSA", "UNIT PELAKSANA TEKNIS PEMASYARAKATAN DI LINGKUNGAN", "KANTOR WILAYAH DIREKTORAT JENDERAL PEMASYARAKATAN BENGKULU", "PERIODE " + hitung.periodeHurufBesar]) {
+    doc.paraTeks(baris, { rata: "center", sesudah: 1 }, true);
+  }
+  // --- A. PENDAHULUAN ---
+  judulBagian("A. PENDAHULUAN");
+  tubuh(TEKS_PENDAHULUAN_BULANAN);
+  subJudul("1. Umum");
+  tubuhSub(TEKS_UMUM);
+  subJudul("2. Maksud dan Tujuan");
+  tubuhSub(TEKS_MAKSUD, 3);
+  const butirBernomor = (nomor, runsTeks, xNomor, xTeks, sesudah = 1, rata = "left") => {
+    const nBaris = Math.max(1, doc.bagiBaris(runsTeks, PDF_CW - xTeks).length);
+    doc.pastikan(nBaris * PDF_LH + sesudah);
+    const yAwal = doc.y;
+    doc.gambarBaris([{ teks: `${nomor}.`, tebal: false }], PDF_M + xNomor, yAwal, "left", xTeks - xNomor);
+    doc.paragraf(runsTeks, { rata, indentKiri: xTeks, sesudah });
+  };
+  const barisLabelTab = (label, isi, sesudah = 1, indent = 360, tabStop = TAB_TITIK_DUA, jaga = 0) => {
+    doc.pastikan(PDF_LH + sesudah + jaga);
+    const yAwal = doc.y;
+    doc.gambarBaris([{ teks: label, tebal: false }], PDF_M + TW(indent), yAwal, "left", TW(tabStop) - TW(indent));
+    doc.gambarBaris([{ teks: isi ? ": " + isi : ":", tebal: false }], PDF_M + TW(tabStop), yAwal, "left", PDF_CW - TW(tabStop));
+    doc.y -= PDF_LH + sesudah;
+  };
+  TUJUAN.forEach((t, i) => {
+    butirBernomor(i + 1, [{ teks: t, tebal: false }], TW(567), TW(851), 1, "both");
+  });
+  subJudul("3. Ruang Lingkup", 3);
+  tubuhSub(TEKS_RUANG_LINGKUP_BULANAN, 3);
+  barisLabelTab("• Periode", hitung.periodePanjang + " (" + hitung.jumlahHari + " hari)", 1, 720, TAB_TITIK_DUA_TANGGAL);
+  barisLabelTab("• Pukul", "19.00 WIB", 1, 720, TAB_TITIK_DUA_TANGGAL);
+  // --- B. KEGIATAN YANG DILAKSANAKAN ---
+  judulBagian("B. KEGIATAN YANG DILAKSANAKAN");
+  tubuh(TEKS_KEGIATAN_1_BULANAN);
+  tubuh(TEKS_KEGIATAN_2);
+  tubuh(TEKS_KEGIATAN_3_BULANAN);
+  // --- C. HASIL YANG DICAPAI ---
+  judulBagian("C. HASIL YANG DICAPAI");
+  doc.paraTeks("1. Rekapitulasi Publikasi", { indentKiri: TW(142), sebelum: 4, sesudah: 3, jaga: 55 }, true);
+  doc.paragraf([{ teks: "Jumlah publikasi selama periode pelaporan adalah sebagai berikut:" }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  const garisHitung = (label, n) => {
+    doc.pastikan(PDF_LH + 1);
+    doc.gambarBaris([{ teks: label }], PDF_M + TW(567), doc.y, "left", 200);
+    doc.gambarBaris([{ teks: `: ${n} publikasi` }], PDF_M + TW(1985), doc.y, "left", 200);
+    doc.y -= PDF_LH + 1;
+  };
+  garisHitung("Media Sosial", total.sosial);
+  garisHitung("Media Massa", total.massa);
+  garisHitung("Jumlah", total.jumlah);
+  doc.paragraf([{ teks: "Rata-rata jumlah publikasi adalah " + hitung.rataRata + " publikasi per hari." }], { rata: "both", indentBarisPertama: TW(567), sesudah: 1 });
+  doc.paragraf([{ teks: "Jumlah publikasi terbanyak dicapai pada " + hitung.terbanyakTanggalTeks + " sebanyak " + hitung.terbanyakJumlah + " publikasi." }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  doc.paragraf([{ teks: "Rekapitulasi jumlah publikasi per tanggal disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
+  doc.tabelRekap(hitung.perTanggal.map((d) => ({ nama: d.tanggalPanjang, sosial: d.sosial, massa: d.massa, jumlah: d.jumlah })), total, "Hari/Tanggal");
+  doc.y -= 2 * PDF_LH;
+  doc.paragraf([{ teks: "Rekapitulasi jumlah publikasi per satuan kerja disajikan dalam tabel berikut:" }], { rata: "both", indentBarisPertama: TW(284), sesudah: 3 });
+  doc.tabelRekap(hitung.perUpt, total);
+  doc.y -= 2 * PDF_LH;
+  doc.paraTeks("2. Analisis", { indentKiri: TW(142), sebelum: 4, sesudah: 3, jaga: 55 }, true);
+  doc.paragraf([{ teks: hitung.analisis }], { rata: "both", indentBarisPertama: TW(567), sesudah: 3 });
+  // --- D. PENUTUP ---
+  // Seluruh bab Penutup turun utuh ke halaman berikut bila tidak muat.
+  const barisPenutup1 = doc.bagiBaris([{ teks: TEKS_PENUTUP_1_BULANAN }], PDF_CW - TW(284) - TW(425)).length;
+  const barisPenutup2 = doc.bagiBaris([{ teks: TEKS_PENUTUP_2 }], PDF_CW - TW(709)).length;
+  const tinggiPenutup = 12 + PDF_LH + 4 + (barisPenutup1 * PDF_LH + 3) + (barisPenutup2 * PDF_LH + 3) + PDF_LH + 7 * PDF_LH;
+  doc.pastikan(tinggiPenutup);
+  judulBagian("D. PENUTUP");
+  tubuh(TEKS_PENUTUP_1_BULANAN, 3);
+  tubuh(TEKS_PENUTUP_2, 3, 0, 709);
+  doc.y -= PDF_LH;
+  doc.pastikan(7 * PDF_LH);
+  const xKanan = PDF_M + PDF_CW;
+  const barisTtd = [
+    [`Bengkulu, ${hitung.tglTtd}`, false],
     ["Kepala Kantor Wilayah,", false],
     ["", false],
     ["ttd", false],

@@ -204,6 +204,27 @@ const PLATFORM = [
         </div>
         <p id="statistik-total" class="text-sm text-slate-600 dark:text-slate-400">Memuat…</p>
         <div id="statistik-tanggal" class="mt-3 flex flex-wrap gap-2"></div>
+
+        <!-- Laporan bulanan (20 Nov 2026): rekapitulasi per tanggal + per UPT -->
+        <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900" aria-label="Laporan Bulanan">
+          <h3 class="text-base font-black uppercase tracking-tight">Laporan Bulanan</h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Rekapitulasi publikasi per tanggal dan per satuan kerja untuk periode yang dipilih, dengan format dan susunan yang sama seperti laporan harian.</p>
+          <div class="mt-3 flex flex-wrap items-end gap-3">
+            <label class="text-sm font-bold">Dari
+              <input id="bulanan-dari" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </label>
+            <label class="text-sm font-bold">Sampai
+              <input id="bulanan-sampai" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </label>
+            <button id="btn-bulanan-tampilkan" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tampilkan</button>
+          </div>
+          <p id="bulanan-ringkasan" class="mt-3 text-sm text-slate-600 dark:text-slate-400"></p>
+          <div id="bulanan-pratinjau" class="mt-3 overflow-x-auto text-sm"></div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button id="btn-bulanan-pdf" type="button" disabled class="inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66] disabled:cursor-not-allowed disabled:opacity-50"><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6z" fill="#DC2626"/><path d="M14 2v4h4" fill="#991B1B"/><text x="12" y="17.5" text-anchor="middle" font-size="6" font-weight="bold" fill="#fff" font-family="Arial, sans-serif">PDF</text></svg>Unduh PDF Bulanan</button>
+            <button id="btn-bulanan-docx" type="button" disabled class="inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66] disabled:cursor-not-allowed disabled:opacity-50"><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6z" fill="#2B579A"/><path d="M14 2v4h4" fill="#1E3F73"/><text x="12" y="17" text-anchor="middle" font-size="5" font-weight="bold" fill="#fff" font-family="Arial, sans-serif">DOCX</text></svg>Unduh Word Bulanan</button>
+          </div>
+        </div>
       </section>
 
       <!-- Modal pratinjau hapus massal -->
@@ -232,7 +253,7 @@ const PLATFORM = [
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
     // saat mengunduh laporan — lihat unduhLaporan().
-    import { bangunTeksWa, hitungRekap, namaFileLaporan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=7';
+    import { bangunTeksWa, hitungRekap, namaFileLaporan, namaFileLaporanBulanan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=8';
 
     // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
     // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
@@ -374,6 +395,71 @@ const PLATFORM = [
         if (totalEl) totalEl.textContent = 'Statistik belum bisa dimuat.';
       }
     }
+
+    // ---------- Laporan bulanan (20 Nov 2026) ----------
+    // Rentang bawaan: tanggal 1 bulan berjalan s.d. hari ini.
+    let bulananData = null;
+    function bulananAturBawaan() {
+      const hariIni = todayISO();
+      const [y, m] = String(hariIni || "").split("-");
+      const dari = $('bulanan-dari'), sampai = $('bulanan-sampai');
+      if (dari && !dari.value && y && m) dari.value = y + "-" + m + "-01";
+      if (sampai && !sampai.value) sampai.value = hariIni;
+    }
+    async function muatBulanan() {
+      const dariEl = $('bulanan-dari'), sampaiEl = $('bulanan-sampai');
+      const dari = dariEl ? dariEl.value : "", sampai = sampaiEl ? sampaiEl.value : "";
+      if (!dari || !sampai) { showStatus('Pilih tanggal awal dan tanggal akhir laporan bulanan.', false); return; }
+      if (dari > sampai) { showStatus('Tanggal awal tidak boleh lebih dari tanggal akhir.', false); return; }
+      const btn = $('btn-bulanan-tampilkan');
+      if (btn) { btn.disabled = true; btn.textContent = 'Memuat…'; }
+      try {
+        bulananData = await workerGet('/redaksi/api/rekap/statistik-bulanan?dari=' + encodeURIComponent(dari) + '&sampai=' + encodeURIComponent(sampai));
+        renderBulanan();
+      } catch (err) {
+        rekapGalat(err, 'Gagal memuat laporan bulanan');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Tampilkan'; }
+      }
+    }
+    function renderBulanan() {
+      const d = bulananData;
+      const ringkasan = $('bulanan-ringkasan');
+      const wadah = $('bulanan-pratinjau');
+      const btnPdf = $('btn-bulanan-pdf'), btnDocx = $('btn-bulanan-docx');
+      if (!d) return;
+      const kosong = !d.total || d.total.jumlah === 0;
+      if (ringkasan) ringkasan.textContent = kosong
+        ? 'Tidak ada publikasi pada ' + tanggalIndonesiaTanpaHari(d.dari) + ' s.d. ' + tanggalIndonesiaTanpaHari(d.sampai) + ' (' + (d.jumlahHari || 0) + ' hari).'
+        : tanggalIndonesiaTanpaHari(d.dari) + ' s.d. ' + tanggalIndonesiaTanpaHari(d.sampai) + ' (' + (d.jumlahHari || 0) + ' hari) • ' + d.total.jumlah + ' publikasi (' + d.total.sosial + ' media sosial, ' + d.total.massa + ' media massa)';
+      if (wadah) {
+        if (kosong) {
+          wadah.innerHTML = '';
+        } else {
+          const barisTanggal = (d.perTanggal || []).map((r, i) => '<tr><td class="border px-2 py-1 text-center">' + (i + 1) + '</td><td class="border px-2 py-1">' + esc(tanggalIndonesia(r.tanggal)) + '</td><td class="border px-2 py-1 text-center">' + r.sosial + '</td><td class="border px-2 py-1 text-center">' + r.massa + '</td><td class="border px-2 py-1 text-center font-bold">' + r.total + '</td></tr>').join('');
+          const barisUpt = (d.perUpt || []).map((u, i) => '<tr><td class="border px-2 py-1 text-center">' + (i + 1) + '</td><td class="border px-2 py-1">' + esc(u.nama) + '</td><td class="border px-2 py-1 text-center">' + u.sosial + '</td><td class="border px-2 py-1 text-center">' + u.massa + '</td><td class="border px-2 py-1 text-center font-bold">' + u.total + '</td></tr>').join('');
+          const tabel = (judul, kepala2, baris) => '<h4 class="mt-3 font-bold">' + judul + '</h4><table class="mt-1 w-full border-collapse text-sm"><thead><tr><th class="border bg-slate-100 px-2 py-1 dark:bg-slate-800">No.</th><th class="border bg-slate-100 px-2 py-1 dark:bg-slate-800">' + kepala2 + '</th><th class="border bg-slate-100 px-2 py-1 dark:bg-slate-800">Media Sosial</th><th class="border bg-slate-100 px-2 py-1 dark:bg-slate-800">Media Massa</th><th class="border bg-slate-100 px-2 py-1 dark:bg-slate-800">Jumlah</th></tr></thead><tbody>' + baris + '<tr><td class="border px-2 py-1"></td><td class="border px-2 py-1 font-bold">JUMLAH</td><td class="border px-2 py-1 text-center font-bold">' + d.total.sosial + '</td><td class="border px-2 py-1 text-center font-bold">' + d.total.massa + '</td><td class="border px-2 py-1 text-center font-bold">' + d.total.jumlah + '</td></tr></tbody></table>';
+          wadah.innerHTML = tabel('Per Tanggal', 'Hari/Tanggal', barisTanggal) + tabel('Per Satuan Kerja', 'Satuan Kerja', barisUpt);
+        }
+      }
+      if (btnPdf) btnPdf.disabled = kosong;
+      if (btnDocx) btnDocx.disabled = kosong;
+    }
+    async function unduhBulanan(ext) {
+      if (!bulananData || !bulananData.total || bulananData.total.jumlah === 0) { showStatus('Tampilkan dulu laporan bulanan untuk periode yang ada publikasinya.', false); return; }
+      try {
+        const { buildDocxBulanan, buildPdfBulanan } = await import('/rekap-laporan.mjs?v=22');
+        const blob = ext === 'pdf' ? await buildPdfBulanan(bulananData) : await buildDocxBulanan(bulananData);
+        unduhBlob(blob, namaFileLaporanBulanan(bulananData.dari, bulananData.sampai, ext));
+        showStatus('Laporan bulanan ' + ext.toUpperCase() + ' periode ' + tanggalIndonesiaTanpaHari(bulananData.dari) + ' s.d. ' + tanggalIndonesiaTanpaHari(bulananData.sampai) + ' diunduh.', true);
+      } catch (err) {
+        rekapGalat(err, 'Gagal membuat laporan bulanan ' + ext.toUpperCase());
+      }
+    }
+    on('btn-bulanan-tampilkan', 'click', muatBulanan);
+    on('btn-bulanan-pdf', 'click', () => unduhBulanan('pdf'));
+    on('btn-bulanan-docx', 'click', () => unduhBulanan('docx'));
+    bulananAturBawaan();
 
     // K29: penghitung generasi — tiap muatSemua() menaikkan nomornya;
     // respons dari pemanggilan yang sudah kedaluwarsa (tanggal diganti
@@ -625,7 +711,7 @@ const PLATFORM = [
         // Modul pembangun laporan dimuat MALAS di sini (bukan saat buka
         // halaman) supaya halaman pertama terbuka cepat; modul di-cache
         // browser setelah unduhan pertama.
-        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=21');
+        const { buildDocx, buildPdf } = await import('/rekap-laporan.mjs?v=22');
         const data = rekapDataLaporan();
         const blob = ext === 'pdf' ? await buildPdf(data) : await buildDocx(data);
         unduhBlob(blob, namaFileLaporan(data.tanggal, ext));

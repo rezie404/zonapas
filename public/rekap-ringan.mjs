@@ -46,6 +46,15 @@ export function namaFileLaporan(tanggal, ext) {
   // tanggal menyesuaikan tanggal laporan (09 Nov 2026).
   return `Laporan_Publikasi_Harian_Bengkulu_(${d}-${m}-${String(y).slice(2)}).${ext}`;
 }
+export function namaFileLaporanBulanan(dari, sampai, ext) {
+  // Nama berkas laporan bulanan (20 Nov 2026):
+  // "Laporan_Publikasi_Bulanan_Bengkulu_(02-11-26_sd_18-11-26).pdf".
+  const f = (iso) => {
+    const [y, m, d] = String(iso || "").split("-");
+    return `${d}-${m}-${String(y).slice(2)}`;
+  };
+  return `Laporan_Publikasi_Bulanan_Bengkulu_(${f(dari)}_sd_${f(sampai)}).${ext}`;
+}
 
 // Singkatan resmi yang tetap kapital semua di judul publikasi (sama
 // seperti aturan judul artikel ZonaPas, ditambah BMN dan TKA yang muncul
