@@ -13,6 +13,7 @@ breakingSince: "2026-11-21T10:46:38.146Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 460
 ---
 
 **Rejang Lebong** – Curup – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menghadiri kegiatan Paguyuban Ibu-Ibu Pemasyarakatan (PIPAS) yang diselenggarakan di Lapas Kelas IIA Curup pada Sabtu (21/11/2026). Kehadiran Kakanwil menjadi bentuk dukungan terhadap kegiatan PIPAS sekaligus upaya mempererat hubungan kekeluargaan di lingkungan Pemasyarakatan.
