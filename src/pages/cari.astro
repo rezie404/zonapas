@@ -27,12 +27,19 @@ import { CATEGORIES, SITE } from '../data/site';
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-bold text-slate-500 dark:text-slate-400">Dari tanggal</span>
-        <input id="search-dari" type="date" class="h-10 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+        <span class="flex items-center gap-1">
+          <input id="search-dari" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="h-10 w-36 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <button type="button" data-buka-kalender-cari="search-dari" aria-label="Buka kalender" class="h-10 w-10 shrink-0 rounded-lg border border-slate-300 text-base hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📅</button>
+        </span>
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-bold text-slate-500 dark:text-slate-400">Sampai tanggal</span>
-        <input id="search-sampai" type="date" class="h-10 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+        <span class="flex items-center gap-1">
+          <input id="search-sampai" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="h-10 w-36 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <button type="button" data-buka-kalender-cari="search-sampai" aria-label="Buka kalender" class="h-10 w-10 shrink-0 rounded-lg border border-slate-300 text-base hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📅</button>
+        </span>
       </label>
+      <input type="date" id="cari-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
       <button type="button" id="search-reset" class="h-10 rounded-lg border border-slate-300 px-4 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Reset</button>
     </div>
     <p id="search-status" class="mt-4 text-sm text-slate-500 dark:text-slate-400">Ketik kata kunci untuk mencari di seluruh berita ZonaPas.</p>
@@ -61,17 +68,76 @@ import { CATEGORIES, SITE } from '../data/site';
         return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
 
+      // Format tanggal DD/MM/YYYY (21 Nov 2026): <input type="date">
+      // bawaan menampilkan MM/DD/YYYY di HP Bos Besar (mengikuti lokal
+      // perangkat). Kolom kini berupa teks + tombol kalender (pemilih date
+      // bawaan yang disembunyikan) — pola yang sama seperti kolom tanggal
+      // laporan bulanan dan Laporan Sepekan. Yang dikirim ke filter dan
+      // parameter URL tetap ISO (YYYY-MM-DD) supaya tautan lama tetap jalan.
+      function cariIsoKeDmy(iso) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+        if (!m) return '';
+        return m[3] + '/' + m[2] + '/' + m[1];
+      }
+      function cariDmyKeIso(str) {
+        const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(str || '').trim());
+        if (!m) return null;
+        const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+        if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return null;
+        const dt = new Date(y, mo - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+        return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      }
+      // Sisipkan '/' otomatis selagi mengetik angka (DD/MM/YYYY).
+      function cariFormatKetikDmy(el) {
+        const digit = el.value.replace(/\D/g, '').slice(0, 8);
+        let keluar = digit;
+        if (digit.length > 4) keluar = digit.slice(0, 2) + '/' + digit.slice(2, 4) + '/' + digit.slice(4);
+        else if (digit.length > 2) keluar = digit.slice(0, 2) + '/' + digit.slice(2);
+        el.value = keluar;
+      }
+      let cariTargetKalender = null;
+      function cariBukaKalender(elTeks, btn) {
+        const pemilih = document.getElementById('cari-pemilih-tanggal');
+        if (!pemilih || !elTeks) return;
+        cariTargetKalender = elTeks;
+        pemilih.value = cariDmyKeIso(elTeks.value) || '';
+        try {
+          const r = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+          if (r) { pemilih.style.left = Math.max(0, r.left) + 'px'; pemilih.style.top = (r.bottom + 4) + 'px'; }
+          pemilih.showPicker();
+        } catch {
+          try { pemilih.focus(); pemilih.click(); } catch {}
+          status.textContent = 'Kalender tidak bisa dibuka di peramban ini — ketik tanggal dengan format DD/MM/YYYY (contoh 21/11/2026).';
+          status.style.color = '#B91C1C';
+        }
+      }
+      function cariTerapkanPilihanKalender() {
+        const pemilih = document.getElementById('cari-pemilih-tanggal');
+        if (!pemilih || !cariTargetKalender || !pemilih.value) return;
+        cariTargetKalender.value = cariIsoKeDmy(pemilih.value);
+        cariTargetKalender.dispatchEvent(new Event('change'));
+      }
+
       function filterAktif() {
         return {
           kat: document.getElementById('search-kategori').value || '',
-          dari: document.getElementById('search-dari').value || '',
-          sampai: document.getElementById('search-sampai').value || '',
+          dari: cariDmyKeIso(document.getElementById('search-dari').value) || '',
+          sampai: cariDmyKeIso(document.getElementById('search-sampai').value) || '',
         };
       }
 
       async function doSearch(q) {
         q = (q || '').trim();
         var f = filterAktif();
+        var dariMentah = document.getElementById('search-dari').value;
+        var sampaiMentah = document.getElementById('search-sampai').value;
+        if ((dariMentah && !f.dari) || (sampaiMentah && !f.sampai)) {
+          status.textContent = 'Tanggal tidak valid — pakai format DD/MM/YYYY (contoh 21/11/2026).';
+          status.style.color = '#B91C1C';
+          results.innerHTML = '';
+          return;
+        }
         var adaFilter = !!(f.kat || f.dari || f.sampai);
         if (!q && !adaFilter) {
           status.textContent = 'Ketik kata kunci untuk mencari di seluruh berita ZonaPas.';
@@ -101,7 +167,7 @@ import { CATEGORIES, SITE } from '../data/site';
         var ket = [];
         if (q) ket.push('"' + q + '"');
         if (f.kat) ket.push('kategori ' + f.kat);
-        if (f.dari || f.sampai) ket.push('tanggal ' + (f.dari || '…') + ' s.d. ' + (f.sampai || '…'));
+        if (f.dari || f.sampai) ket.push('tanggal ' + (f.dari ? cariIsoKeDmy(f.dari) : '…') + ' s.d. ' + (f.sampai ? cariIsoKeDmy(f.sampai) : '…'));
         status.textContent = hits.length + ' hasil' + (ket.length ? ' untuk ' + ket.join(', ') : '') + '.';
         results.innerHTML = hits.map((item) =>
           '<a href="' + item.url + '" class="block overflow-hidden rounded-xl border border-slate-200 bg-white hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">' +
@@ -137,6 +203,18 @@ import { CATEGORIES, SITE } from '../data/site';
           doSearch(input.value);
         });
       });
+      ['search-dari', 'search-sampai'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => cariFormatKetikDmy(el));
+      });
+      document.querySelectorAll('[data-buka-kalender-cari]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const el = document.getElementById(btn.getAttribute('data-buka-kalender-cari'));
+          if (el) cariBukaKalender(el, btn);
+        });
+      });
+      const cariPemilih = document.getElementById('cari-pemilih-tanggal');
+      if (cariPemilih) cariPemilih.addEventListener('change', cariTerapkanPilihanKalender);
       document.getElementById('search-reset').addEventListener('click', () => {
         input.value = '';
         document.getElementById('search-kategori').value = '';
@@ -153,8 +231,8 @@ import { CATEGORIES, SITE } from '../data/site';
       const sampaiAwal = param.get('sampai') || '';
       if (initial) input.value = initial;
       if (katAwal) document.getElementById('search-kategori').value = katAwal;
-      if (dariAwal) document.getElementById('search-dari').value = dariAwal;
-      if (sampaiAwal) document.getElementById('search-sampai').value = sampaiAwal;
+      if (dariAwal) document.getElementById('search-dari').value = cariIsoKeDmy(dariAwal);
+      if (sampaiAwal) document.getElementById('search-sampai').value = cariIsoKeDmy(sampaiAwal);
       if (initial || katAwal || dariAwal || sampaiAwal) {
         doSearch(initial);
       }

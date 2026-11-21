@@ -114,6 +114,38 @@
     }
 
 
+    // Format tanggal DD/MM/YYYY (21 Nov 2026): <input type="date"> bawaan
+    // menampilkan MM/DD/YYYY di HP Bos Besar (mengikuti lokal perangkat).
+    // Kolom tanggal kini berupa teks + tombol kalender; nilai yang dipakai
+    // di dalam tetap ISO (YYYY-MM-DD). tanggalDmyKeIso menerima ISO apa
+    // adanya (supaya draf lama dan nilai dari server tetap jalan) dan
+    // mengubah DMY menjadi ISO; mengembalikan null bila tidak valid.
+    function tanggalIsoKeDmy(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+      if (!m) return '';
+      return m[3] + '/' + m[2] + '/' + m[1];
+    }
+    function tanggalDmyKeIso(str) {
+      const s = String(str || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+      if (!m) return null;
+      const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+      if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return null;
+      const dt = new Date(y, mo - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+      return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    // Sisipkan '/' otomatis selagi mengetik angka (DD/MM/YYYY).
+    function tanggalFormatKetikDmy(el) {
+      const digit = el.value.replace(/\D/g, '').slice(0, 8);
+      let keluar = digit;
+      if (digit.length > 4) keluar = digit.slice(0, 2) + '/' + digit.slice(2, 4) + '/' + digit.slice(4);
+      else if (digit.length > 2) keluar = digit.slice(0, 2) + '/' + digit.slice(2);
+      el.value = keluar;
+    }
+
+
     function b64encodeUnicode(str) {
       return btoa(unescape(encodeURIComponent(str)));
     }
@@ -592,7 +624,9 @@
       const body = gabungkanFotoIsi(narasi, barisFoto);
       if (hitungFotoBadan(body) > 1) throw new Error('Foto badan narasi hanya boleh 1 foto. Hapus foto yang lain bila ingin menggantinya.');
       $('f-isi').value = isi.narasi;
-      const publishDate = $('f-tanggal').value;
+      const tanggalMentah = String($('f-tanggal').value || '').trim();
+      const publishDate = tanggalDmyKeIso(tanggalMentah) || '';
+      if (tanggalMentah && !publishDate) throw new Error('Tanggal terbit tidak valid — pakai format DD/MM/YYYY (contoh 21/11/2026).');
       if (!title || !category || !isi.narasi.trim() || !publishDate) throw new Error('Judul, kategori, tanggal terbit, dan isi berita wajib diisi.');
       const summary = ringkasanOtomatis(narasi);
       const breakingChecked = $('f-breaking').checked;
@@ -1529,7 +1563,7 @@
 
     (async () => {
       const tgl = $('f-tanggal');
-      if (tgl) tgl.value = todayISO();
+      if (tgl) tgl.value = tanggalIsoKeDmy(todayISO());
       if (await cobaMasukCookie()) return;
       if (token) {
         // Tukarkan token GitHub jadi sesi cookie supaya login bertahan di

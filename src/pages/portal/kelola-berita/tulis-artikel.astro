@@ -123,7 +123,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             </div>
             <div>
               <label for="f-tanggal" class="mb-1 block text-sm font-bold">Tanggal Terbit *</label>
-              <input id="f-tanggal" type="date" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <span class="flex items-center gap-1">
+                <input id="f-tanggal" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+                <button type="button" id="f-tanggal-kalender" aria-label="Buka kalender" class="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-base hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📅</button>
+              </span>
+              <input type="date" id="f-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
             </div>
             <div>
               <label for="f-upt" class="mb-1 block text-sm font-bold">UPT Terkait</label>
@@ -281,7 +285,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
   <!-- Pemeriksa typo (public/cek-typo.mjs) — dimuat sebagai modul terpisah
        supaya logikanya bisa diuji lewat node; diekspos ke window.__cekTypo. -->
   <script type="module" src="/cek-typo.mjs"></script>
-  <script is:inline src="/kelola-umum.js?v=19"></script>
+  <script is:inline src="/kelola-umum.js?v=20"></script>
   <script>
 
 
@@ -308,7 +312,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         $('f-kategori').value = art.category || '';
         $('f-tag').value = (art.tags || []).join(', ');
         $('f-penulis').value = art.author || 'Rezie';
-        $('f-tanggal').value = String(art.publish_date || art.publishDate || '').slice(0, 10);
+        aturTanggalTerbit(String(art.publish_date || art.publishDate || '').slice(0, 10));
         $('f-upt').value = art.upt || '';
         $('f-keterangan').value = art.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
         $('f-featured').checked = art.featured === true;
@@ -353,6 +357,38 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
 
 
+    // Tanggal terbit DD/MM/YYYY (21 Nov 2026): kolom berupa teks +
+    // tombol kalender; yang disimpan/dikirim tetap ISO. Konverter
+    // tanggalIsoKeDmy / tanggalDmyKeIso / tanggalFormatKetikDmy ada di
+    // kelola-umum.js (global). Draf menyimpan ISO supaya draf lama
+    // (yang menyimpan ISO) tetap bisa dipulihkan.
+    function bacaTanggalTerbit() {
+      return tanggalDmyKeIso($('f-tanggal').value) || '';
+    }
+    function aturTanggalTerbit(v) {
+      const iso = tanggalDmyKeIso(v);
+      $('f-tanggal').value = iso ? tanggalIsoKeDmy(iso) : '';
+    }
+    function bukaKalenderTerbit(btn) {
+      const pemilih = $('f-pemilih-tanggal');
+      if (!pemilih) return;
+      pemilih.value = bacaTanggalTerbit();
+      try {
+        const r = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+        if (r) { pemilih.style.left = Math.max(0, r.left) + 'px'; pemilih.style.top = (r.bottom + 4) + 'px'; }
+        pemilih.showPicker();
+      } catch {
+        try { pemilih.focus(); pemilih.click(); } catch {}
+        showStatus('Kalender tidak bisa dibuka di peramban ini — ketik tanggal dengan format DD/MM/YYYY (contoh 21/11/2026).', false);
+      }
+    }
+    function terapkanPilihanKalenderTerbit() {
+      const pemilih = $('f-pemilih-tanggal');
+      if (!pemilih || !pemilih.value) return;
+      aturTanggalTerbit(pemilih.value);
+    }
+
+
     // ---------- Form ----------
     function resetForm() {
       editing = null;
@@ -364,7 +400,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       aturKotaForm('Bengkulu');
       $('f-penulis').value = 'Rezie';
       $('f-keterangan').value = 'Dokumentasi kegiatan. (ZonaPas)';
-      $('f-tanggal').value = todayISO();
+      aturTanggalTerbit(todayISO());
       $('f-foto-preview').classList.add('hidden');
       $('f-foto-preview').src = '';
       perbaruiTombolPotongSampul();
@@ -394,7 +430,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       return {
         waktu: Date.now(),
         judul: $('f-judul').value, kategori: $('f-kategori').value, tag: $('f-tag').value,
-        penulis: $('f-penulis').value, tanggal: $('f-tanggal').value, upt: $('f-upt').value, kota: bacaKotaForm(),
+        penulis: $('f-penulis').value, tanggal: bacaTanggalTerbit(), upt: $('f-upt').value, kota: bacaKotaForm(),
         keterangan: $('f-keterangan').value, featured: $('f-featured').checked,
         breaking: $('f-breaking').checked, isi: $('f-isi').value,
       };
@@ -448,7 +484,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('f-kategori').value = d.kategori || '';
       $('f-tag').value = d.tag || '';
       $('f-penulis').value = d.penulis || '';
-      $('f-tanggal').value = d.tanggal || '';
+      aturTanggalTerbit(d.tanggal || '');
       $('f-upt').value = d.upt || '';
       aturKotaForm(d.kota === undefined ? 'Bengkulu' : d.kota);
       $('f-keterangan').value = d.keterangan || '';
@@ -525,7 +561,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // foto profil Google pengguna saat ini bila masuk lewat Google
         // (peran apa pun); masuk lewat GitHub -> tanpa foto.
         authorImage: (editingAntrean && editingAntrean.author_picture) || (editing && editing.authorImage) || (sumberLogin === 'google' && identitas && identitas.picture ? identitas.picture : ''),
-        publishDate: $('f-tanggal').value,
+        publishDate: bacaTanggalTerbit(),
         upt: $('f-upt').value || '',
         image: pendingCover ? pendingCover.dataUrl : (editing && editing.image ? imageUrl(editing.image) : ''),
         imageCaption: $('f-keterangan').value.trim() || 'Dokumentasi kegiatan. (ZonaPas)',
@@ -557,6 +593,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Judul dinormalisasi saat kursor meninggalkan kolomnya, supaya penulis
     // langsung melihat format akhirnya sebelum menyimpan.
     on('f-judul', 'blur', () => { $('f-judul').value = normalisasiJudul($('f-judul').value); });
+    on('f-tanggal', 'input', () => tanggalFormatKetikDmy($('f-tanggal')));
+    on('f-tanggal-kalender', 'click', () => bukaKalenderTerbit($('f-tanggal-kalender')));
+    on('f-pemilih-tanggal', 'change', terapkanPilihanKalenderTerbit);
 
     on('btn-tutup-pratinjau', 'click', tutupPratinjauTerbit);
 
@@ -1388,7 +1427,7 @@ editing = { path: a.path, sha: a.sha, slug: a.slug, image: a.data.image || '', b
         $('f-kategori').value = a.data.category || '';
         $('f-tag').value = (a.data.tags || []).join(', ');
         $('f-penulis').value = a.data.author || 'Rezie';
-        $('f-tanggal').value = String(a.data.publishDate || '').slice(0, 10);
+        aturTanggalTerbit(String(a.data.publishDate || '').slice(0, 10));
         $('f-upt').value = a.data.upt || '';
         $('f-keterangan').value = a.data.imageCaption || 'Dokumentasi kegiatan. (ZonaPas)';
         $('f-featured').checked = a.data.featured === true;

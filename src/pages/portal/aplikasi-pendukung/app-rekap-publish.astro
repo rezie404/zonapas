@@ -116,7 +116,10 @@ const PLATFORM = [
         <div class="flex flex-wrap items-end gap-3">
           <label class="min-w-0 flex-1">
             <span class="block text-sm font-bold">Tanggal laporan</span>
-            <input id="rekap-tanggal" type="date" class="mt-1 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+            <span class="mt-1 flex max-w-xs items-center gap-1">
+              <input id="rekap-tanggal" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-900" />
+              <button id="rekap-tanggal-kalender" type="button" aria-label="Buka kalender" class="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-base hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📅</button>
+            </span>
           </label>
           <button id="btn-muat-ulang" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Muat Ulang</button>
         </div>
@@ -177,7 +180,10 @@ const PLATFORM = [
           </label>
           <label>
             <span class="block text-sm font-bold">Tanggal</span>
-            <input id="tambah-tanggal" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            <span class="mt-1 flex items-center gap-1">
+              <input id="tambah-tanggal" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+              <button id="tambah-tanggal-kalender" type="button" aria-label="Buka kalender" class="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-base hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📅</button>
+            </span>
           </label>
         </div>
         <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -225,6 +231,7 @@ const PLATFORM = [
               </span>
             </div>
             <input type="date" id="bulanan-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
+            <input type="date" id="harian-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <button id="btn-bulanan-tampilkan" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Tampilkan</button>
             <label class="text-sm font-bold">Pelapor
               <select id="bulanan-pelapor" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
@@ -263,7 +270,7 @@ const PLATFORM = [
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=19"></script>
+  <script is:inline src="/kelola-umum.js?v=20"></script>
   <script type="module">
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
@@ -291,7 +298,34 @@ const PLATFORM = [
 
     function rekapTanggalDipilih() {
       const el = $('rekap-tanggal');
-      return (el && el.value) || rekapTanggal;
+      return (el && tanggalDmyKeIso(el.value)) || rekapTanggal;
+    }
+
+    // Tanggal harian DD/MM/YYYY (21 Nov 2026): kolom berupa teks +
+    // tombol kalender (pemilih date bawaan yang disembunyikan, satu untuk
+    // kedua kolom harian) — pola yang sama seperti kolom bulanan.
+    // Yang dikirim ke server tetap ISO. Konverter tanggalIsoKeDmy /
+    // tanggalDmyKeIso / tanggalFormatKetikDmy ada di kelola-umum.js.
+    let harianTargetKalender = null;
+    function harianBukaKalender(elTeks, btn) {
+      const pemilih = $('harian-pemilih-tanggal');
+      if (!pemilih || !elTeks) return;
+      harianTargetKalender = elTeks;
+      pemilih.value = tanggalDmyKeIso(elTeks.value) || '';
+      try {
+        const r = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+        if (r) { pemilih.style.left = Math.max(0, r.left) + 'px'; pemilih.style.top = (r.bottom + 4) + 'px'; }
+        pemilih.showPicker();
+      } catch {
+        try { pemilih.focus(); pemilih.click(); } catch {}
+        showStatus('Kalender tidak bisa dibuka di peramban ini — ketik tanggal dengan format DD/MM/YYYY (contoh 21/11/2026).', false);
+      }
+    }
+    function harianTerapkanPilihanKalender() {
+      const pemilih = $('harian-pemilih-tanggal');
+      if (!pemilih || !harianTargetKalender || !pemilih.value) return;
+      harianTargetKalender.value = tanggalIsoKeDmy(pemilih.value);
+      harianTargetKalender.dispatchEvent(new Event('change'));
     }
 
     // 401/403 -> pesan ramah + tautan masuk; galat lain -> pesan singkat
@@ -590,9 +624,20 @@ const PLATFORM = [
 
     // Tanggal default: hari ini (WIB, zona waktu browser).
     const inputTanggal = $('rekap-tanggal');
-    if (inputTanggal && !inputTanggal.value) inputTanggal.value = rekapTanggal;
+    if (inputTanggal && !inputTanggal.value) inputTanggal.value = tanggalIsoKeDmy(rekapTanggal);
 
-    on('rekap-tanggal', 'change', () => { rekapTanggal = rekapTanggalDipilih(); muatSemua(); });
+    on('rekap-tanggal', 'change', () => {
+      const mentah = String(($('rekap-tanggal') || {}).value || '').trim();
+      if (mentah && !tanggalDmyKeIso(mentah)) { showStatus('Tanggal laporan tidak valid — pakai format DD/MM/YYYY (contoh 21/11/2026).', false); return; }
+      rekapTanggal = rekapTanggalDipilih(); muatSemua();
+    });
+    if (inputTanggal) inputTanggal.addEventListener('input', () => tanggalFormatKetikDmy(inputTanggal));
+    const tambahTglEl = $('tambah-tanggal');
+    if (tambahTglEl) tambahTglEl.addEventListener('input', () => tanggalFormatKetikDmy(tambahTglEl));
+    on('rekap-tanggal-kalender', 'click', () => harianBukaKalender($('rekap-tanggal'), $('rekap-tanggal-kalender')));
+    on('tambah-tanggal-kalender', 'click', () => harianBukaKalender($('tambah-tanggal'), $('tambah-tanggal-kalender')));
+    const harianPemilih = $('harian-pemilih-tanggal');
+    if (harianPemilih) harianPemilih.addEventListener('change', harianTerapkanPilihanKalender);
     on('btn-muat-ulang', 'click', () => { rekapTanggal = rekapTanggalDipilih(); muatSemua(); });
 
     // ---------- Impor ----------
@@ -653,19 +698,19 @@ const PLATFORM = [
       const selPlat = $('tambah-platform');
       if (selPlat) selPlat.innerHTML = TAMBAH_PLATFORM.map((p) => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
       const tgl = $('tambah-tanggal');
-      if (tgl && !tgl.value) tgl.value = rekapTanggalDipilih();
+      if (tgl && !tgl.value) tgl.value = tanggalIsoKeDmy(rekapTanggalDipilih());
     })();
     on('btn-tambah-publikasi', 'click', async () => {
       const judul = ($('tambah-judul').value || '').trim();
       const url = ($('tambah-tautan').value || '').trim();
       const upt = $('tambah-upt').value;
       const platform = $('tambah-platform').value;
-      const tanggal = $('tambah-tanggal').value;
+      const tanggal = tanggalDmyKeIso($('tambah-tanggal').value) || '';
       const hasil = $('tambah-hasil');
       const pesan = (t, ok) => { if (hasil) { hasil.textContent = t; hasil.className = 'text-sm ' + (ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-300'); } };
       if (!judul) { pesan('Isi judul publikasi dulu.', false); return; }
       if (!/^https?:\/\/\S+$/.test(url)) { pesan('Tautan harus berupa URL http(s) yang valid.', false); return; }
-      if (!tanggal) { pesan('Isi tanggal publikasi dulu.', false); return; }
+      if (!tanggal) { pesan((($('tambah-tanggal').value || '').trim() ? 'Tanggal tidak valid — pakai format DD/MM/YYYY (contoh 21/11/2026).' : 'Isi tanggal publikasi dulu.'), false); return; }
       const btn = $('btn-tambah-publikasi');
       if (btn) { btn.disabled = true; btn.textContent = 'Menambahkan…'; }
       try {
@@ -690,7 +735,7 @@ const PLATFORM = [
       const lihatTgl = e.target.closest('[data-lihat-tanggal]');
       if (lihatTgl) {
         rekapTanggal = lihatTgl.getAttribute('data-lihat-tanggal');
-        const inp = $('rekap-tanggal'); if (inp) inp.value = rekapTanggal;
+        const inp = $('rekap-tanggal'); if (inp) inp.value = tanggalIsoKeDmy(rekapTanggal);
         await muatSemua();
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;

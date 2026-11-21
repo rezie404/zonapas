@@ -53,8 +53,12 @@ const totalBerita = all.length;
     <div class="mt-4 flex flex-wrap items-end gap-3">
       <label class="block">
         <span class="mb-1 block text-xs font-bold text-slate-500 dark:text-slate-400">Loncat ke tanggal</span>
-        <input id="arsip-tanggal" type="date" class="h-10 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+        <span class="flex items-center gap-1">
+          <input id="arsip-tanggal" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" class="h-10 w-36 rounded-lg border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          <button type="button" id="arsip-kalender" aria-label="Buka kalender" class="h-10 w-10 shrink-0 rounded-lg border border-slate-300 text-base hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📅</button>
+        </span>
       </label>
+      <input type="date" id="arsip-pemilih-tanggal" aria-hidden="true" tabindex="-1" style="position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" />
       <button type="button" id="arsip-lompat" class="h-10 rounded-lg bg-[#0A2540] px-5 text-sm font-bold text-white hover:bg-[#D9232E]">Lihat</button>
       <p id="arsip-pesan" class="text-sm text-slate-500 dark:text-slate-400"></p>
     </div>
@@ -103,12 +107,59 @@ const totalBerita = all.length;
       var tombol = document.getElementById('arsip-lompat');
       var pesan = document.getElementById('arsip-pesan');
       if (!input || !tombol) return;
+      // Format tanggal DD/MM/YYYY (21 Nov 2026): <input type="date">
+      // bawaan menampilkan MM/DD/YYYY di HP Bos Besar (mengikuti lokal
+      // perangkat). Kolom kini berupa teks + tombol kalender (pemilih date
+      // bawaan yang disembunyikan) — pola yang sama seperti kolom tanggal
+      // laporan bulanan dan Laporan Sepekan. Pencarian tetap memakai ISO.
+      function arsipIsoKeDmy(iso) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+        if (!m) return '';
+        return m[3] + '/' + m[2] + '/' + m[1];
+      }
+      function arsipDmyKeIso(str) {
+        var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(str || '').trim());
+        if (!m) return null;
+        var d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+        if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return null;
+        var dt = new Date(y, mo - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+        return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      }
+      function arsipFormatKetikDmy(el) {
+        var digit = el.value.replace(/\D/g, '').slice(0, 8);
+        var keluar = digit;
+        if (digit.length > 4) keluar = digit.slice(0, 2) + '/' + digit.slice(2, 4) + '/' + digit.slice(4);
+        else if (digit.length > 2) keluar = digit.slice(0, 2) + '/' + digit.slice(2);
+        el.value = keluar;
+      }
+      function arsipBukaKalender(btn) {
+        var pemilih = document.getElementById('arsip-pemilih-tanggal');
+        if (!pemilih) return;
+        pemilih.value = arsipDmyKeIso(input.value) || '';
+        try {
+          var r = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
+          if (r) { pemilih.style.left = Math.max(0, r.left) + 'px'; pemilih.style.top = (r.bottom + 4) + 'px'; }
+          pemilih.showPicker();
+        } catch (e) {
+          try { pemilih.focus(); pemilih.click(); } catch (e2) {}
+          pesan.textContent = 'Kalender tidak bisa dibuka di peramban ini — ketik tanggal dengan format DD/MM/YYYY (contoh 21/11/2026).';
+        }
+      }
+      function arsipTerapkanPilihanKalender() {
+        var pemilih = document.getElementById('arsip-pemilih-tanggal');
+        if (!pemilih || !pemilih.value) return;
+        input.value = arsipIsoKeDmy(pemilih.value);
+        lompat();
+      }
       function lompat() {
-        var tgl = input.value;
-        if (!tgl) { pesan.textContent = 'Pilih tanggal dulu.'; return; }
+        var mentah = input.value;
+        if (!mentah) { pesan.textContent = 'Pilih tanggal dulu.'; return; }
+        var tgl = arsipDmyKeIso(mentah);
+        if (!tgl) { pesan.textContent = 'Tanggal tidak valid — pakai format DD/MM/YYYY (contoh 21/11/2026).'; return; }
         var target = document.querySelector('[data-tanggal="' + tgl + '"]');
         if (!target) {
-          pesan.textContent = 'Tidak ada berita pada tanggal ' + tgl + '.';
+          pesan.textContent = 'Tidak ada berita pada tanggal ' + mentah + '.';
           return;
         }
         var detail = target.closest('details');
@@ -120,6 +171,11 @@ const totalBerita = all.length;
       }
       tombol.addEventListener('click', lompat);
       input.addEventListener('change', lompat);
+      input.addEventListener('input', function () { arsipFormatKetikDmy(input); });
+      var btnKalender = document.getElementById('arsip-kalender');
+      if (btnKalender) btnKalender.addEventListener('click', function () { arsipBukaKalender(btnKalender); });
+      var pemilihTanggal = document.getElementById('arsip-pemilih-tanggal');
+      if (pemilihTanggal) pemilihTanggal.addEventListener('change', arsipTerapkanPilihanKalender);
     })();
   </script>
 </BaseLayout>
