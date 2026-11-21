@@ -221,7 +221,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
-  <script is:inline src="/kelola-umum.js?v=19"></script>
+  <script is:inline src="/kelola-umum.js?v=20"></script>
   <script type="module">
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1891,10 +1891,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const sisa = Math.max(100, Math.min(520, TINGGI_ISI - tNarasi - (ki === 0 ? tinggiHari : 0) - 50));
           const htmlFotoGrup = (daftar) => {
             if (!daftar.length) return '';
-            // Foto kegiatan berfokus pada wajah orang di tengah foto
-            // (21 Nov 2026): object-position dari pindai kulit; bila
-            // belum dipindai, 50%/30% (agak ke atas) sebagai awal.
-            const imgFoto = (src) => '<img src="' + esc(src) + '"' + gayaFokusFoto(src) + ' alt="" />';
+            const imgFoto = (src) => '<img src="' + esc(src) + '" alt="" />';
             if (daftar.length === 1) {
               const h1 = Math.max(120, Math.min(255, sisa));
               const w1 = Math.min(340, Math.round(h1 * 4 / 3));
@@ -2095,10 +2092,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!wadah) return;
       wadah.innerHTML = htmlLaporan();
       sesuaikanSkala();
-      // Foto kegiatan: hitung titik fokus wajah (sekali per foto,
-      // di memori saja) — bila sudah selesai, pratinjau dirender ulang
-      // dengan object-position yang baru.
-      (state.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => (k.foto || []).forEach((f) => { if (f) pastikanFokusFoto(f); })));
     }
     function sesuaikanSkala() {
       const wadah = $('sp-pratinjau');
@@ -2114,195 +2107,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
     }
     window.addEventListener('resize', () => { sesuaikanSkala(); });
-
-    // ---------- Fokus wajah foto kegiatan (21 Nov 2026) ----------
-    // Foto kegiatan di Hasil memakai kotak tetap + object-fit: cover,
-    // jadi foto yang lebih tinggi dari kotaknya terpotong atas-bawah
-    // dan wajah orang di tengah foto bisa terpotong di tepi atas
-    // (laporan Bos Besar 21 Nov 2026: wajah di 4 foto audiensi BNN
-    // terpotong di tepi atas pratinjau). Atas perintah Bos Besar:
-    // foto berfokus pada wajah orang di tengah foto — di pratinjau
-    // MAUPUN PDF.
-    //
-    // Cara kerja: pindai kulit (aturan warna Kovac) pada salinan kecil
-    // 200px — SAMA seperti scripts/hitung-fokus-wajah.mjs yang dipakai
-    // kartu berita (deteksi wajah ML dicoba 13 Nov 2026 dan
-    // mengembalikan 0 wajah di foto-foto ini) — kelompokkan piksel
-    // kulit jadi gumpalan seukuran wajah, lalu cari jendela 16:9 yang
-    // memuat wajah terbanyak (skor = piksel kulit + 60 x jumlah
-    // gumpalan, sedikit ditarik ke tengah kelompok wajah); titik fokus
-    // = tengah jendela itu. Hasilnya disimpan di memori saja (peta
-    // fokusFoto, per src) — TIDAK di draf, supaya draf lama tetap jalan
-    // dan draf tidak membengkak; dihitung ulang tiap halaman dibuka
-    // (sekali per foto). Bila tidak ada wajah (kurang dari 3 gumpalan),
-    // pakai 50%/30% — agak ke atas, karena wajah biasanya di sepertiga
-    // atas foto — supaya wajah yang tidak terdeteksi tetap lebih
-    // terlihat daripada tengah 50%/50%.
-    const FOKUS_AWAL = { x: 50, y: 30 };
-    const fokusFoto = new Map(); // src -> {x, y} persen | null (dipindai, tak ada wajah)
-    const pindaiFotoBerjalan = new Map(); // src -> Promise
-    function kulitKovac(r, g, b) {
-      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-      return r > 95 && g > 40 && b > 20 && mx - mn > 15 && Math.abs(r - g) > 15 && r > g && r > b;
-    }
-    // Titik fokus (persen) dari piksel gambar kecil (data RGBA, lebar w,
-    // tinggi h) — murni, bisa diuji di Node. null bila tidak ada wajah.
-    // Jendela 16:9 yang memuat wajah terbanyak (porting
-    // cariJendelaWajah dari scripts/hitung-fokus-wajah.mjs, dihitung
-    // dalam koordinat salinan kecil — persennya sama); titik fokus =
-    // tengah jendela itu.
-    function fokusDariPiksel(data, w, h) {
-      const mask = new Uint8Array(w * h);
-      for (let i = 0; i < w * h; i++) {
-        const j = i * 4;
-        if (kulitKovac(data[j], data[j + 1], data[j + 2])) mask[i] = 1;
-      }
-      const label = new Int32Array(w * h).fill(-1);
-      const komps = [];
-      const tumpuk = [];
-      for (let s = 0; s < w * h; s++) {
-        if (!mask[s] || label[s] >= 0) continue;
-        const id = komps.length;
-        let minX = w, maxX = -1, minY = h, maxY = -1, luas = 0;
-        tumpuk.push(s);
-        label[s] = id;
-        while (tumpuk.length) {
-          const p = tumpuk.pop();
-          const px = p % w, py = Math.floor(p / w);
-          luas++;
-          if (px < minX) minX = px;
-          if (px > maxX) maxX = px;
-          if (py < minY) minY = py;
-          if (py > maxY) maxY = py;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              if (!dx && !dy) continue;
-              const nx = px + dx, ny = py + dy;
-              if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-              const q = ny * w + nx;
-              if (mask[q] && label[q] < 0) { label[q] = id; tumpuk.push(q); }
-            }
-          }
-        }
-        komps.push({ minX, maxX, minY, maxY, luas });
-      }
-      // Gumpalan seukuran wajah pada salinan 200px (sama seperti
-      // hitung-fokus-wajah.mjs): buang yang terlalu kecil (teks/ikon),
-      // terlalu besar (panel kayu/meja), dan yang setipis teks judul.
-      const barisPiksel = new Array(h).fill(0);
-      const kolomPiksel = new Array(w).fill(0);
-      const barisGumpal = new Array(h).fill(0);
-      const kolomGumpal = new Array(w).fill(0);
-      let totalPiksel = 0, totalGumpal = 0, sx = 0, sy = 0;
-      for (let k = 0; k < komps.length; k++) {
-        const c = komps[k];
-        const bw = c.maxX - c.minX + 1, bh = c.maxY - c.minY + 1;
-        if (bw < 3 || bh < 6 || bw > 45 || bh > 45 || c.luas < 12 || c.luas > 900) continue;
-        totalGumpal++;
-        const cxp = Math.round((c.minX + c.maxX) / 2), cyp = Math.round((c.minY + c.maxY) / 2);
-        barisGumpal[cyp]++;
-        kolomGumpal[cxp]++;
-        sx += cxp;
-        sy += cyp;
-        for (let y = c.minY; y <= c.maxY; y++) {
-          for (let x = c.minX; x <= c.maxX; x++) {
-            if (label[y * w + x] === k) { barisPiksel[y]++; kolomPiksel[x]++; totalPiksel++; }
-          }
-        }
-      }
-      if (totalGumpal < 3) return null;
-      const cx = sx / totalGumpal / w, cy = sy / totalGumpal / h;
-      const skorTotal = totalPiksel + 60 * totalGumpal;
-      const RASIO = 16 / 9;
-      let jendela;
-      if (w / h > RASIO) {
-        const jh = h, jw = Math.round(h * RASIO);
-        let terbaik = -1, bx = 0;
-        for (let x0 = 0; x0 + jw <= w; x0 += 2) {
-          let s = 0;
-          for (let x = x0; x < x0 + jw; x++) s += kolomPiksel[x] + 60 * kolomGumpal[x];
-          const tengah = (x0 + jw / 2) / w;
-          const skor = s - Math.abs(tengah - cx) * skorTotal * 0.05;
-          if (skor > terbaik) { terbaik = skor; bx = x0; }
-        }
-        jendela = { x: bx, y: 0, w: jw, h: jh };
-      } else {
-        const jw = w, jh = Math.round(w / RASIO);
-        let terbaik = -1, by = 0;
-        for (let y0 = 0; y0 + jh <= h; y0 += 2) {
-          let s = 0;
-          for (let y = y0; y < y0 + jh; y++) s += barisPiksel[y] + 60 * barisGumpal[y];
-          const tengah = (y0 + jh / 2) / h;
-          const skor = s - Math.abs(tengah - cy) * skorTotal * 0.05;
-          if (skor > terbaik) { terbaik = skor; by = y0; }
-        }
-        jendela = { x: 0, y: by, w: jw, h: jh };
-      }
-      const fx = Math.min(90, Math.max(10, Math.round(((jendela.x + jendela.w / 2) / w) * 1000) / 10));
-      const fy = Math.min(90, Math.max(10, Math.round(((jendela.y + jendela.h / 2) / h) * 1000) / 10));
-      return { x: fx, y: fy };
-    }
-    // Pindai satu foto (elemen <img> yang sudah termuat) -> {x, y} | null.
-    function hitungFokusWajah(img) {
-      const nw = img.naturalWidth, nh = img.naturalHeight;
-      if (!nw || !nh) return null;
-      const LEBAR = 200;
-      const c = document.createElement('canvas');
-      c.width = LEBAR;
-      c.height = Math.max(1, Math.round(nh * LEBAR / nw));
-      const ctx = c.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return null;
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      const data = ctx.getImageData(0, 0, c.width, c.height).data;
-      return fokusDariPiksel(data, c.width, c.height);
-    }
-    function fokusUntukFoto(src) {
-      const f = fokusFoto.get(src);
-      return f || FOKUS_AWAL;
-    }
-    function gayaFokusFoto(src) {
-      const f = fokusUntukFoto(src);
-      return ' style="object-position:' + f.x + '% ' + f.y + '%"';
-    }
-    function pastikanFokusFoto(src) {
-      if (!src || fokusFoto.has(src) || pindaiFotoBerjalan.has(src)) return;
-      const janji = new Promise((res) => {
-        const img = new Image();
-        let selesai = false;
-        const akhir = (hasil) => {
-          if (selesai) return;
-          selesai = true;
-          pindaiFotoBerjalan.delete(src);
-          fokusFoto.set(src, hasil);
-          if (!sedangUnduh) renderPratinjau();
-          res(hasil);
-        };
-        img.onload = () => { let f = null; try { f = hitungFokusWajah(img); } catch {} akhir(f); };
-        img.onerror = () => akhir(null);
-        img.src = src;
-        // Jangan menahan selamanya: foto yang tak kunjung termuat
-        // dibiarkan memakai fokus awal, dan boleh dicoba lagi nanti.
-        setTimeout(() => { if (!selesai) { pindaiFotoBerjalan.delete(src); res(null); } }, 8000);
-      });
-      pindaiFotoBerjalan.set(src, janji);
-    }
-    // Tunggu semua pemindaian yang sedang berjalan (dipakai Unduh PDF
-    // supaya PDF memakai fokus yang sudah dihitung, bukan fokus awal).
-    async function tungguFokusFoto() {
-      const janji = Array.from(pindaiFotoBerjalan.values());
-      if (!janji.length) return;
-      await Promise.race([Promise.allSettled(janji), new Promise((r) => setTimeout(r, 6000))]);
-    }
-    // Jendela cover (seperti CSS object-fit: cover + object-position):
-    // bagian gambar (koordinat asli) yang tampil di kotak bw x bh
-    // dengan titik fokus fx%, fy%. Dipakai PDF supaya pratinjau dan
-    // PDF memakai potongan yang sama persis.
-    function jendelaCover(nw, nh, bw, bh, fx, fy) {
-      const s = Math.max(bw / nw, bh / nh);
-      const dw = nw * s, dh = nh * s;
-      const ox = (dw - bw) * (fx / 100), oy = (dh - bh) * (fy / 100);
-      return { sx: ox / s, sy: oy / s, sw: bw / s, sh: bh / s };
-    }
 
     // ---------- Unduh PDF ----------
     // PDF dibuat dari KLON halaman pratinjau yang sedang terlihat (bukan
@@ -2467,39 +2271,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       await Promise.all(kerja);
     }
 
-    // Foto kegiatan di PDF memakai potongan yang SAMA dengan pratinjau
-    // (21 Nov 2026): html2canvas tidak selalu menghormati
-    // object-position, jadi tiap foto digambar ulang ke canvas dengan
-    // jendela cover + titik fokus yang sama, lalu src diganti data URL
-    // hasil potongan — pratinjau dan PDF menampilkan wajah yang sama.
-    async function konversiSatuFotoPdf(img) {
-      const wadah = img.parentElement;
-      const bw = wadah ? wadah.offsetWidth : 0, bh = wadah ? wadah.offsetHeight : 0;
-      if (!bw || !bh) return;
-      await tungguImgSiap(img, 4000);
-      if (!img.naturalWidth) return; // foto macet: biarkan apa adanya
-      const f = fokusUntukFoto(img.getAttribute('src'));
-      const SKALA = 2;
-      const c = document.createElement('canvas');
-      c.width = Math.round(bw * SKALA);
-      c.height = Math.round(bh * SKALA);
-      const ctx = c.getContext('2d');
-      if (!ctx) return;
-      const j = jendelaCover(img.naturalWidth, img.naturalHeight, bw, bh, f.x, f.y);
-      ctx.drawImage(img, j.sx, j.sy, j.sw, j.sh, 0, 0, c.width, c.height);
-      img.src = c.toDataURL('image/jpeg', 0.92);
-      img.style.objectFit = 'fill';
-      img.style.objectPosition = '50% 50%';
-    }
-    async function konversiFotoPdf(fdoc) {
-      // Satu foto yang macet tidak boleh menahan PDF.
-      const kerja = [];
-      fdoc.querySelectorAll('.sepekan-foto-item img, .sepekan-foto-tunggal img').forEach((img) => {
-        kerja.push(Promise.race([konversiSatuFotoPdf(img), new Promise((r) => setTimeout(r, 6000))]));
-      });
-      await Promise.all(kerja);
-    }
-
     async function unduhPdf() {
       if (sedangUnduh) return;
       const btn = $('sp-unduh');
@@ -2509,9 +2280,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       bacaFormKeState();
       renderPratinjau();
-      // Tunggu pemindaian fokus wajah selesai supaya PDF memakai titik
-      // fokus yang sudah dihitung, bukan fokus awal (maks ~6 detik).
-      await tungguFokusFoto();
       sedangUnduh = true;
       if (btn) { btn.disabled = true; btn.textContent = 'Membuat PDF…'; }
       showStatus('Membuat PDF laporan…', true);
@@ -2541,7 +2309,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (!fdoc) throw new Error('Dokumen PDF tidak bisa dibuat.');
         await tungguGambar(fdoc);
         await konversiSegiEnamPdf(fdoc);
-        await konversiFotoPdf(fdoc);
         try { await fdoc.fonts.ready; } catch {}
         await new Promise((r) => setTimeout(r, 300));
         const { jsPDF } = window.jspdf;
