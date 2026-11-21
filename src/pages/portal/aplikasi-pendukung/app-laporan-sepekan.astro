@@ -852,10 +852,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Keterangan kegiatan pada butir tindak lanjut (21 Nov 2026,
     // perintah Bos Besar: butir harus terlihat untuk kegiatan apa —
     // seperti keterangan dalam kurung pada daftar manual). Keterangan
-    // TIDAK disimpan di draf — dihitung saat pratinjau/PDF dari
-    // kegiatan minggu ini, supaya selalu mengikuti kegiatan dan tidak
-    // basi. Butir yang diedit manual (teksnya bukan teks hasil aturan)
-    // tidak mendapat keterangan.
+    // TIDAK disimpan di draf — dihitung dari kegiatan minggu ini,
+    // supaya selalu mengikuti kegiatan dan tidak basi. RALAT 21 Nov
+    // 2026 (perintah Bos Besar): keterangan HANYA tampil di halaman
+    // edit (di bawah kolom butir); pratinjau dan PDF TIDAK memakai
+    // keterangan. Butir yang diedit manual (teksnya bukan teks hasil
+    // aturan) tidak mendapat keterangan.
     function butirTanpaKeterangan(t) {
       const s = String(t || '').trim();
       const buka = s.lastIndexOf(' (');
@@ -1560,12 +1562,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         return;
       }
       wadah.innerHTML = daftar.map((t, i) => {
+        // Keterangan kegiatan dalam kurung HANYA di halaman edit (21 Nov
+        // 2026, ralat Bos Besar: pratinjau dan PDF tidak memakai
+        // keterangan) — dihitung dari kegiatan minggu ini, bukan
+        // disimpan, supaya selalu mengikuti kegiatan.
+        const ket = keteranganKegiatan(butirTanpaKeterangan(t));
         return '<div class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">' +
           '<div class="flex items-center justify-between gap-2">' +
             '<span class="text-sm font-bold">Tindak lanjut ' + (i + 1) + '</span>' +
             '<button type="button" data-hapus-tindak="' + i + '" class="text-xs font-bold text-red-600 hover:underline">Hapus</button>' +
           '</div>' +
           '<label class="mt-2 block"><textarea rows="2" data-tindak="' + i + '" placeholder="Tulis tindak lanjut…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(t) + '</textarea></label>' +
+          (ket ? '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">(' + esc(ket) + ')</p>' : '') +
         '</div>';
       }).join('');
     }
@@ -2024,10 +2032,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         jTindak.grup = 'tindak-lanjut';
         blok.push(jTindak);
         daftarTindak.forEach((t, i) => {
-          const bersih = butirTanpaKeterangan(t);
-          const ket = keteranganKegiatan(bersih);
-          const tampil = ket ? bersih + ' (' + ket + ')' : bersih;
-          const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(tampil) + '</p>';
+          // RALAT 21 Nov 2026 (perintah Bos Besar: "tanda kurung ada di
+          // bagian halaman edit saja, di pratinjau dan pdf tidak perlu
+          // ada"): pratinjau/PDF memakai teks butir POLOS — keterangan
+          // kegiatan hanya tampil di halaman edit (renderTindakLanjut).
+          // butirTanpaKeterangan membuang keterangan yang sempat
+          // ditempel manual di kolom editor supaya tidak lolos ke PDF.
+          const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(butirTanpaKeterangan(t)) + '</p>';
           blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html), grup: 'tindak-lanjut' });
         });
       }
