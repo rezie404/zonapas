@@ -162,7 +162,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-tindak" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Tindak Lanjut</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan, dari narasi kegiatan — yang menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, dipakai aturan kata kunci sebagai cadangan.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, dipakai aturan kata kunci sebagai cadangan.</p>
         <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
       </section>
 
@@ -171,12 +171,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <button id="sp-unduh" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">⬇ Unduh PDF</button>
         <button id="sp-lihat" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Lihat Pratinjau ↓</button>
         <button id="sp-simpan-draf" type="button" class="rounded-lg bg-[#FACC15] px-4 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#eab308]">💾 Simpan Draft</button>
-        <button id="sp-buka-draf" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📂 Buka Draft</button>
         <span class="flex-1"></span>
-        <button id="sp-reset-template" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Template</button>
-        <button id="sp-bersihkan" type="button" class="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-200 dark:hover:bg-red-900/20">Bersihkan Draf</button>
       </section>
-      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini — aman walau keluar lalu masuk lagi atau ganti perangkat. Ketuk 💾 Simpan Draft untuk menyimpan sekarang dengan konfirmasi (termasuk 2 foto sampul), dan 📂 Buka Draft untuk memuat draf yang tersimpan di server.</p>
+      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini — aman walau keluar lalu masuk lagi atau ganti perangkat. Ketuk 💾 Simpan Draft untuk menyimpan sekarang dengan konfirmasi (termasuk 2 foto sampul).</p>
       </div>
 
       <!-- Pratinjau (halaman sendiri saat ?pratinjau=1) -->
@@ -1366,10 +1363,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // menggantikan draf lokal; draf lokal (termasuk yang dibuat sebelum
     // fitur server ini ada, tanpa stempel waktu) diunggah ke server.
     // Mengembalikan true bila ada draf di server.
-    // paksa = true (tombol 📂 Buka Draft, 21 Nov 2026): draf server
-    // dimuat walau draf lokal lebih baru — dengan konfirmasi dulu bila
-    // draf lokal lebih baru dan berisi, supaya editan yang belum
-    // terkirim tidak tertimpa diam-diam.
+    // paksa = true: draf server dimuat walau draf lokal lebih baru —
+    // dengan konfirmasi dulu bila draf lokal lebih baru dan berisi,
+    // supaya editan yang belum terkirim tidak tertimpa diam-diam.
+    // (Tombol 📂 Buka Draft yang dulu memanggil paksa=true DIHAPUS
+    // 22 Nov 2026 atas perintah Bos Besar; pemuatan awal memakai
+    // paksa=false.)
     async function sinkronDrafServerAwal(paksa) {
       if (typeof workerGet !== 'function') return false;
       try {
@@ -2882,10 +2881,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       // Aksi
       $('sp-unduh').addEventListener('click', unduhPdf);
-      // Simpan Draft + Buka Draft (21 Nov 2026, perintah Bos Besar):
-      // simpan manual dengan konfirmasi (termasuk 2 foto sampul) dan
-      // muat ulang draf dari server — supaya foto sampul tidak hilang
-      // tiap login ulang.
+      // Simpan Draft (21 Nov 2026, perintah Bos Besar):
+      // simpan manual dengan konfirmasi (termasuk 2 foto sampul) — supaya
+      // foto sampul tidak hilang tiap login ulang. (Tombol 📂 Buka Draft,
+      // Muat Ulang Template, dan Bersihkan Draf DIHAPUS 22 Nov 2026 atas
+      // perintah Bos Besar.)
       $('sp-simpan-draf').addEventListener('click', async () => {
         const btn = $('sp-simpan-draf');
         if (!btn) return;
@@ -2899,14 +2899,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           else if (h.serverOk) showStatus('Draf tersimpan di server ✓ (penyimpanan peramban penuh).', true);
           else showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh (walau foto sudah diperkecil)' + (galatServerTerakhir ? ' dan server: ' + galatServerTerakhir : ' dan server tidak terjangkau') + '. Jangan keluar dulu; coba lagi.', false);
         } finally { btn.disabled = false; btn.textContent = '💾 Simpan Draft'; }
-      });
-      $('sp-buka-draf').addEventListener('click', async () => {
-        const btn = $('sp-buka-draf');
-        if (!btn) return;
-        btn.disabled = true;
-        btn.textContent = 'Memuat…';
-        try { await sinkronDrafServerAwal(true); }
-        finally { btn.disabled = false; btn.textContent = '📂 Buka Draft'; }
       });
       // Lihat Pratinjau: masuk ke HALAMAN pratinjau sendiri (?pratinjau=1),
       // bukan lagi menggulir ke pratinjau di bawah form (Nov 2026, atas
@@ -2931,41 +2923,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       const btnUnduhPratinjau = $('sp-unduh-pratinjau');
       if (btnUnduhPratinjau) btnUnduhPratinjau.addEventListener('click', unduhPdf);
-      $('sp-reset-template').addEventListener('click', async () => {
-        // 20 Nov 2026: jangan reset sebelum draf server dimuat — bila
-        // halaman baru dimuat ulang, yang terlihat bisa jadi template
-        // kosong padahal draf ada di server.
-        if (!sinkronAwalBerhasil) {
-          await sinkronDrafServerAwal();
-          if (!sinkronAwalBerhasil) { showStatus('Server belum terjangkau — reset ditahan sampai draf server berhasil dimuat, supaya draf yang sudah dibuat tidak tertimpa.', false); return; }
-        }
-        if (!confirm('Kembalikan semua isi ke template laporan 02–07 November 2026? Draf saat ini akan diganti.')) return;
-        state = klon(TEMPLATE);
-        state.tindakLanjut = klon(TEMPLATE.tindak);
-        state.tindakLanjutAsal = (state.tindakLanjut || []).map(() => null);
-        tulisStateKeForm(); simpanDraf(); renderPratinjau();
-        showStatus('Isi dikembalikan ke template.', true);
-      });
-      $('sp-bersihkan').addEventListener('click', async () => {
-        // 20 Nov 2026: jangan bersihkan sebelum draf server dimuat — bila
-        // halaman baru dimuat ulang, yang terlihat bisa jadi kosong padahal
-        // draf ada di server.
-        if (!sinkronAwalBerhasil) {
-          await sinkronDrafServerAwal();
-          if (!sinkronAwalBerhasil) { showStatus('Server belum terjangkau — bersihkan draf ditahan sampai draf server berhasil dimuat, supaya draf yang sudah dibuat tidak terhapus.', false); return; }
-        }
-        if (!confirm('Bersihkan draf laporan sepekan ini? Draf bersama ini akan terhapus untuk SEMUA akun yang bisa mengakses aplikasi ini, dan isi kembali kosong kecuali template dasar.')) return;
-        try { localStorage.removeItem(KUNCI_DRAF); } catch {}
-        // Hapus juga draf di server supaya tidak dimuat lagi saat buka berikutnya.
-        drafServerAda = false;
-        if (typeof workerPost === 'function') workerPost('/redaksi/api/sepekan/draf/hapus', {}).catch(() => {});
-        state = klon(TEMPLATE);
-        state.hari = [];
-        state.tindakLanjut = [];
-        state.tindakLanjutAsal = [];
-        tulisStateKeForm(); renderPratinjau();
-        showStatus('Draf dibersihkan.', true);
-      });
     }
 
     // ---------- Init ----------
