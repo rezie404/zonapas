@@ -849,6 +849,51 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       for (const a of ATURAN_TINDAK_LANJUT) if (a.pola.test(j)) return a.teks;
       return TINDAK_LANJUT_UMUM;
     }
+    // Keterangan kegiatan pada butir tindak lanjut (21 Nov 2026,
+    // perintah Bos Besar: butir harus terlihat untuk kegiatan apa —
+    // seperti keterangan dalam kurung pada daftar manual). Keterangan
+    // TIDAK disimpan di draf — dihitung saat pratinjau/PDF dari
+    // kegiatan minggu ini, supaya selalu mengikuti kegiatan dan tidak
+    // basi. Butir yang diedit manual (teksnya bukan teks hasil aturan)
+    // tidak mendapat keterangan.
+    function butirTanpaKeterangan(t) {
+      const s = String(t || '').trim();
+      const buka = s.lastIndexOf(' (');
+      if (buka > 0 && s.endsWith(')')) return s.slice(0, buka).trim();
+      return s;
+    }
+    // Label pendek judul kegiatan untuk keterangan: buang awalan
+    // institusi, potong di ':' atau ',' pertama (bila segmen pertama
+    // kurang dari 3 kata, sertakan segmen berikut), buang kata kerja
+    // pembuka, batasi 5 kata.
+    function labelKegiatan(judul) {
+      let s = String(judul || '').trim().replace(/\s+/g, ' ');
+      s = s.replace(/^(kanwil ditjenpas bengkulu|kakanwil ditjenpas bengkulu|kakanwil masjuno)\s+/i, '');
+      const seg = s.split(/[:,]/);
+      let label = (seg[0] || '').trim();
+      if (label.split(/\s+/).filter(Boolean).length < 3 && seg[1]) label = (label + ', ' + seg[1].trim()).trim();
+      label = label.replace(/^(ikuti|ikut|ajak|gelar|hadiri|laksanakan|lakukan)\s+/i, '');
+      const kata = label.split(/\s+/).filter(Boolean);
+      if (kata.length > 5) label = kata.slice(0, 5).join(' ');
+      return label || s.split(/\s+/).slice(0, 5).join(' ');
+    }
+    // Keterangan "(Kegiatan A + Kegiatan B)" untuk satu teks aturan:
+    // label kegiatan-kegiatan minggu ini yang menghasilkan teks itu.
+    function keteranganKegiatan(teksAturan) {
+      const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
+      const target = norm(teksAturan);
+      if (!target) return '';
+      const label = [];
+      hariUntukTindakLanjut().forEach((h) => {
+        (h.kegiatan || []).forEach((k) => {
+          if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
+          if (norm(tindakLanjutUntukJudul(k.judul, k.narasi)) !== target) return;
+          const l = labelKegiatan(k.judul);
+          if (l && label.indexOf(l) < 0) label.push(l);
+        });
+      });
+      return label.join(' + ');
+    }
     // Satu butir per ruang lingkup, urut per hari: kegiatan yang sama
     // persis (tanggal + judul sama) ditulis sekali, dan kegiatan
     // berbeda yang ruang lingkupnya sama (teks tindak lanjut yang
@@ -936,7 +981,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
         const teks = norm(tindakLanjutUntukJudul(k.judul, k.narasi));
         if (!teks || masihDipakai.has(teks)) return;
-        const idx = state.tindakLanjut.findIndex((t) => norm(t) === teks);
+        const idx = state.tindakLanjut.findIndex((t) => norm(butirTanpaKeterangan(t)) === teks);
         if (idx >= 0) state.tindakLanjut.splice(idx, 1);
       });
     }
@@ -958,7 +1003,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function tambahTindakLanjutUntukKegiatan(daftarKegiatan) {
       pastikanTindakLanjut();
       const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
-      const ada = new Set(state.tindakLanjut.map(norm));
+      const ada = new Set(state.tindakLanjut.map((t) => norm(butirTanpaKeterangan(t))));
       let tambah = 0;
       (daftarKegiatan || []).forEach((k) => {
         if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
@@ -995,10 +1040,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }));
       let dihapus = 0;
       state.tindakLanjut = state.tindakLanjut.filter((t) => {
-        if (dipakai.has(norm(t))) return true;
+        const bersih = norm(butirTanpaKeterangan(t));
+        if (dipakai.has(bersih)) return true;
         // Butir hasil aturan yang tak terpakai -> hapus; butir editan
         // manual (teksnya bukan teks hasil aturan mana pun) -> simpan.
-        const teksAturan = ATURAN_TINDAK_LANJUT.some((a) => norm(a.teks) === norm(t)) || norm(TINDAK_LANJUT_UMUM) === norm(t);
+        const teksAturan = ATURAN_TINDAK_LANJUT.some((a) => norm(a.teks) === bersih) || norm(TINDAK_LANJUT_UMUM) === bersih;
         if (teksAturan) { dihapus++; return false; }
         return true;
       });
@@ -1978,7 +2024,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         jTindak.grup = 'tindak-lanjut';
         blok.push(jTindak);
         daftarTindak.forEach((t, i) => {
-          const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(t) + '</p>';
+          const bersih = butirTanpaKeterangan(t);
+          const ket = keteranganKegiatan(bersih);
+          const tampil = ket ? bersih + ' (' + ket + ')' : bersih;
+          const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(tampil) + '</p>';
           blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html), grup: 'tindak-lanjut' });
         });
       }
