@@ -13,6 +13,7 @@ breakingSince: "2026-11-14T10:51:07.144Z"
 upt: "Lapas Kelas IIB Arga Makmur"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 386
 ---
 
 **Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kunjungan kerja ke Lapas Kelas IIB Arga Makmur pada Sabtu (14/11/2026). Kunjungan ini merupakan bagian dari upaya memperkuat koordinasi dan memastikan pelaksanaan tugas serta fungsi Pemasyarakatan berjalan dengan optimal.

@@ -13,6 +13,7 @@ breakingSince: "2026-11-13T09:22:08.814Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 383
 ---
 
 **Bengkulu** – Dalam rangka menjaga kebugaran dan meningkatkan kesehatan jasmani, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan senam pagi pada Jumat (13/11). Kegiatan ini diikuti oleh jajaran pegawai dan peserta magang di lingkungan Kanwil Ditjenpas Bengkulu dengan penuh semangat dan antusias.

@@ -13,6 +13,7 @@ breakingSince: "2026-11-19T10:09:19.703Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 431
 ---
 
 **Bengkulu** – Dalam rangka memperingati Hari Bakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan upacara dan tasyakuran pada Kamis (19/11/2026), bertempat di Lapas Kelas IIA Bengkulu. Kegiatan berlangsung khidmat dan penuh kebersamaan, diikuti oleh jajaran Kanwil Ditjenpas Bengkulu serta Unit Pelaksana Teknis (UPT) Pemasyarakatan di wilayah Bengkulu.

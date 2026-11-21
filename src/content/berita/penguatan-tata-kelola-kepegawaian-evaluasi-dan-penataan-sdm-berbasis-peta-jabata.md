@@ -13,6 +13,7 @@ breakingSince: "2026-11-17T08:01:02.798Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 410
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menggelar kegiatan bedah Sumber Daya Manusia (SDM) yang berfokus pada penataan struktur organisasi, penempatan personil, peta jabatan, dan rekapitulasi data kepegawaian. Kegiatan ini dilaksanakan guna mengevaluasi serta mematangkan kesesuaian formasi dan kebutuhan pegawai di lingkungan Kanwil Ditjenpas Bengkulu.

@@ -13,6 +13,7 @@ breakingSince: "2026-11-16T09:30:34.269Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocIGjNXLJsNkEpSlRaquFYy8Rc4_v7zlDFD4OaY-B4a-DPXOnQ=s96-c"
 source: "zonapas"
+jurnalpas_id: 403
 ---
 
 **Bengkulu** – Dalam rangka memperingati Hari Bhakti Kementerian Imigrasi dan Pemasyarakatan ke-2 Tahun 2026, Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti kegiatan Focused Group Discussion (FGD) yang diselenggarakan oleh Sekretariat Jenderal Kementerian Imigrasi dan Pemasyarakatan, Senin (16/11). Kegiatan mengusung tema "Menguatkan Fondasi, Mengakselerasi Kinerja, Menghadirkan Dampak Nyata melalui Transformasi Kelembagaan Kementerian Imigrasi dan Pemasyarakatan."
