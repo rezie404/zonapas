@@ -631,7 +631,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           .filter((a) => a.tgl && UPT_TERKAIT.includes(String(a.upt || '').trim()) && !KATEGORI_TIDAK_DITARIK.includes(String(a.category || '').trim()) && (perHariSaja ? fmtTglIso(a.tgl) === hanyaTanggal : (a.tgl >= mulai && a.tgl <= akhir)))
           .sort((x, y) => x.tgl - y.tgl);
         if (!artikel.length) {
-          if (!perHariSaja) periodeTerakhirTarik = (state.mulai || '') + '|' + (state.akhir || '');
+          // 21 Nov 2026: JANGAN tandai periode sudah ditarik bila tidak
+          // ada berita — tarikan kosong bukan tarikan berhasil; menandainya
+          // membuat tarik otomatis tidak pernah mencoba lagi untuk periode
+          // ini, sehingga hari + tindak lanjut minggu lalu tetap tersisa.
           showStatus(perHariSaja
             ? 'Tidak ada berita ZonaPas pada ' + labelHari(hanyaTanggal) + ' — kegiatan hari itu tidak diubah.'
             : 'Tidak ada berita ZonaPas pada periode ' + teksPeriode() + ' (Senin–Minggu).', false);
@@ -875,12 +878,40 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function daftarTindakLanjut() {
       return Array.isArray(state.tindakLanjut) ? state.tindakLanjut : (TEMPLATE.tindak || []);
     }
+    // Hari yang kegiatannya masuk hitungan Tindak Lanjut (21 Nov 2026,
+    // perbaikan atas laporan Bos Besar: "tindak lanjut masih saja tindak
+    // lanjut kegiatan minggu lalu, padahal kegiatan hari ini berbeda"):
+    // hanya hari yang tanggalnya TIDAK sebelum tanggal mulai periode.
+    // Hari minggu lalu yang masih tersisa di draf — mis. karena tarikan
+    // mingguan saat periode diubah sempat tidak menemukan berita sehingga
+    // hari lama tidak terganti — tidak boleh menghidupkan butir. Hari
+    // tanpa tanggal yang sah tetap dihitung (belum bisa dipastikan di
+    // luar periode), begitu pula hari setelah tanggal akhir (kartu
+    // Minggu yang ditambah manual tetap bagian laporan). Bila periode
+    // belum diisi, semua hari dihitung.
+    function hariUntukTindakLanjut() {
+      const mulai = String(state.mulai || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(mulai)) return (state.hari || []).slice();
+      return (state.hari || []).filter((h) => {
+        const t = String(h.tanggal || '');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return true;
+        return t >= mulai;
+      });
+    }
     // Draf lama (sebelum kolom ini ada) diisi otomatis dari kegiatannya
     // saat pertama dibuka — editan manual tidak pernah tertimpa di sini.
     function pastikanTindakLanjut() {
-      if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = buatTindakLanjut(state.hari);
+      if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = buatTindakLanjut(hariUntukTindakLanjut());
     }
     pastikanTindakLanjut();
+    // 21 Nov 2026 (perbaikan atas laporan Bos Besar: "tindak lanjut
+    // masih saja tindak lanjut kegiatan minggu lalu"): samakan butir
+    // dengan kegiatan saat draf dibuka — butir hasil aturan yang ruang
+    // lingkupnya sudah tidak ada di kegiatan minggu ini ikut terhapus
+    // (hari minggu lalu yang masih tersisa di draf tidak dihitung).
+    // Butir yang diedit manual dipertahankan.
+    sesuaikanTindakLanjut();
+    try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
     // Hapus tindak lanjut kegiatan yang dihapus (17 Nov 2026, perintah
     // Bos Besar): bila sebuah kegiatan dihapus, butir tindak lanjut
     // untuk kegiatan itu ikut terhapus — kecuali bila masih ada kegiatan
@@ -895,7 +926,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!Array.isArray(state.tindakLanjut) || !state.tindakLanjut.length) return;
       const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
       const masihDipakai = new Set();
-      (state.hari || []).forEach((h) => {
+      hariUntukTindakLanjut().forEach((h) => {
         (h.kegiatan || []).forEach((k) => {
           if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
           masihDipakai.add(norm(tindakLanjutUntukJudul(k.judul, k.narasi)));
@@ -958,7 +989,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       pastikanTindakLanjut();
       const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
       const dipakai = new Set();
-      (state.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => {
+      hariUntukTindakLanjut().forEach((h) => (h.kegiatan || []).forEach((k) => {
         if (!String(k.judul || '').trim() && !String(k.narasi || '').trim()) return;
         dipakai.add(norm(tindakLanjutUntukJudul(k.judul, k.narasi)));
       }));
@@ -971,7 +1002,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (teksAturan) { dihapus++; return false; }
         return true;
       });
-      const semuaKegiatan = (state.hari || []).flatMap((h) => h.kegiatan || []);
+      const semuaKegiatan = hariUntukTindakLanjut().flatMap((h) => h.kegiatan || []);
       const ditambah = tambahTindakLanjutUntukKegiatan(semuaKegiatan);
       return { ditambah, dihapus };
     }
@@ -991,7 +1022,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       pastikanTindakLanjut();
       const norm = (t) => String(t || '').trim().replace(/\s+/g, ' ');
       const lama = state.tindakLanjut.map(norm);
-      const baru = buatTindakLanjut(state.hari);
+      const baru = buatTindakLanjut(hariUntukTindakLanjut());
       const baruNorm = baru.map(norm);
       const hasil = {
         sebelum: lama.length,
@@ -1178,6 +1209,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         bersihkanKotaNarasi();
         normalisasiPeriode();
         pastikanTindakLanjut();
+        // 21 Nov 2026: samakan butir dengan kegiatan minggu ini begitu
+        // draf server dimuat (lihat catatan di pemuatan draf lokal).
+        sesuaikanTindakLanjut();
         try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
         tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
         infoDraf('Draf dimuat dari server ✓ — data terakhir bersama, termasuk foto yang sudah diunggah.');
@@ -1933,13 +1967,19 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           if (htmlFoto) blok.push({ tipe: 'foto', html: htmlFoto, tinggi: ukurBlok(htmlFoto), grup });
         });
       }
-      // Tindak lanjut (bisa diedit; terisi otomatis dari kegiatan)
+      // Tindak lanjut (bisa diedit; terisi otomatis dari kegiatan).
+      // Selalu mulai di halaman baru (21 Nov 2026, perintah Bos Besar:
+      // 'Buat tindak lanjut berada di halaman baru') — judul + butir
+      // satu grup 'tindak-lanjut' supaya bagiHalaman memindahkannya
+      // utuh ke halaman berikut.
       const daftarTindak = daftarTindakLanjut();
       if (daftarTindak.length) {
-        blok.push(blokJudulBab('Tindak Lanjut'));
+        const jTindak = blokJudulBab('Tindak Lanjut');
+        jTindak.grup = 'tindak-lanjut';
+        blok.push(jTindak);
         daftarTindak.forEach((t, i) => {
           const html = '<p class="sepekan-butir"><span class="nomor">' + (i + 1) + '.</span>' + esc(t) + '</p>';
-          blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html) });
+          blok.push({ tipe: 'butir', html, tinggi: ukurBlok(html), grup: 'tindak-lanjut' });
         });
       }
       // Penutup + tanda tangan
@@ -1976,8 +2016,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           const adalahKegiatan = String(b.grup).indexOf('keg-') === 0;
           // Ruang Lingkup juga selalu mulai di halaman baru (Nov 2026,
           // atas permintaan Bos Besar: 'turunkan saja ruang lingkup ke
-          // halaman selanjutnya').
-          const mulaiBaru = adalahKegiatan || b.grup === 'ruang-lingkup';
+          // halaman selanjutnya'). Tindak Lanjut juga (21 Nov 2026,
+          // perintah Bos Besar: 'Buat tindak lanjut berada di halaman
+          // baru').
+          const mulaiBaru = adalahKegiatan || b.grup === 'ruang-lingkup' || b.grup === 'tindak-lanjut';
           if (kini.length && (mulaiBaru || tinggi + totalGrup[b.grup] > TINGGI_ISI)) {
             halaman.push(kini);
             kini = [];
