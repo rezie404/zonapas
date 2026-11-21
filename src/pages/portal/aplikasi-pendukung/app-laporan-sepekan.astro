@@ -1087,14 +1087,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let timerSimpan = null;
     function simpanDraf() {
       clearTimeout(timerSimpan);
-      timerSimpan = setTimeout(() => {
+      timerSimpan = setTimeout(async () => {
         state.diperbarui = Date.now();
-        try {
-          localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
-          infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
-        } catch {
-          infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
-        }
+        const ok = await tulisDrafLokal();
+        if (ok) infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
+        else infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
         jadwalSinkronServer();
       }, 400);
     }
@@ -1118,15 +1115,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // draf yang sebenarnya.
       if (!sinkronAwalBerhasil) await sinkronDrafServerAwal();
       state.diperbarui = Date.now();
-      let lokalOk = false;
-      try {
-        localStorage.setItem(KUNCI_DRAF, JSON.stringify(state));
-        lokalOk = true;
-        infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
-      } catch {
-        infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
+      const lokalOk = await tulisDrafLokal();
+      if (lokalOk) infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
+      else infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
+      // 22 Nov 2026: simpan manual dicoba sampai 3 kali — sinyal HP
+      // yang putus-nyambung tidak langsung dinyatakan gagal.
+      let serverOk = false;
+      for (let p = 0; p < 3 && !serverOk; p++) {
+        if (p > 0) await new Promise((r) => setTimeout(r, 1500));
+        serverOk = await kirimDrafKeServer();
       }
-      const serverOk = await kirimDrafKeServer();
       return { lokalOk, serverOk };
     }
     // ---------- Draf di server (15 Nov 2026; draf bersama 17 Nov 2026) ----------
@@ -1192,6 +1190,77 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (fotoSampulKustom(drafLokal.fotoLapangan) && !fotoSampulKustom(drafServer.fotoLapangan)) hasil.fotoLapangan = drafLokal.fotoLapangan;
       return hasil;
     }
+    // ---------- Draf ringan untuk localStorage (22 Nov 2026) ----------
+    // Akar "penyimpanan peramban penuh": draf menyimpan foto sebagai
+    // data URL 1200px (2 sampul + sampai 6 foto per kegiatan) — JSON
+    // draf bisa bermega-byte, dan localStorage hanya ~5 MB (UTF-16:
+    // ~2,6 juta karakter) sehingga setItem melempar dan draf lokal
+    // gagal. Server menerima sampai 20 MB, jadi yang rapuh hanya
+    // salinan lokal. Perbaikan: salinan lokal memakai foto yang
+    // diperkecil (maks 800px — hexagon sampul hanya ~430px, jadi
+    // tidak terlihat bedanya); server tetap menerima foto penuh.
+    // Bila draf masih kecil, tidak ada yang diperkecil.
+    const BATAS_DRAF_LOKAL = 2000000;
+    const cacheFotoRingan = new Map();
+    function kecilkanFotoDataUrl(url, maxLebar, kualitas) {
+      if (!url || typeof url !== 'string' || !url.startsWith('data:image/')) return Promise.resolve(url);
+      if (url.length <= 150000) return Promise.resolve(url);
+      if (cacheFotoRingan.has(url)) return Promise.resolve(cacheFotoRingan.get(url));
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const skala = Math.min(1, (maxLebar || 800) / img.naturalWidth);
+            if (skala >= 1) { cacheFotoRingan.set(url, url); resolve(url); return; }
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.naturalWidth * skala));
+            c.height = Math.max(1, Math.round(img.naturalHeight * skala));
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            const kecil = c.toDataURL('image/jpeg', kualitas || 0.78);
+            if (cacheFotoRingan.size > 30) cacheFotoRingan.clear();
+            cacheFotoRingan.set(url, kecil);
+            resolve(kecil);
+          } catch { resolve(url); }
+        };
+        img.onerror = () => resolve(url);
+        img.src = url;
+      });
+    }
+    async function drafRingan(draf) {
+      const salin = JSON.parse(JSON.stringify(draf));
+      const tugas = [];
+      const ganti = (obj, kunci) => {
+        const v = obj[kunci];
+        if (typeof v === 'string' && v.startsWith('data:image/') && v.length > 150000) {
+          tugas.push(kecilkanFotoDataUrl(v).then((k) => { obj[kunci] = k; }));
+        }
+      };
+      ganti(salin, 'fotoPotret');
+      ganti(salin, 'fotoLapangan');
+      (salin.hari || []).forEach((h) => (h.kegiatan || []).forEach((k) => {
+        (k.foto || []).forEach((f, i) => {
+          if (typeof f === 'string' && f.startsWith('data:image/') && f.length > 150000) {
+            tugas.push(kecilkanFotoDataUrl(f).then((kecil) => { k.foto[i] = kecil; }));
+          }
+        });
+      }));
+      await Promise.all(tugas);
+      return salin;
+    }
+    async function tulisDrafLokal() {
+      try {
+        const teks = JSON.stringify(state);
+        if (teks.length <= BATAS_DRAF_LOKAL) {
+          localStorage.setItem(KUNCI_DRAF, teks);
+          return true;
+        }
+        const ringan = await drafRingan(state);
+        localStorage.setItem(KUNCI_DRAF, JSON.stringify(ringan));
+        return true;
+      } catch {
+        return false;
+      }
+    }
     function jadwalSinkronServer() {
       clearTimeout(timerSinkronServer);
       timerSinkronServer = setTimeout(simpanDrafServer, 1500);
@@ -1199,6 +1268,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // Kirim draf ke server sekali; mengembalikan true bila server
     // mengonfirmasi. Dipakai autosave (simpanDrafServer) dan simpan
     // terkonfirmasi sebelum pratinjau (simpanDrafSegera).
+    // 22 Nov 2026: alasan gagal server disimpan di galatServerTerakhir
+    // supaya tombol Simpan Draft menampilkan alasan sebenarnya (mis.
+    // sesi berakhir, draf terlalu besar, habis waktu) — bukan sekadar
+    // "server tidak terjangkau". Sebelumnya pesan galat dari Worker
+    // dibuang di catch sehingga penyebabnya tidak pernah terlihat.
+    let galatServerTerakhir = '';
     async function kirimDrafKeServer() {
       if (typeof workerPost !== 'function') return false;
       // 20 Nov 2026: jangan kirim sebelum sinkron awal berhasil. Coba
@@ -1208,6 +1283,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       if (!sinkronAwalBerhasil) {
         const okAwal = await sinkronDrafServerAwal();
         if (!okAwal) {
+          galatServerTerakhir = 'Server belum terjangkau.';
           infoDraf('Server belum terjangkau — draf aman di peramban ini; akan dikirim begitu server terjangkau.');
           return false;
         }
@@ -1219,11 +1295,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           drafServerAda = true;
           drafServerTerakhir = r.diperbarui || Date.now();
           sinkronGagalUlang = 0;
+          galatServerTerakhir = '';
           infoDraf('Draf tersimpan di server ✓ — aman walau keluar lalu masuk lagi atau ganti perangkat.');
           return true;
         }
+        galatServerTerakhir = 'Server menolak simpanan.';
         return false;
       } catch (e) {
+        galatServerTerakhir = (e && e.message) ? String(e.message) : 'Server tidak terjangkau.';
         return false;
       }
     }
@@ -1314,7 +1393,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const fotoDipulihkan = digabung.fotoPotret !== state.fotoPotret || digabung.fotoLapangan !== state.fotoLapangan;
         state = digabung;
         if (fotoDipulihkan) jadwalSinkronServer();
-        try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
+        await tulisDrafLokal();
         tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
         infoDraf('Draf dimuat dari server ✓ — data terakhir bersama, termasuk foto yang sudah diunggah.');
         if (paksa) {
@@ -2558,14 +2637,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-input-potret').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoPotret = url; $('sp-foto-potret').src = state.fotoPotret; state.diperbarui = Date.now(); const h = await simpanDrafSegera(); renderPratinjau(); showStatus(h.serverOk ? 'Foto 1 sampul diganti dan tersimpan di server ✓.' : 'Foto 1 sampul diganti (tersimpan di peramban ini); server belum menerima — ketuk 💾 Simpan Draft untuk mengirim.', h.serverOk); }
+        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoPotret = url; $('sp-foto-potret').src = state.fotoPotret; state.diperbarui = Date.now(); const h = await simpanDrafSegera(); renderPratinjau(); showStatus(h.serverOk ? 'Foto 1 sampul diganti dan tersimpan di server ✓.' : 'Foto 1 sampul diganti (tersimpan di peramban ini); server belum menerima' + (galatServerTerakhir ? ': ' + galatServerTerakhir : '') + ' — ketuk 💾 Simpan Draft untuk mengirim.', h.serverOk); }
         catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
         e.target.value = '';
       });
       $('sp-input-lapangan').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoLapangan = url; $('sp-foto-lapangan').src = state.fotoLapangan; state.diperbarui = Date.now(); const h = await simpanDrafSegera(); renderPratinjau(); showStatus(h.serverOk ? 'Foto 2 sampul diganti dan tersimpan di server ✓.' : 'Foto 2 sampul diganti (tersimpan di peramban ini); server belum menerima — ketuk 💾 Simpan Draft untuk mengirim.', h.serverOk); }
+        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoLapangan = url; $('sp-foto-lapangan').src = state.fotoLapangan; state.diperbarui = Date.now(); const h = await simpanDrafSegera(); renderPratinjau(); showStatus(h.serverOk ? 'Foto 2 sampul diganti dan tersimpan di server ✓.' : 'Foto 2 sampul diganti (tersimpan di peramban ini); server belum menerima' + (galatServerTerakhir ? ': ' + galatServerTerakhir : '') + ' — ketuk 💾 Simpan Draft untuk mengirim.', h.serverOk); }
         catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
         e.target.value = '';
       });
@@ -2746,9 +2825,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         try {
           const h = await simpanDrafSegera();
           if (h.lokalOk && h.serverOk) showStatus('Draf tersimpan ✓ — di peramban ini dan di server, termasuk 2 foto sampul. Aman walau keluar lalu masuk lagi atau ganti perangkat.', true);
-          else if (h.lokalOk) showStatus('Draf tersimpan di peramban ini, TAPI server belum menerima — foto sampul belum aman. Ketuk Simpan Draft lagi saat sinyal membaik.', false);
+          else if (h.lokalOk) showStatus('Draf tersimpan di peramban ini, TAPI server belum menerima' + (galatServerTerakhir ? ': ' + galatServerTerakhir : '') + ' — ketuk Simpan Draft lagi saat sinyal membaik.', false);
           else if (h.serverOk) showStatus('Draf tersimpan di server ✓ (penyimpanan peramban penuh).', true);
-          else showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh dan server tidak terjangkau. Jangan keluar dulu; coba lagi.', false);
+          else showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh (walau foto sudah diperkecil)' + (galatServerTerakhir ? ' dan server: ' + galatServerTerakhir : ' dan server tidak terjangkau') + '. Jangan keluar dulu; coba lagi.', false);
         } finally { btn.disabled = false; btn.textContent = '💾 Simpan Draft'; }
       });
       $('sp-buka-draf').addEventListener('click', async () => {
