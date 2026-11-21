@@ -170,11 +170,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <section class="mt-6 flex flex-wrap items-center gap-3">
         <button id="sp-unduh" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">⬇ Unduh PDF</button>
         <button id="sp-lihat" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Lihat Pratinjau ↓</button>
+        <button id="sp-simpan-draf" type="button" class="rounded-lg bg-[#FACC15] px-4 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#eab308]">💾 Simpan Draft</button>
+        <button id="sp-buka-draf" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📂 Buka Draft</button>
         <span class="flex-1"></span>
         <button id="sp-reset-template" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang Template</button>
         <button id="sp-bersihkan" type="button" class="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-200 dark:hover:bg-red-900/20">Bersihkan Draf</button>
       </section>
-      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini — aman walau keluar lalu masuk lagi atau ganti perangkat.</p>
+      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini — aman walau keluar lalu masuk lagi atau ganti perangkat. Ketuk 💾 Simpan Draft untuk menyimpan sekarang dengan konfirmasi (termasuk 2 foto sampul), dan 📂 Buka Draft untuk memuat draf yang tersimpan di server.</p>
       </div>
 
       <!-- Pratinjau (halaman sendiri saat ?pratinjau=1) -->
@@ -1152,13 +1154,43 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // terjangkau) dan mengirimnya akan menimpa draf berisi di server.
     let sinkronAwalBerhasil = false;
     // Apakah draf di server (saat terakhir berhasil dimuat) berisi
-    // kegiatan — dipakai penjaga "isi mengalahkan stempel waktu".
-    let serverPunyaKegiatan = false;
+    // kegiatan atau foto sampul kustom — dipakai penjaga "isi
+    // mengalahkan stempel waktu".
+    let serverBerisi = false;
     // Draf disebut berisi bila ada satu kegiatan dengan judul/narasi
     // terisi atau foto. Draf kosong = semua kartu hari tanpa kegiatan.
     function adaKegiatan(draf) {
       if (!draf || !Array.isArray(draf.hari)) return false;
       return draf.hari.some((h) => Array.isArray(h.kegiatan) && h.kegiatan.some((k) => String(k.judul || '').trim() || String(k.narasi || '').trim() || (Array.isArray(k.foto) && k.foto.length > 0)));
+    }
+    // ---------- Foto sampul kustom (21 Nov 2026) ----------
+    // Foto sampul yang diunggah pengguna hilang tiap login ulang karena
+    // dua hal: (1) unggahan hanya memicu autosave debounce — bila
+    // keluar/tab ditutup sebelum kirim ke server selesai, foto hanya
+    // ada di peramban itu; (2) saat draf server dimuat, draf lokal
+    // diganti mentah-mentah bila stempel server lebih baru, dan
+    // penanda "berisi" hanya menghitung kegiatan — draf lokal yang
+    // isinya hanya foto sampul kustom dianggap kosong lalu ditimpa
+    // draf server berfoto template, dan salinan lokal ikut tertimpa.
+    // Perbaikan: foto sampul kustom ikut dihitung sebagai isi draf,
+    // dan saat draf server dimuat, foto kustom lokal dipertahankan
+    // (per foto) bila server masih memakai foto template — lalu
+    // gabungannya langsung dikirim ke server.
+    function fotoSampulKustom(url) {
+      return !!url && url !== FOTO_POTRET_TEMPLATE && url !== FOTO_LAPANGAN_TEMPLATE;
+    }
+    function adaFotoSampulKustom(draf) {
+      if (!draf || typeof draf !== 'object') return false;
+      return fotoSampulKustom(draf.fotoPotret) || fotoSampulKustom(draf.fotoLapangan);
+    }
+    function drafBerisi(draf) {
+      return adaKegiatan(draf) || adaFotoSampulKustom(draf);
+    }
+    function gabungFotoSampul(drafServer, drafLokal) {
+      const hasil = { ...drafServer };
+      if (fotoSampulKustom(drafLokal.fotoPotret) && !fotoSampulKustom(drafServer.fotoPotret)) hasil.fotoPotret = drafLokal.fotoPotret;
+      if (fotoSampulKustom(drafLokal.fotoLapangan) && !fotoSampulKustom(drafServer.fotoLapangan)) hasil.fotoLapangan = drafLokal.fotoLapangan;
+      return hasil;
     }
     function jadwalSinkronServer() {
       clearTimeout(timerSinkronServer);
@@ -1226,7 +1258,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // menggantikan draf lokal; draf lokal (termasuk yang dibuat sebelum
     // fitur server ini ada, tanpa stempel waktu) diunggah ke server.
     // Mengembalikan true bila ada draf di server.
-    async function sinkronDrafServerAwal() {
+    // paksa = true (tombol 📂 Buka Draft, 21 Nov 2026): draf server
+    // dimuat walau draf lokal lebih baru — dengan konfirmasi dulu bila
+    // draf lokal lebih baru dan berisi, supaya editan yang belum
+    // terkirim tidak tertimpa diam-diam.
+    async function sinkronDrafServerAwal(paksa) {
       if (typeof workerGet !== 'function') return false;
       try {
         const r = await workerGet('/redaksi/api/sepekan/draf', { timeoutMs: 15000 });
@@ -1235,20 +1271,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // ke server diizinkan dan tarik otomatis boleh jalan.
         if (!r || !r.ok) {
           infoDraf('Server belum terjangkau — menampilkan draf peramban ini; draf tidak akan hilang, dan draf server akan dimuat begitu terjangkau.');
+          if (paksa) showStatus('Server belum terjangkau — draf yang tampil tetap draf peramban ini.', false);
           return false;
         }
         sinkronAwalBerhasil = true;
-        if (!r.ada || !r.data || !Array.isArray(r.data.hari)) return true;
+        if (!r.ada || !r.data || !Array.isArray(r.data.hari)) {
+          if (paksa) showStatus('Server belum punya draf — yang tampil ini draf peramban ini.', false);
+          return true;
+        }
         drafServerAda = true;
         drafServerTerakhir = r.diperbarui || 0;
-        serverPunyaKegiatan = adaKegiatan(r.data);
+        serverBerisi = drafBerisi(r.data);
         const lokalBaru = Number(state.diperbarui || 0);
+        if (paksa && drafTersimpan && lokalBaru > drafServerTerakhir && drafBerisi(state)) {
+          if (!confirm('Draf di peramban ini lebih baru dari draf server. Muat draf server dan ganti draf di sini?')) return true;
+        }
+        // Foto sampul kustom lokal dicatat dulu — bila draf server yang
+        // menang masih memakai foto template, foto lokal dipertahankan
+        // (lihat gabungFotoSampul di bawah).
+        const fotoLokal = { fotoPotret: state.fotoPotret, fotoLapangan: state.fotoLapangan };
         // 20 Nov 2026: isi mengalahkan stempel waktu. Draf lokal kosong
         // (mis. template setelah reload) tidak boleh menimpa draf server
         // yang berisi walau stempelnya lebih baru — draf server yang dipakai.
         // Draf lokal berisi tetap menang bila lebih baru, dan draf lokal
         // tanpa stempel (dari sebelum fitur server) tetap diunggah.
-        if (drafTersimpan && (lokalBaru === 0 || lokalBaru >= drafServerTerakhir) && (adaKegiatan(state) || !serverPunyaKegiatan)) {
+        if (!paksa && drafTersimpan && (lokalBaru === 0 || lokalBaru >= drafServerTerakhir) && (adaKegiatan(state) || !serverBerisi)) {
           jadwalSinkronServer();
           return true;
         }
@@ -1260,12 +1307,24 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // 21 Nov 2026: samakan butir dengan kegiatan minggu ini begitu
         // draf server dimuat (lihat catatan di pemuatan draf lokal).
         sesuaikanTindakLanjut();
+        // 21 Nov 2026: jangan buang foto sampul kustom lokal bila
+        // server masih memakai foto template — gabungkan lalu kirim
+        // gabungannya ke server supaya foto tidak hilang lagi.
+        const digabung = gabungFotoSampul(state, fotoLokal);
+        const fotoDipulihkan = digabung.fotoPotret !== state.fotoPotret || digabung.fotoLapangan !== state.fotoLapangan;
+        state = digabung;
+        if (fotoDipulihkan) jadwalSinkronServer();
         try { localStorage.setItem(KUNCI_DRAF, JSON.stringify(state)); } catch {}
         tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
         infoDraf('Draf dimuat dari server ✓ — data terakhir bersama, termasuk foto yang sudah diunggah.');
+        if (paksa) {
+          const jmlKeg = (state.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
+          showStatus('Draf dari server dimuat ✓ — ' + teksPeriode() + ', ' + jmlKeg + ' kegiatan, foto sampul ' + (adaFotoSampulKustom(state) ? 'kustom' : 'template') + (fotoDipulihkan ? ' (foto sampul dari peramban ini dipertahankan dan dikirim ke server).' : '.'), true);
+        }
         return true;
       } catch (e) {
         infoDraf('Server belum terjangkau — menampilkan draf peramban ini; draf tidak akan hilang, dan draf server akan dimuat begitu terjangkau.');
+        if (paksa) showStatus('Server belum terjangkau — draf yang tampil tetap draf peramban ini.', false);
         return false;
       }
     }
@@ -2499,14 +2558,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-input-potret').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoPotret = url; $('sp-foto-potret').src = state.fotoPotret; simpanDraf(); renderPratinjau(); showStatus('Foto 1 sampul diganti.', true); }
+        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoPotret = url; $('sp-foto-potret').src = state.fotoPotret; state.diperbarui = Date.now(); const h = await simpanDrafSegera(); renderPratinjau(); showStatus(h.serverOk ? 'Foto 1 sampul diganti dan tersimpan di server ✓.' : 'Foto 1 sampul diganti (tersimpan di peramban ini); server belum menerima — ketuk 💾 Simpan Draft untuk mengirim.', h.serverOk); }
         catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
         e.target.value = '';
       });
       $('sp-input-lapangan').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoLapangan = url; $('sp-foto-lapangan').src = state.fotoLapangan; simpanDraf(); renderPratinjau(); showStatus('Foto 2 sampul diganti.', true); }
+        try { const url = await spBukaCrop(f, 1200, 1.3333); if (!url) { e.target.value = ''; return; } state.fotoLapangan = url; $('sp-foto-lapangan').src = state.fotoLapangan; state.diperbarui = Date.now(); const h = await simpanDrafSegera(); renderPratinjau(); showStatus(h.serverOk ? 'Foto 2 sampul diganti dan tersimpan di server ✓.' : 'Foto 2 sampul diganti (tersimpan di peramban ini); server belum menerima — ketuk 💾 Simpan Draft untuk mengirim.', h.serverOk); }
         catch (err) { showStatus('Gagal membaca foto: ' + err.message, false); }
         e.target.value = '';
       });
@@ -2674,6 +2733,32 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       // Aksi
       $('sp-unduh').addEventListener('click', unduhPdf);
+      // Simpan Draft + Buka Draft (21 Nov 2026, perintah Bos Besar):
+      // simpan manual dengan konfirmasi (termasuk 2 foto sampul) dan
+      // muat ulang draf dari server — supaya foto sampul tidak hilang
+      // tiap login ulang.
+      $('sp-simpan-draf').addEventListener('click', async () => {
+        const btn = $('sp-simpan-draf');
+        if (!btn) return;
+        bacaFormKeState();
+        btn.disabled = true;
+        btn.textContent = 'Menyimpan…';
+        try {
+          const h = await simpanDrafSegera();
+          if (h.lokalOk && h.serverOk) showStatus('Draf tersimpan ✓ — di peramban ini dan di server, termasuk 2 foto sampul. Aman walau keluar lalu masuk lagi atau ganti perangkat.', true);
+          else if (h.lokalOk) showStatus('Draf tersimpan di peramban ini, TAPI server belum menerima — foto sampul belum aman. Ketuk Simpan Draft lagi saat sinyal membaik.', false);
+          else if (h.serverOk) showStatus('Draf tersimpan di server ✓ (penyimpanan peramban penuh).', true);
+          else showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh dan server tidak terjangkau. Jangan keluar dulu; coba lagi.', false);
+        } finally { btn.disabled = false; btn.textContent = '💾 Simpan Draft'; }
+      });
+      $('sp-buka-draf').addEventListener('click', async () => {
+        const btn = $('sp-buka-draf');
+        if (!btn) return;
+        btn.disabled = true;
+        btn.textContent = 'Memuat…';
+        try { await sinkronDrafServerAwal(true); }
+        finally { btn.disabled = false; btn.textContent = '📂 Buka Draft'; }
+      });
       // Lihat Pratinjau: masuk ke HALAMAN pratinjau sendiri (?pratinjau=1),
       // bukan lagi menggulir ke pratinjau di bawah form (Nov 2026, atas
       // permintaan Bos Besar). Draf disimpan dulu supaya pratinjau di
