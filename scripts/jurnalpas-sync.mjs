@@ -352,9 +352,13 @@ export function decideAction(status, hasId) {
 // akun lain yang sudah diterima sebagai kontributor di JurnalPas. Penulis
 // ZonaPas yang bukan pengguna JurnalPas (mis. Wiratomo Prakoso) dilewati:
 // tidak dibuat, tidak diperbarui, tidak dipulihkan dari judul.
-// Undangan yang masih pending (Miko, Kukuh — 20 Nov 2026) BELUM terdaftar
-// sebagai pengguna, jadi artikel mereka belum ikut tersync sampai mereka
-// menerima undangan; begitu diterima, otomatis ikut tanpa ubah apa pun.
+// Miko dan Kukuh sudah menerima undangan Kontributor (20 Nov 2026) —
+// tetapi nama tampil mereka di JurnalPas adalah nama pengguna WP
+// (mikoandriansyah23 / kukuhrniawan21), bukan nama asli, sehingga tanpa
+// alias di ALIAS_PENULIS artikel mereka ikut dilewati (terbukti 21 Nov
+// 2026: artikel Miko "Harmoni Dalam Kebersamaan..." tidak muncul di
+// JurnalPas). Undangan yang masih pending BELUM terdaftar sebagai pengguna,
+// jadi artikel penulisnya belum ikut tersync sampai ia menerima undangan.
 //
 // Daftar pengguna diambil SEKALI per run dari API WordPress.com
 // (GET /sites/{site}/users) — sumber kebenarannya adalah pendaftaran di
@@ -365,9 +369,20 @@ export function decideAction(status, hasId) {
 export const PERAN_KONTRIBUTOR = ['administrator', 'editor', 'author', 'contributor'];
 
 // Alias nama penulis ZonaPas -> nama tampil di JurnalPas. Normalisasi saja
-// tidak cukup: artikel Administrator ditulis "Rezie", sementara di
-// JurnalPas namanya "Rezie Novian Putra".
-export const ALIAS_PENULIS = { rezie: 'rezie novian putra' };
+// tidak cukup: nama tampil di JurnalPas BUKAN nama asli penulisnya —
+// Administrator tampil sebagai "Humas Pas Bengkulu" (nama pengguna WP
+// rezienovianputra), Miko dan Kukuh tampil sebagai nama pengguna WP
+// (tanpa nama depan/belakang di profilnya). Tanpa alias ini artikel mereka
+// dilewati filter kontributor: alias lama "rezie -> rezie novian putra"
+// SALAH karena "rezie novian putra" tidak ada di daftar pengguna JurnalPas
+// (terbukti 21 Nov 2026: judul "Bpk Ri" di post 405 tidak pernah
+// diperbarui jadi "BPK RI" — semua sync sejak filter live 20 Nov dilewati).
+export const ALIAS_PENULIS = {
+  rezie: 'humas pas bengkulu',
+  'rezie novian putra': 'humas pas bengkulu',
+  'miko andriansyah': 'mikoandriansyah23',
+  'kukuh kurniawan': 'kukuhrniawan21',
+};
 
 export function normalisasiNamaPenulis(nama) {
   return String(nama ?? '').replace(/\s+/g, ' ').trim().toLowerCase();

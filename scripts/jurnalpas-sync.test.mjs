@@ -22,6 +22,8 @@ import {
   wpClient,
   cariIdDariJudul,
   normalisasiJudulWp,
+  namaKontributorDariPengguna,
+  penulisAdalahKontributor,
   main,
 } from './jurnalpas-sync.mjs';
 
@@ -347,6 +349,10 @@ test('main() perbaikan ID: M tanpa ID + judul cocok satu post -> update + jurnal
   execFileSync('git', ['init', '-q', '--bare', remote]);
   execFileSync('git', ['remote', 'add', 'origin', remote], { cwd: dir });
   const calls = mockFetch([
+    // Filter kontributor (20 Nov 2026): main() mengambil daftar pengguna
+    // dulu — mock harus menyediakannya, kalau tidak run gagal exit 1.
+    // Nama tampil admin di JurnalPas adalah "Humas Pas Bengkulu".
+    ['/users?number=100', { found: 1, users: [{ name: 'Humas Pas Bengkulu', login: 'rezienovianputra', nice_name: 'humas-pas-bengkulu', roles: ['administrator'] }] }],
     ['/categories?number=100', { found: 2, categories: [{ ID: 9, name: 'Pemasyarakatan' }, { ID: 55, name: 'Kanwil Ditjenpas Bengkulu' }] }],
     ['/posts?search=', { found: 1, posts: [{ ID: 777, title: 'Artikel Tanpa ID' }] }],
     ['/posts/777', { ID: 777, URL: 'https://jurnalpas.wordpress.com/2026/11/05/x/' }],
@@ -373,4 +379,34 @@ test('main() perbaikan ID: M tanpa ID + judul cocok satu post -> update + jurnal
   assert.equal(calls.filter((c) => c.url.includes('/posts/new')).length, 0, 'tidak boleh membuat post baru');
   assert.equal(calls.filter((c) => c.url.includes('/posts/777')).length, 1, 'harus update post 777');
   assert.match(readFileSync(join(berita, 'perbaiki.md'), 'utf8'), /jurnalpas_id: 777/);
+});
+
+// ---------------------------------------------------------------------------
+// Filter kontributor JurnalPas (20 Nov 2026; alias Miko/Kukuh 21 Nov 2026)
+// ---------------------------------------------------------------------------
+
+test('filter kontributor: nama tampil WP boleh berupa nama pengguna — alias Miko/Kukuh', () => {
+  // Data asli JurnalPas 21 Nov 2026: nama tampil Administrator adalah
+  // "Humas Pas Bengkulu" (nama pengguna rezienovianputra), dan nama tampil
+  // Miko dan Kukuh adalah nama pengguna WP (tanpa nama depan/belakang),
+  // jadi tanpa alias artikel mereka dilewati — artikel Miko "Harmoni Dalam
+  // Kebersamaan..." (21 Nov) tidak muncul di JurnalPas, dan judul "Bpk Ri"
+  // di post 405 tidak pernah diperbarui jadi "BPK RI".
+  const pengguna = [
+    { name: 'Humas Pas Bengkulu', login: 'rezienovianputra', nice_name: 'humas-pas-bengkulu', roles: ['administrator'] },
+    { name: 'mikoandriansyah23', login: 'mikoandriansyah23', nice_name: 'mikoandriansyah23', roles: ['contributor'] },
+    { name: 'kukuhrniawan21', login: 'kukuhrniawan21', nice_name: 'kukuhrniawan21', roles: ['contributor'] },
+    { name: 'Pengikut Saja', login: 'pengikut', nice_name: 'pengikut', roles: ['subscriber'] },
+  ];
+  const kontributor = namaKontributorDariPengguna(pengguna);
+  assert.ok(kontributor.has('mikoandriansyah23'));
+  assert.ok(kontributor.has('kukuhrniawan21'));
+  assert.ok(!kontributor.has('pengikut'), 'subscriber tanpa peran tulis tidak masuk');
+  assert.ok(penulisAdalahKontributor('Miko Andriansyah', kontributor), 'Miko lolos lewat alias');
+  assert.ok(penulisAdalahKontributor('Kukuh Kurniawan', kontributor), 'Kukuh lolos lewat alias');
+  assert.ok(penulisAdalahKontributor('Rezie', kontributor), 'Rezie lolos lewat alias');
+  assert.ok(penulisAdalahKontributor('Rezie Novian Putra', kontributor), 'Rezie Novian Putra lolos lewat alias');
+  assert.ok(penulisAdalahKontributor('Humas Pas Bengkulu', kontributor), 'Humas Pas Bengkulu lolos langsung');
+  assert.ok(!penulisAdalahKontributor('Wiratomo Prakoso', kontributor), 'Wiratomo tetap dilewati');
+  assert.ok(!penulisAdalahKontributor('', kontributor), 'tanpa penulis dilewati');
 });
