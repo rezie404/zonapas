@@ -8,6 +8,7 @@
 # dengan exit 1 — workflow menjadi merah supaya kegagalan sinkronisasi
 # terlihat. Begitu pula bila commit kembali jurnalpas_id gagal: skrip
 # exit 1 (post sudah terbit di JurnalPas, tetapi ID belum tercatat).
+#
 # Dijalankan manual (workflow_dispatch) juga bisa: tanpa SHA before/after,
 # skrip menganggap semua artikel diubah — yang ber-ID diperbarui, yang tanpa
 # ID dilewati (aman dari duplikat).
@@ -19,6 +20,11 @@ on:
     paths:
       - 'src/content/berita/*.md'
   workflow_dispatch:
+    inputs:
+      files:
+        description: 'Daftar file (STATUS<TAB>path per baris, mis. A<TAB>src/content/berita/x.md) — kosong = semua artikel dianggap diubah (M): yang ber-ID diperbarui, yang tanpa ID dipulihkan dari judul bila ada, sisanya dilewati'
+        required: false
+        default: ''
 
 permissions:
   contents: write # untuk commit kembali jurnalpas_id (dengan [skip ci])
@@ -47,7 +53,7 @@ jobs:
           WP_SITE: jurnalpas.wordpress.com
           GITHUB_EVENT_BEFORE: ${{ github.event.before }}
           GITHUB_EVENT_AFTER: ${{ github.event.after }}
-        run: node scripts/jurnalpas-sync.mjs
+        run: node scripts/jurnalpas-sync.mjs --files "${{ inputs.files }}"
 
       # Kirim notifikasi email artikel baru ke pelanggan ZonaPas (Resend).
       # Hanya berjalan bila langkah sync berhasil; daftar artikel baru dibaca
