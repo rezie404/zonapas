@@ -1,5 +1,5 @@
 ---
-title: "Kakanwil Masjuno Ajak Asn Jadikan Hari Bakti Kemenimipas Sebagai Momentum Refleksi Integritas Dan Pelayanan."
+title: "Kakanwil Masjuno Ajak ASN Jadikan Hari Bakti Kemenimipas Sebagai Momentum Refleksi Integritas Dan Pelayanan."
 summary: "Bengkulu – Peringatan Hari Bakti Ke-2 Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) menjadi momentum untuk mempererat kebersamaan sekaligus memperkuat…"
 category: "Kegiatan UPT"
 tags: ["#HariBaktiKemenimipasKe2 #Kemenimipas2026 #ImipasPrima #ImipasMelayani #IntegritasASN #PelayananPrima #Sinergitas #Pemasyarakatan #Ditjenpas"]

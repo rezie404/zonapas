@@ -1,5 +1,5 @@
 ---
-title: "Perkuat Integritas Dan Keamanan, Kakanwil Ditjenpas Bengkulu Beri Arahan Kepada Asn Lapas Bengkulu"
+title: "Perkuat Integritas Dan Keamanan, Kakanwil Ditjenpas Bengkulu Beri Arahan Kepada ASN Lapas Bengkulu"
 summary: "Bengkulu – Penguatan kinerja, integritas, dan profesionalisme aparatur menjadi perhatian utama dalam kunjungan kerja Kepala Kantor Wilayah Direktorat Jenderal…"
 category: "Kegiatan UPT"
 tags: ["Lapas Bengkulu", "Ditjen Pemasyarakatan", "Kanwil Ditjenpas Bengkulu", "Masjuno", "Penguatan Tugas dan Fungsi", "ASN Pemasyarakatan", "Integritas ASN"]

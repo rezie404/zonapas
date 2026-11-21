@@ -1,5 +1,5 @@
 ---
-title: "Jelang Hut Ke-2 Kemenimipas, Lapas Bengkulu Perkuat Koordinasi Dan Evaluasi Kegiatan"
+title: "Jelang HUT Ke-2 Kemenimipas, Lapas Bengkulu Perkuat Koordinasi Dan Evaluasi Kegiatan"
 summary: "Bengkulu – Dalam rangka menyukseskan peringatan Hari Ulang Tahun (HUT) ke-2 Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas), Kepala Lembaga…"
 category: "Kegiatan UPT"
 tags: ["Lapas Bengkulu", "HUT ke-2 Kemenimipas", "Kementerian Imigrasi dan Pemasyarakatan", "Pemasyarakatan Bengkulu", "Tasyakuran HUT Kemenimipas"]
