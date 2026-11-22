@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import InfoBubble from '../../../components/InfoBubble.astro';
 import { CATEGORIES } from '../../../data/site';
 import { UPTS } from '../../../data/upt';
 import { AUTHORS } from '../../../data/authors';
@@ -102,9 +103,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <form id="form-berita" class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div class="grid gap-4 md:grid-cols-2">
             <div class="md:col-span-2">
-              <label for="f-judul" class="mb-1 block text-sm font-bold">Judul *</label>
+              <div class="mb-1 flex flex-wrap items-center gap-x-2">
+                <label for="f-judul" class="text-sm font-bold">Judul *</label>
+                <InfoBubble label="Judul">
+                  <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua. Tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik (mis. *III jadi III, *perbaikan jadi perbaikan); untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir (mis. *BPK RI* jadi BPK RI); tanda * dihapus saat disimpan.</p>
+                </InfoBubble>
+              </div>
               <input id="f-judul" required maxlength="200" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Judul otomatis diubah ke format kapital tiap kata (contoh: Persiapkan Kegiatan Acara). Singkatan resmi seperti UPT, TPP, IIA tetap kapital semua. Tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik (mis. *III jadi III, *perbaikan jadi perbaikan); untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir (mis. *BPK RI* jadi BPK RI); tanda * dihapus saat disimpan.</p>
             </div>
             <div>
               <label for="f-kategori" class="mb-1 block text-sm font-bold">Kategori *</label>
@@ -137,10 +142,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-sm font-bold">Foto Sampul *</label>
+              <div class="mb-1 flex flex-wrap items-center gap-x-2">
+                <label class="text-sm font-bold">Foto Sampul *</label>
+                <InfoBubble label="Foto Sampul">
+                  <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, Anda bisa memotong dulu bagian yang dipakai. Foto sampul yang sudah ada (mis. kiriman Penulis lain) bisa dipotong lewat tombol di bawah pratinjau, tanpa upload ulang. Foto diubah ukurannya di browser (maks. sisi terpanjang 1600px, hasil akhir maks. 2 MB). Foto otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+                </InfoBubble>
+              </div>
               <input id="f-foto" type="file" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
               <p id="f-foto-saat-ini" class="mt-1 hidden text-xs text-slate-500"></p>
-              <p class="mt-1 text-xs text-slate-500">Setelah memilih foto, Anda bisa memotong dulu bagian yang dipakai. Foto sampul yang sudah ada (mis. kiriman Penulis lain) bisa dipotong lewat tombol di bawah pratinjau, tanpa upload ulang. Foto diubah ukurannya di browser (maks. sisi terpanjang 1600px, hasil akhir maks. 2 MB). Foto otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
               <img id="f-foto-preview" src="" alt="Pratinjau foto sampul" class="mt-2 hidden max-h-48 rounded-lg border border-slate-200 object-cover dark:border-slate-800" />
               <button id="btn-potong-sampul" type="button" class="mt-2 hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">✂️ Potong foto sampul</button>
             </div>
@@ -155,7 +164,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
               <span id="catatan-headline" class="hidden text-xs font-bold text-slate-500 dark:text-slate-400">Headline hanya bisa diatur oleh Administrator.</span>
             </div>
             <div class="md:col-span-2">
-              <label for="f-kota" class="mb-1 block text-sm font-bold">Kota</label>
+              <div class="mb-1 flex flex-wrap items-center gap-x-2">
+                <label for="f-kota" class="text-sm font-bold">Kota</label>
+                <InfoBubble label="Kota">
+                  <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kolom ini wajib diisi — pilih kabupaten/kota di Provinsi Bengkulu (Bengkulu menjadi bawaan). Nama kota tampil di awal narasi dengan huruf tebal (contoh: <b>Bengkulu</b> – …), sebelum narasi inti. Bila kotanya tidak ada di daftar, pilih "Lainnya" lalu ketik sendiri.</p>
+                </InfoBubble>
+              </div>
               <select id="f-kota" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
                 <option value="Bengkulu" selected>Bengkulu</option>
                 <option value="Bengkulu Selatan">Bengkulu Selatan</option>
@@ -170,10 +184,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
                 <option value="lainnya">Lainnya (ketik sendiri)</option>
               </select>
               <input id="f-kota-lain" placeholder="Ketik nama kota lain, contoh: Curup" class="mt-2 hidden w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kolom ini wajib diisi — pilih kabupaten/kota di Provinsi Bengkulu (Bengkulu menjadi bawaan). Nama kota tampil di awal narasi dengan huruf tebal (contoh: <b>Bengkulu</b> – …), sebelum narasi inti. Bila kotanya tidak ada di daftar, pilih "Lainnya" lalu ketik sendiri.</p>
             </div>
             <div class="md:col-span-2">
-              <label for="f-isi" class="mb-1 block text-sm font-bold">Isi Berita *</label>
+              <div class="mb-1 flex flex-wrap items-center gap-x-2">
+                <label for="f-isi" class="text-sm font-bold">Isi Berita *</label>
+                <InfoBubble label="Isi Berita">
+                  <p class="mt-1 text-xs text-slate-500"><b>Kotak ini hanya untuk narasi berita</b> — alamat gambar tidak tampil di sini. Foto badan narasi dikelola lewat tombol Tambah Gambar di atas (maks. 1 foto) dan selalu tampil setelah narasi. Setelah memilih foto, potong dulu bagian yang dipakai. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+                </InfoBubble>
+              </div>
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <button id="btn-tambah-gambar" type="button" class="rounded-lg bg-[#FACC15] px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">📷 Tambah Gambar</button>
                 <button id="btn-pratinjau-terbit" type="button" class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#123a66]">👁 Lihat Tampilan Terbit</button>
@@ -190,7 +208,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
                 <button id="btn-hapus-foto-isi" type="button" class="shrink-0 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950">Hapus foto</button>
               </div>
               <textarea id="f-isi" required rows="12" placeholder="Tulis narasi berita di sini (boleh memakai format Markdown)…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
-              <p class="mt-1 text-xs text-slate-500"><b>Kotak ini hanya untuk narasi berita</b> — alamat gambar tidak tampil di sini. Foto badan narasi dikelola lewat tombol Tambah Gambar di atas (maks. 1 foto) dan selalu tampil setelah narasi. Setelah memilih foto, potong dulu bagian yang dipakai. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
             </div>
           </div>
           <div class="mt-5 flex flex-wrap gap-3">
@@ -236,8 +253,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       <div id="modal-crop" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/70" role="dialog" aria-modal="true" aria-label="Potong foto">
         <div class="flex min-h-full items-center justify-center px-3 py-6">
           <div id="modal-crop-panel" class="w-full max-w-[640px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-900">
-            <p class="text-base font-bold">✂️ Potong Foto</p>
-            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Geser kotak dengan jari atau mouse, tarik sudut putih untuk mengubah ukuran, geser foto untuk menggeser gambar, atau atur zoom. Ketuk “Blur wajah” lalu seret di atas wajah untuk memburamkannya. Rasio bebas — foto tampil utuh mengikuti rasio aslinya.</p>
+            <div class="flex flex-wrap items-center gap-x-2">
+              <p class="text-base font-bold">✂️ Potong Foto</p>
+              <InfoBubble label="Potong Foto">
+                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Geser kotak dengan jari atau mouse, tarik sudut putih untuk mengubah ukuran, geser foto untuk menggeser gambar, atau atur zoom. Ketuk “Blur wajah” lalu seret di atas wajah untuk memburamkannya. Rasio bebas — foto tampil utuh mengikuti rasio aslinya.</p>
+              </InfoBubble>
+            </div>
             <div id="crop-stage" class="relative mt-3 h-[52vh] max-h-[460px] touch-none select-none overflow-hidden rounded-xl bg-slate-900">
               <img id="crop-img" alt="Foto yang dipotong" class="absolute max-w-none" draggable="false" />
               <div id="crop-box" class="absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" style="touch-action:none">

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import InfoBubble from '../../../components/InfoBubble.astro';
 import { CATEGORIES } from '../../../data/site';
 import { AUTHORS } from '../../../data/authors';
 
@@ -112,14 +113,20 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <div class="mt-3 flex flex-wrap items-center gap-2">
           <button id="sp-tarik" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Minggu Ini</button>
           <button id="sp-minggu-ini" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Set ke minggu ini</button>
+          <InfoBubble label="Tarik Berita">
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan: saat aplikasi dibuka (bila belum ada draf) dan setiap kali periode diubah, berita Senin–Minggu pada periode itu ditarik sendiri — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
+          </InfoBubble>
         </div>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan: saat aplikasi dibuka (bila belum ada draf) dan setiap kali periode diubah, berita Senin–Minggu pada periode itu ditarik sendiri — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
       </section>
 
       <!-- Foto sampul -->
       <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:p-5" aria-label="Foto sampul">
-        <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Foto Sampul</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Dua foto di sampul laporan. Foto 1 (potret) di segi enam besar kiri, Foto 2 (kegiatan) di segi enam kanan. Ketuk foto untuk menggantinya. Bila menarik berita minggu ini, kedua foto ini otomatis terisi dari foto berita ZonaPas.</p>
+        <div class="flex flex-wrap items-center gap-x-2">
+          <h2 class="text-lg font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Foto Sampul</h2>
+          <InfoBubble label="Foto Sampul">
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Dua foto di sampul laporan. Foto 1 (potret) di segi enam besar kiri, Foto 2 (kegiatan) di segi enam kanan. Ketuk foto untuk menggantinya. Bila menarik berita minggu ini, kedua foto ini otomatis terisi dari foto berita ZonaPas.</p>
+          </InfoBubble>
+        </div>
         <div class="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
             <p class="mb-1 text-sm font-bold">Foto 1 — Potret Kakanwil</p>
@@ -149,7 +156,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-hari" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Hari</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 6 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Minggu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
+        <InfoBubble label="Hasil yang Dicapai (per Hari)">
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Setiap hari berisi satu atau beberapa kegiatan. Setiap kegiatan punya judul, narasi, dan sampai 6 foto (tinggi foto menyesuaikan panjang narasi). Ketuk “Tarik Berita Minggu Ini” di atas untuk mengisi otomatis sepekan dari berita ZonaPas Senin–Minggu, atau ketuk “Tarik Berita Hari Ini” di tiap kartu hari bila hanya hari itu yang mau ditarik ulang (hari lain tidak berubah), atau isi manual — contoh dari template bisa diubah atau dihapus. Ketuk gembok 🔓/🔒 di tiap kartu hari untuk mengunci hari yang sudah fix — hari terkunci tidak akan tertimpa tarikan mingguan dan tidak bisa diedit sembarangan, tapi tetap bisa dibuka dan diedit lagi setelah gemboknya dibuka.</p>
+        </InfoBubble>
         <div id="sp-hari-list" class="mt-4 space-y-5"></div>
       </section>
 
@@ -162,7 +171,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-tindak" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Tindak Lanjut</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan berhuruf kapital), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis sampai 3 kali; bila tetap gagal, daftar tidak berubah dan Generate ditekan lagi — aturan kata kunci tidak dipakai.</p>
+        <InfoBubble label="Tindak Lanjut">
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan berhuruf kapital), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis sampai 3 kali; bila tetap gagal, daftar tidak berubah dan Generate ditekan lagi — aturan kata kunci tidak dipakai.</p>
+        </InfoBubble>
         <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
       </section>
 

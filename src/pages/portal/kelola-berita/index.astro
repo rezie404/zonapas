@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import InfoBubble from '../../../components/InfoBubble.astro';
 import { CATEGORIES } from '../../../data/site';
 import { AUTHORS } from '../../../data/authors';
 
@@ -19,11 +20,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
 
   <div class="mx-auto max-w-[1200px] px-4 py-6">
     <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
-      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Kelola Berita</h1>
+      <div class="flex flex-wrap items-center gap-x-2">
+        <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Kelola Berita</h1>
+        <InfoBubble label="Kelola Berita">
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Tulis berita ZonaPas sesuai peran akun Anda. Administrator dan Penyunting menerbitkan langsung; Penulis mengirim berita lewat Antrean Persetujuan. Artikel terbit tersimpan ke repositori GitHub rezie404/zonapas dan tayang di situs setelah rebuild sekitar 1–2 menit.
+          </p>
+        </InfoBubble>
+      </div>
       <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Tulis berita ZonaPas sesuai peran akun Anda. Administrator dan Penyunting menerbitkan langsung; Penulis mengirim berita lewat Antrean Persetujuan. Artikel terbit tersimpan ke repositori GitHub rezie404/zonapas dan tayang di situs setelah rebuild sekitar 1–2 menit.
-      </p>
     </div>
 
     <!-- Status -->

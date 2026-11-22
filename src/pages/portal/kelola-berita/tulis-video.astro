@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import InfoBubble from '../../../components/InfoBubble.astro';
 import { CATEGORIES } from '../../../data/site';
 import { AUTHORS } from '../../../data/authors';
 
@@ -93,18 +94,27 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <form id="form-video" class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
           <div id="yt-status" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900"><span class="mr-2 inline-block h-3 w-3 animate-pulse rounded-full bg-slate-400"></span>Memeriksa status YouTube…</div>
           <div>
-            <label for="v-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
+            <div class="mb-1 flex flex-wrap items-center gap-x-2">
+              <label for="v-judul" class="text-sm font-bold">Judul Video *</label>
+              <InfoBubble label="Judul Video">
+                <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua; tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik, mis. *III jadi III; untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir, mis. *BPK RI*) — sama seperti judul artikel. Maksimal 100 karakter (batas YouTube).</p>
+              </InfoBubble>
+            </div>
             <input id="v-judul" required maxlength="100" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat diunggah (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua; tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik, mis. *III jadi III; untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir, mis. *BPK RI*) — sama seperti judul artikel. Maksimal 100 karakter (batas YouTube). <span id="v-judul-hitung" class="font-bold">0/100 karakter</span></p>
+            <p class="mt-1 text-xs text-slate-500"><span id="v-judul-hitung" class="font-bold">0/100 karakter</span></p>
           </div>
           <div>
             <label for="v-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>
             <textarea id="v-deskripsi" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
           </div>
           <div>
-            <label for="v-file" class="mb-1 block text-sm font-bold">File Video *</label>
+            <div class="mb-1 flex flex-wrap items-center gap-x-2">
+              <label for="v-file" class="text-sm font-bold">File Video *</label>
+              <InfoBubble label="File Video">
+                <p class="mt-1 text-xs text-slate-500">Video diunggah langsung ke channel YouTube ZonaPas — tidak memakai penyimpanan ZonaPas. Intro (3 dtk) dan outro (4 dtk) ZonaPasTV ditempel otomatis di awal dan akhir video. Video besar membutuhkan waktu; jangan tutup halaman selama mengunggah. Tayang di beranda setelah rebuild sekitar 1–2 menit.</p>
+              </InfoBubble>
+            </div>
             <input id="v-file" type="file" accept="video/*" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Video diunggah langsung ke channel YouTube ZonaPas — tidak memakai penyimpanan ZonaPas. Intro (3 dtk) dan outro (4 dtk) ZonaPasTV ditempel otomatis di awal dan akhir video. Video besar membutuhkan waktu; jangan tutup halaman selama mengunggah. Tayang di beranda setelah rebuild sekitar 1–2 menit.</p>
           </div>
           <div id="v-trim-wrap" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
             <p class="mb-2 text-sm font-bold">Potong Video (Trim)</p>
@@ -126,8 +136,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
                foto sampul di kartu video (Tonton Juga & beranda). Bila
                tidak dipilih, sampul memakai gambar mini YouTube. -->
           <div id="v-sampul-wrap" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
-            <p class="mb-2 text-sm font-bold">Foto Sampul Video</p>
-            <p class="mb-2 text-xs text-slate-500">Pilih satu scene dari video sebagai foto sampul — bukan unggah gambar. Geser ke scene yang diinginkan, lalu ketuk "Tangkap Frame Ini". Sampul dipakai di kartu video (Tonton Juga &amp; beranda). Bila tidak dipilih, sampul memakai gambar mini YouTube.</p>
+            <div class="mb-2 flex flex-wrap items-center gap-x-2">
+              <p class="text-sm font-bold">Foto Sampul Video</p>
+              <InfoBubble label="Foto Sampul Video">
+                <p class="mb-2 text-xs text-slate-500">Pilih satu scene dari video sebagai foto sampul — bukan unggah gambar. Geser ke scene yang diinginkan, lalu ketuk "Tangkap Frame Ini". Sampul dipakai di kartu video (Tonton Juga &amp; beranda). Bila tidak dipilih, sampul memakai gambar mini YouTube.</p>
+              </InfoBubble>
+            </div>
             <label class="text-xs">Scene: <span id="v-sampul-teks" class="font-bold">0:00.0</span>
               <input id="v-sampul-geser" type="range" min="0" max="100" step="0.1" value="0" class="w-full" />
             </label>

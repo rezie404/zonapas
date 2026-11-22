@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import InfoBubble from '../../../components/InfoBubble.astro';
 import { CATEGORIES } from '../../../data/site';
 import { AUTHORS } from '../../../data/authors';
 
@@ -92,7 +93,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <h2 class="text-xl font-black uppercase tracking-tight"><span class="mr-2 inline-block h-5 w-2 rounded-sm bg-[#FACC15] align-[-2px]" aria-hidden="true"></span>Edit Video ZonaPasTV</h2>
             <button id="btn-video-refresh" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
           </div>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Ubah judul, deskripsi, dan sampul video yang sudah tayang. Sampul dipilih dari scene otomatis YouTube (video sudah di YouTube, jadi frame tidak bisa ditangkap langsung seperti saat unggah baru). Video di YouTube tidak ikut berubah — yang diubah hanya data di situs ZonaPas.</p>
+          <InfoBubble label="Edit Video ZonaPasTV">
+            <p class="text-sm text-slate-600 dark:text-slate-400">Ubah judul, deskripsi, dan sampul video yang sudah tayang. Sampul dipilih dari scene otomatis YouTube (video sudah di YouTube, jadi frame tidak bisa ditangkap langsung seperti saat unggah baru). Video di YouTube tidak ikut berubah — yang diubah hanya data di situs ZonaPas.</p>
+          </InfoBubble>
           <div id="video-edit-list" class="mt-4 divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
         </section>
 
@@ -101,9 +104,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <h3 class="text-lg font-black">Edit Video</h3>
           <p id="edit-video-nama" class="mt-1 text-sm text-slate-500 dark:text-slate-400"></p>
           <div class="mt-3">
-            <label for="ev-judul" class="mb-1 block text-sm font-bold">Judul Video *</label>
+            <div class="mb-1 flex flex-wrap items-center gap-x-2">
+              <label for="ev-judul" class="text-sm font-bold">Judul Video *</label>
+              <InfoBubble label="Judul Video">
+                <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat disimpan (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua; tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik, mis. *III jadi III; untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir, mis. *BPK RI*). Maksimal 100 karakter.</p>
+              </InfoBubble>
+            </div>
             <input id="ev-judul" required maxlength="100" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
-            <p class="mt-1 text-xs text-slate-500">Judul otomatis diubah ke format kapital tiap kata saat disimpan (singkatan resmi seperti UPT, LPKA, dan BIMTEK tetap kapital semua; tandai kata dengan * di depannya supaya tulisannya dipertahankan persis seperti diketik, mis. *III jadi III; untuk 2 kata atau lebih, apit frasanya dengan * di awal dan akhir, mis. *BPK RI*). Maksimal 100 karakter. <span id="ev-judul-hitung" class="font-bold">0/100 karakter</span></p>
+            <p class="mt-1 text-xs text-slate-500"><span id="ev-judul-hitung" class="font-bold">0/100 karakter</span></p>
           </div>
           <div class="mt-3">
             <label for="ev-deskripsi" class="mb-1 block text-sm font-bold">Deskripsi (opsional)</label>

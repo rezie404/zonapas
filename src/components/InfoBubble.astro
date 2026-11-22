@@ -1,0 +1,53 @@
+---
+// Bubble informasi (22 Nov 2026, perintah Bos Besar): keterangan/petunjuk
+// panjang JANGAN tampil sebagai paragraf dan JANGAN dihapus — sembunyikan
+// di balik tombol bundar "i"; diklik baru memunculkan keterangannya
+// (toggle tampil/sembunyi). Isi keterangan diisi lewat <slot /> supaya
+// teksnya tetap utuh (verbatim) beserta markahnya.
+// Pemakaian: letakkan di dalam wadah flex (mis. baris judul) — tombol
+// duduk di samping judul, panel keterangan mengambil satu baris penuh
+// di bawahnya (basis-full). Bila tidak ada judul, letakkan komponen di
+// tempat yang wajar (mis. tepat di bawah kolom isian) — tombol tampil
+// sendiri, panel muncul di bawahnya saat dibuka.
+//   <div class="flex flex-wrap items-center gap-x-2">
+//     <h2 class="...">Judul Bagian</h2>
+//     <InfoBubble label="Judul Bagian">
+//       <p class="mt-1 text-sm ...">Keterangan panjang…</p>
+//     </InfoBubble>
+//   </div>
+interface Props {
+  /** Nama bagian, dipakai di aria-label dan title tombol. */
+  label?: string;
+}
+const { label = 'Keterangan' } = Astro.props;
+---
+<button
+  type="button"
+  class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-400 bg-white text-xs font-black leading-none text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A2540] dark:border-slate-500 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:focus-visible:ring-white"
+  data-info-bubble
+  aria-label={`Tampilkan keterangan: ${label}`}
+  aria-expanded="false"
+  title={`Keterangan: ${label}`}
+>
+  <span aria-hidden="true" class="font-serif italic">i</span>
+</button>
+<div class="info-bubble-panel mt-2 basis-full" hidden>
+  <slot />
+</div>
+<script>
+  // Satu pendengar klik untuk semua bubble di halaman (dijaga supaya
+  // tidak terpasang dua kali bila komponen dipakai berkali-kali).
+  if (!window.__infoBubbleSiap) {
+    window.__infoBubbleSiap = true;
+    document.addEventListener('click', (ev) => {
+      const t = ev.target;
+      const btn = t instanceof Element ? t.closest('[data-info-bubble]') : null;
+      if (!btn) return;
+      const panel = btn.nextElementSibling;
+      if (!panel || !panel.classList.contains('info-bubble-panel')) return;
+      const buka = panel.hidden;
+      panel.hidden = !buka;
+      btn.setAttribute('aria-expanded', String(buka));
+    });
+  }
+</script>
