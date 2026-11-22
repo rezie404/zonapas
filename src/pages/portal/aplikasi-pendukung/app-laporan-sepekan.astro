@@ -162,7 +162,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
             <button id="sp-tambah-tindak" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">+ Tambah Tindak Lanjut</button>
           </span>
         </div>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan berhuruf kapital), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, dipakai aturan kata kunci sebagai cadangan.</p>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan berhuruf kapital), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis sampai 3 kali; bila tetap gagal, daftar tidak berubah dan Generate ditekan lagi — aturan kata kunci tidak dipakai.</p>
         <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
       </section>
 
@@ -830,10 +830,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // tindak lanjut (baik dari aturan maupun AI). Satu-satunya cara
     // mengisinya adalah mengetuk tombol Generate; Generate membuat ulang
     // penuh dari kegiatan minggu ini (editan manual ikut diganti).
-    // Bila AI sedang tidak bisa menjawab, dipakai aturan kata kunci di
-    // bawah sebagai cadangan — satu teks aturan per kegiatan. Butir
-    // tetap BISA DIEDIT bebas di kolom Tindak Lanjut di bawah (ubah,
-    // hapus, tambah butir).
+    // Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis
+    // sampai 3 kali; bila tetap gagal, daftar TIDAK berubah dan tombol
+    // Generate ditekan lagi — aturan kata kunci TIDAK dipakai lagi
+    // (perintah Bos Besar 22 Nov 2026). Butir tetap BISA DIEDIT bebas
+    // di kolom Tindak Lanjut di bawah (ubah, hapus, tambah butir).
     const ATURAN_TINDAK_LANJUT = [
       { pola: /disiplin|apel pagi|ketertiban|kepatuhan/i, teks: 'Memperkuat budaya disiplin, integritas, dan profesionalisme pegawai melalui pengawasan ketertiban dan kelengkapan atribut kedinasan secara konsisten di lingkungan Kanwil Ditjenpas Bengkulu.' },
       { pola: /bama|pengadaan|ekonomi lokal/i, teks: 'Menindaklanjuti kesiapan pengadaan Bama Tahun 2027 melalui koordinasi dengan pelaku ekonomi lokal serta pemantauan dan evaluasi persiapan secara berkala.' },
@@ -852,8 +853,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       { pola: /kunker|kunjungan kerja|pengarahan/i, teks: 'Menindaklanjuti hasil kunjungan kerja dan pengarahan melalui evaluasi pelaksanaan tugas serta penguatan sinergi antar-unit kerja.' },
     ];
     const TINDAK_LANJUT_UMUM = 'Menindaklanjuti hasil kegiatan melalui monitoring dan evaluasi berkelanjutan untuk memastikan pelaksanaan tugas berjalan sesuai ketentuan.';
-    // CADANGAN bila AI gagal (22 Nov 2026): aturan kata kunci di bawah
-    // tetap ada — dipakai bila endpoint AI tidak menjawab. Baca NARASI,
+    // ATURAN KATA KUNCI (22 Nov 2026): fungsi di bawah ini TIDAK LAGI
+    // dipakai untuk butir baru (perintah Bos Besar: "Saya tidak terima
+    // aturan kata kunci diberlakukan, harus tanya dengan AI") — tetap
+    // ada hanya untuk mengenali butir lama di draf yang sudah ada.
+    // Baca NARASI,
     // bukan judul (perintah Bos Besar: "Jangan lihat judul, baca
     // narasinya" — judul tidak menyatakan isi kegiatan; yang menyatakan
     // topik adalah narasi). Kata kunci yang muncul PALING AWAL di narasi
@@ -941,44 +945,67 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     // Pasangkan satu kalimat tindak lanjut per kegiatan (MURNI, tanpa
     // jaringan — bisa diuji harness). Kalimat AI dipakai urut per
-    // kegiatan; bila kalimat AI kurang (atau null — AI gagal), sisanya
-    // diisi teks aturan cadangan (tindakLanjutUntukKegiatan). Bila
-    // kalimat AI lebih banyak dari kegiatan, kelebihan dibuang.
-    // Kembali array {teks, asal} dengan asal = kunci kegiatan.
+    // kegiatan; bila kalimat AI lebih banyak dari kegiatan, kelebihan
+    // dibuang. RALAT 22 Nov 2026 (perintah Bos Besar): TIDAK ADA teks
+    // aturan — bila kalimat AI kurang dari jumlah kegiatan (atau null
+    // karena AI gagal), kembalikan null supaya daftar TIDAK berubah dan
+    // pengguna menekan Generate lagi.
+    // Kembali array {teks, asal} dengan asal = kunci kegiatan, atau
+    // null bila kalimat AI tidak lengkap.
     function pasangkanTindakLanjutAI(kegiatan, kalimat) {
       const rapi = rapikanKegiatanTL(kegiatan);
       const kalimatAI = Array.isArray(kalimat) ? kalimat.map((s) => String(s || '').trim()).filter(Boolean) : [];
+      if (kalimatAI.length < rapi.length) return null;
       return rapi.map((k, i) => ({
-        teks: kalimatAI[i] || tindakLanjutUntukKegiatan(k.judul, k.narasi),
+        teks: kalimatAI[i],
         asal: kunciKegiatan(k.tanggal, k),
       }));
     }
     // Minta tindak lanjut AI ke Worker (POST /redaksi/api/sepekan/
-    // tindak-lanjut). Kembali array kalimat, atau null bila AI gagal,
-    // Worker tidak terjangkau, atau workerPost tidak ada (harness).
-    async function mintaTindakLanjutAI(kegiatan) {
+    // tindak-lanjut). Diulangi sampai 3 kali bila AI gagal (model tidak
+    // menjawab / kalimat kurang / Worker tidak terjangkau), jeda 2 detik
+    // antar percobaan; saatMencoba(n) dipanggil sebelum percobaan ke-2
+    // dan ke-3 supaya tombol bisa menampilkan "coba ke-n". Kembali array
+    // kalimat, atau null bila AI gagal 3 kali atau workerPost tidak ada
+    // (harness).
+    async function mintaTindakLanjutAI(kegiatan, saatMencoba) {
       if (typeof workerPost !== 'function') return null;
-      try {
-        const r = await workerPost('/redaksi/api/sepekan/tindak-lanjut', { kegiatan }, { timeoutMs: 120000 });
-        if (r && r.ok && Array.isArray(r.tindak) && r.tindak.length) return r.tindak;
-        return null;
-      } catch { return null; }
+      for (let percobaan = 1; percobaan <= 3; percobaan++) {
+        if (percobaan > 1) {
+          if (typeof saatMencoba === 'function') saatMencoba(percobaan);
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+        try {
+          const r = await workerPost('/redaksi/api/sepekan/tindak-lanjut', { kegiatan }, { timeoutMs: 120000 });
+          if (r && r.ok && Array.isArray(r.tindak) && r.tindak.length) return r.tindak;
+        } catch {}
+      }
+      return null;
     }
     // Generate tindak lanjut dari kegiatan minggu ini (22 Nov 2026,
     // RALAT Bos Besar: SATU-SATUNYA cara tindak lanjut terisi — tombol
     // "✨ Generate Tindak Lanjut"). Daftar SELALU dibuat ulang penuh:
-    // butir lama (termasuk yang diedit manual) diganti semua. AI dulu;
-    // bila AI gagal, aturan kata kunci sebagai cadangan (satu teks per
-    // kegiatan). Mengembalikan {sebelum, sesudah, dariAI}.
-    async function hasilkanTindakLanjutAI() {
+    // butir lama (termasuk yang diedit manual) diganti semua — HANYA
+    // bila AI menjawab. RALAT 22 Nov 2026 (perintah Bos Besar): bila
+    // AI gagal setelah 3 percobaan, daftar TIDAK berubah dan TIDAK ADA
+    // teks aturan kata kunci; pengguna menekan Generate lagi.
+    // Mengembalikan {sebelum, sesudah, dariAI, gagal}. Tanpa kegiatan,
+    // daftar dikosongkan (gagal: false — bukan kegagalan AI).
+    async function hasilkanTindakLanjutAI(saatMencoba) {
       pastikanTindakLanjut();
       const sebelum = state.tindakLanjut.length;
       const kegiatan = kumpulkanKegiatanTL(hariUntukTindakLanjut());
-      const kalimat = kegiatan.length ? await mintaTindakLanjutAI(kegiatan) : null;
+      if (!kegiatan.length) {
+        state.tindakLanjut = [];
+        state.tindakLanjutAsal = [];
+        return { sebelum, sesudah: 0, dariAI: false, gagal: false };
+      }
+      const kalimat = await mintaTindakLanjutAI(kegiatan, saatMencoba);
       const pasang = pasangkanTindakLanjutAI(kegiatan, kalimat);
+      if (!pasang) return { sebelum, sesudah: sebelum, dariAI: false, gagal: true };
       state.tindakLanjut = pasang.map((p) => p.teks);
       state.tindakLanjutAsal = pasang.map((p) => p.asal);
-      return { sebelum, sesudah: pasang.length, dariAI: !!kalimat };
+      return { sebelum, sesudah: pasang.length, dariAI: true, gagal: false };
     }
     // Ada kegiatan minggu ini? Dipakai tombol Generate: nonaktif bila
     // belum ada kegiatan — tindak lanjut digenerate SETELAH kegiatan
@@ -2844,9 +2871,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // ✨ Generate Tindak Lanjut (22 Nov 2026, RALAT Bos Besar):
       // SATU-SATUNYA cara tindak lanjut terisi — daftar mulai kosong,
       // digenerate dari kegiatan minggu ini SETELAH kegiatan selesai.
-      // Membuat ulang penuh lewat AI (aturan kata kunci bila AI gagal);
-      // editan manual ikut diganti. Tombol nonaktif bila belum ada
-      // kegiatan minggu ini (perbaruiTombolGenerate).
+      // Membuat ulang penuh lewat AI; bila AI gagal setelah 3 percobaan,
+      // daftar TIDAK berubah (TIDAK ADA aturan kata kunci — perintah
+      // Bos Besar 22 Nov 2026); editan manual ikut diganti bila AI
+      // berhasil. Tombol nonaktif bila belum ada kegiatan minggu ini
+      // (perbaruiTombolGenerate).
       $('sp-isi-ulang-tindak').addEventListener('click', async () => {
         const btn = $('sp-isi-ulang-tindak');
         const kegiatan = kumpulkanKegiatanTL(hariUntukTindakLanjut());
@@ -2855,9 +2884,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const labelAsli = btn.textContent;
         btn.textContent = 'Menulis tindak lanjut…';
         try {
-          const h = await hasilkanTindakLanjutAI();
+          const h = await hasilkanTindakLanjutAI((n) => { btn.textContent = 'Menulis tindak lanjut… (coba ke-' + n + ')'; });
+          if (h.gagal) { showStatus('AI tidak menjawab setelah 3 kali percobaan — tindak lanjut tidak berubah. Tekan ✨ Generate Tindak Lanjut lagi.', false); return; }
           renderTindakLanjut(); simpanDraf(); renderPratinjau();
-          showStatus('Tindak Lanjut digenerate dari ' + kegiatan.length + ' kegiatan minggu ini: ' + h.sesudah + ' butir' + (h.dariAI ? ' (ditulis AI).' : ' (AI tidak menjawab — dipakai aturan kata kunci sebagai cadangan).'), true);
+          showStatus('Tindak Lanjut digenerate dari ' + kegiatan.length + ' kegiatan minggu ini: ' + h.sesudah + ' butir (ditulis AI).', true);
         } finally {
           btn.textContent = labelAsli;
           perbaruiTombolGenerate();
