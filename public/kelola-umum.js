@@ -1298,18 +1298,66 @@
 
     // Me-render Markdown narasi menjadi HTML (paragraf, gambar, bold,
     // tautan). Dipakai modal pratinjau tampilan terbit.
+    // Me-render Markdown narasi menjadi HTML (paragraf, daftar bernomor,
+    // daftar bullet, gambar, bold, tautan). Dipakai modal pratinjau
+    // tampilan terbit. Daftar dikenali dari penanda di awal baris:
+    // "1. " (nomor + spasi, boleh spasi biasa atau spasi tak putus) atau
+    // "- " / "* " / "+ ". Baris kosong di antara butir tidak memutus
+    // daftar, dan baris biasa setelah butir dianggap lanjutan butir itu
+    // — sama seperti perender Markdown halaman terbit — supaya pratinjau
+    // dan hasil publish menampilkan daftar yang sama.
     function isiMarkdownToHtml(md) {
       const lines = String(md || '').split('\n');
       const out = [];
       let buf = [];
+      let daftar = null; // 'ol' | 'ul' | null
+      let butir = null; // teks butir yang sedang dikumpulkan
+      const POLA_TERTIB = /^(\d+)[.)]\s+(.*)$/;
+      const POLA_BULLET = /^[-*+]\s+(.*)$/;
+      const tutupDaftar = () => {
+        if (butir !== null) { out.push('<li>' + formatBarisPrev(butir) + '</li>'); butir = null; }
+        if (daftar) { out.push('</' + daftar + '>'); daftar = null; }
+      };
       const flush = () => {
+        tutupDaftar();
         if (!buf.length) return;
         out.push('<p>' + formatBarisPrev(buf.join(' ')) + '</p>');
         buf = [];
       };
-      for (const ln of lines) {
-        if (ln.trim() === '') flush();
-        else buf.push(ln.trim());
+      const adaDaftarBerikutnya = (dari) => {
+        for (let i = dari; i < lines.length; i++) {
+          const t = lines[i].trim();
+          if (t === '') continue;
+          return POLA_TERTIB.test(t) || POLA_BULLET.test(t);
+        }
+        return false;
+      };
+      for (let i = 0; i < lines.length; i++) {
+        const t = lines[i].trim();
+        if (t === '') {
+          // Baris kosong: daftar berlanjut bila butir berikutnya masih
+          // daftar; bila tidak, tutup daftar dan akhiri paragraf.
+          if (daftar && adaDaftarBerikutnya(i + 1)) continue;
+          flush();
+          continue;
+        }
+        const mTertib = t.match(POLA_TERTIB);
+        const mBullet = !mTertib && t.match(POLA_BULLET);
+        if (mTertib || mBullet) {
+          const jenis = mTertib ? 'ol' : 'ul';
+          const isi = (mTertib ? mTertib[2] : mBullet[1]).trim();
+          if (daftar && daftar !== jenis) tutupDaftar();
+          if (!daftar) { flush(); out.push('<' + jenis + '>'); daftar = jenis; }
+          else if (butir !== null) { out.push('<li>' + formatBarisPrev(butir) + '</li>'); }
+          butir = isi;
+          continue;
+        }
+        if (daftar) {
+          // Lanjutan butir (baris terbungkus tanpa penanda).
+          butir = (butir ? butir + ' ' : '') + t;
+          continue;
+        }
+        buf.push(t);
       }
       flush();
       return out.join('');

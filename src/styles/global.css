@@ -74,6 +74,12 @@ html[data-font="charm"] { --font-sans: "Charm", "Plus Jakarta Sans", ui-sans-ser
 }
 .article-body ul { list-style: disc; }
 .article-body ol { list-style: decimal; }
+/* Butir daftar selalu rata kiri (tidak justify) supaya nomor/bullet
+   dan jarak antar kata tetap rapi di layar sempit; jarak antar butir
+   sedikit lebih rapat daripada antar paragraf. */
+.article-body li { text-align: left; margin-bottom: 0.35rem; }
+.article-body li:last-child { margin-bottom: 0; }
+.article-body li p { text-align: left; }
 .article-body blockquote {
   border-left: 4px solid #d9232e;
   padding-left: 1rem;

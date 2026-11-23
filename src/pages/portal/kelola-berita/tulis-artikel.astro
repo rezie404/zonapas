@@ -190,10 +190,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
                 <label for="f-isi" class="text-sm font-bold">Isi Berita *</label>
                 <InfoBubble label="Isi Berita">
                   <p class="mt-1 text-xs text-slate-500"><b>Kotak ini hanya untuk narasi berita</b> — alamat gambar tidak tampil di sini. Foto badan narasi dikelola lewat tombol Tambah Gambar di atas (maks. 1 foto) dan selalu tampil setelah narasi. Setelah memilih foto, potong dulu bagian yang dipakai. Foto diunggah langsung ke repo (maks. sisi 1600px, JPEG 0.85, maks. 2 MB) dan otomatis mendapat watermark ZonaPas saat situs dibangun.</p>
+                  <p class="mt-1 text-xs text-slate-500"><b>Daftar bernomor dan bullet:</b> tulis tiap butir di barisnya sendiri, blok baris-baris itu, lalu ketuk tombol <b>1. Penomoran</b> atau <b>• Bullet</b> — nomor dibuat otomatis dan rapi di pratinjau maupun saat terbit. Tanpa blok, tombol menyisipkan satu butir kosong di kursor; tekan <b>Enter</b> di akhir butir untuk menambah butir berikutnya, dan tekan <b>Enter</b> sekali lagi pada butir kosong untuk keluar dari daftar. Bisa juga mengetik langsung: ketik <b>1.</b> lalu spasi, dan nomor berikutnya dibuat otomatis (mengetik "1." di bawah butir "1." menjadi "2. "). Ketuk tombol yang sama pada daftar yang sudah ada untuk mencabut penandanya.</p>
                 </InfoBubble>
               </div>
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <button id="btn-tambah-gambar" type="button" class="rounded-lg bg-[#FACC15] px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-[#EAB308]">📷 Tambah Gambar</button>
+                <button id="btn-daftar-nomor" type="button" title="Ubah baris terpilih menjadi daftar bernomor (1. 2. 3.)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">1. Penomoran</button>
+                <button id="btn-daftar-bullet" type="button" title="Ubah baris terpilih menjadi daftar bullet (•)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">• Bullet</button>
                 <button id="btn-pratinjau-terbit" type="button" class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#123a66]">👁 Lihat Tampilan Terbit</button>
                 <input id="f-isi-file" type="file" accept="image/jpeg,image/png" class="hidden" />
               </div>
@@ -640,6 +643,154 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       }
       const input = $('f-isi-file');
       if (input) input.click();
+    });
+
+    // ---------- Daftar bernomor & bullet di narasi ----------
+    // Penanda daftar: "1. " (nomor + spasi biasa) atau "- " (bullet).
+    // Spasi tak putus (U+00A0) setelah nomor — yang dulu membuat daftar
+    // pecah di halaman terbit — ikut dikenali dan dinormalisasi jadi
+    // spasi biasa saat baris diubah jadi butir daftar. Fungsi-fungsi di
+    // sini murni (hanya mengolah teks) supaya bisa diuji di luar browser.
+    const POLA_BUTIR_TERTIB = /^(\d+)[.)][\s\u00A0]+/;
+    const POLA_BUTIR_BULLET = /^[-*+][\s\u00A0]+/;
+    const POLA_BUTIR = /^(?:\d+[.)]|[-*+])[\s\u00A0]+/;
+    // Penanda "bersih": spasi biasa (bukan spasi tak putus) dan — untuk
+    // bernomor — nomor berurutan mulai dari 1. Hanya daftar bersih yang
+    // dicabut saat tombol ditekan lagi; daftar yang penandanya masih
+    // memakai spasi tak putus atau nomornya melompat justru diperbaiki
+    // (dinormalisasi + diurutkan ulang).
+    const POLA_TERTIB_BERSIH = /^(\d+)[.)] (.*)$/;
+    const POLA_BULLET_BERSIH = /^[-] (.*)$/;
+
+    // Mengubah baris-baris dalam seleksi menjadi daftar (terurut = bernomor,
+    // tidak = bullet). Bila semua baris sudah berpenanda jenis yang sama,
+    // penanda dicabut (tombol berfungsi sebagai sakelar). Tanpa seleksi,
+    // menyisipkan satu butir kosong di posisi kursor. Mengembalikan teks
+    // baru beserta posisi seleksi baru.
+    function terapkanDaftar(teks, awal, akhir, terurut) {
+      const pola = terurut ? POLA_BUTIR_TERTIB : POLA_BUTIR_BULLET;
+      if (awal === akhir) {
+        const awalBaris = teks.lastIndexOf('\n', awal - 1) + 1;
+        const diAwalBaris = teks.slice(awalBaris, awal).trim() === '';
+        const penanda = terurut ? '1. ' : '- ';
+        const sisip = (diAwalBaris ? '' : '\n') + penanda;
+        const posBaru = awal + sisip.length;
+        return { teks: teks.slice(0, awal) + sisip + teks.slice(awal), awal: posBaru, akhir: posBaru };
+      }
+      if (akhir > awal && teks[akhir - 1] === '\n') akhir -= 1;
+      const bAwal = teks.lastIndexOf('\n', awal - 1) + 1;
+      let bAkhir = teks.indexOf('\n', akhir);
+      if (bAkhir === -1) bAkhir = teks.length;
+      const baris = teks.slice(bAwal, bAkhir).split('\n');
+      const isiBaris = baris.filter((b) => b.trim() !== '');
+      if (!isiBaris.length) return { teks, awal, akhir };
+      const semuaSudah = isiBaris.every((b) => pola.test(b.trim()));
+      let semuaBersih = false;
+      if (semuaSudah) {
+        if (terurut) {
+          let n = 1; semuaBersih = true;
+          for (const b of isiBaris) {
+            const m = b.trim().match(POLA_TERTIB_BERSIH);
+            if (!m || parseInt(m[1], 10) !== n++) { semuaBersih = false; break; }
+          }
+        } else {
+          semuaBersih = isiBaris.every((b) => POLA_BULLET_BERSIH.test(b.trim()));
+        }
+      }
+      let barisBaru;
+      if (semuaBersih) {
+        // Cabut penanda; baris kosong dipertahankan supaya paragraf tetap terpisah.
+        barisBaru = baris.map((b) => (b.trim() === '' ? '' : b.trim().replace(POLA_BUTIR, '')));
+      } else {
+        // Daftar rapat (tanpa baris kosong antar butir) supaya terbit
+        // sebagai satu <ol>/<ul> utuh dengan butir <li> biasa.
+        let n = 1;
+        barisBaru = isiBaris.map((b) => (terurut ? (n++) + '. ' : '- ') + b.trim().replace(POLA_BUTIR, ''));
+      }
+      const teksBaru = barisBaru.join('\n');
+      const teksHasil = teks.slice(0, bAwal) + teksBaru + teks.slice(bAkhir);
+      return { teks: teksHasil, awal: bAwal, akhir: bAwal + teksBaru.length };
+    }
+
+    // Perilaku tombol Enter di dalam daftar: butir kosong = keluar dari
+    // daftar (penanda dihapus); bila tidak, sisip butir baru dengan nomor
+    // berikutnya (atau bullet yang sama). Mengembalikan null bila kursor
+    // tidak sedang di baris daftar — biarkan browser menangani Enter.
+    function tekanEnterDiDaftar(teks, pos) {
+      const awalBaris = teks.lastIndexOf('\n', pos - 1) + 1;
+      const akhirBaris = teks.indexOf('\n', pos);
+      const ujung = akhirBaris === -1 ? teks.length : akhirBaris;
+      const baris = teks.slice(awalBaris, ujung);
+      const mTertib = baris.match(/^(\d+)[.)][\s\u00A0]+(.*)$/);
+      const mBullet = !mTertib && baris.match(/^[-*+][\s\u00A0]+(.*)$/);
+      if (!mTertib && !mBullet) return null;
+      const isiButir = (mTertib ? mTertib[2] : mBullet[1]).trim();
+      if (isiButir === '') {
+        // Hapus baris penanda saja: bila ini baris terakhir, ikut hapus
+        // baris baru sebelumnya; bila ada baris sesudahnya, hapus baris
+        // baru sesudah penanda. Kursor kembali ke ujung baris sebelumnya
+        // (atau ke awal baris sesudahnya bila penanda di baris pertama).
+        if (ujung === teks.length) {
+          const hapusDari = awalBaris > 0 ? awalBaris - 1 : awalBaris;
+          return { teks: teks.slice(0, hapusDari) + teks.slice(ujung), pos: hapusDari };
+        }
+        return { teks: teks.slice(0, awalBaris) + teks.slice(ujung + 1), pos: awalBaris };
+      }
+      const penanda = mTertib ? (parseInt(mTertib[1], 10) + 1) + '. ' : '- ';
+      const sisip = '\n' + penanda;
+      return { teks: teks.slice(0, pos) + sisip + teks.slice(pos), pos: pos + sisip.length };
+    }
+
+    function pasangDaftar(terurut) {
+      const area = $('f-isi');
+      if (!area) return;
+      const hasil = terapkanDaftar(area.value, area.selectionStart, area.selectionEnd, terurut);
+      area.value = hasil.teks;
+      area.selectionStart = hasil.awal;
+      area.selectionEnd = hasil.akhir;
+      area.focus();
+    }
+
+    on('btn-daftar-nomor', 'click', () => pasangDaftar(true));
+    on('btn-daftar-bullet', 'click', () => pasangDaftar(false));
+
+    // Penomoran otomatis saat mengetik: penulis mengetik "1." lalu spasi
+    // di awal baris di bawah butir bernomor — nomor yang diketik dikoreksi
+    // otomatis menjadi nomor berikutnya (mengetik "1." di bawah "1. ..."
+    // menjadi "2. ", di bawah "2. ..." menjadi "3. "). Bila baris
+    // sebelumnya bukan butir bernomor, nomor yang diketik dibiarkan
+    // (daftar baru boleh mulai dari nomor berapa pun).
+    function koreksiNomorSaatKetik(teks, pos) {
+      const awalBaris = teks.lastIndexOf('\n', pos - 1) + 1;
+      const m = teks.slice(awalBaris, pos).match(/^(\d+)[.)] $/);
+      if (!m || awalBaris === 0) return null;
+      const akhirPrev = awalBaris - 1;
+      const awalPrev = teks.lastIndexOf('\n', akhirPrev - 1) + 1;
+      const mPrev = teks.slice(awalPrev, akhirPrev).match(/^(\d+)([.)])[\s\u00A0]+/);
+      if (!mPrev) return null;
+      const nomorBaru = (parseInt(mPrev[1], 10) + 1) + mPrev[2] + ' ';
+      return { teks: teks.slice(0, awalBaris) + nomorBaru + teks.slice(pos), pos: awalBaris + nomorBaru.length };
+    }
+
+    on('f-isi', 'input', (e) => {
+      if (!e || e.inputType !== 'insertText' || e.data !== ' ') return;
+      const area = $('f-isi');
+      if (!area) return;
+      const hasil = koreksiNomorSaatKetik(area.value, area.selectionStart);
+      if (!hasil) return;
+      area.value = hasil.teks;
+      area.selectionStart = area.selectionEnd = hasil.pos;
+    });
+
+    on('f-isi', 'keydown', (e) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+      const area = $('f-isi');
+      if (!area || area.selectionStart !== area.selectionEnd) return;
+      const hasil = tekanEnterDiDaftar(area.value, area.selectionStart);
+      if (!hasil) return;
+      e.preventDefault();
+      area.value = hasil.teks;
+      area.selectionStart = area.selectionEnd = hasil.pos;
     });
 
 
