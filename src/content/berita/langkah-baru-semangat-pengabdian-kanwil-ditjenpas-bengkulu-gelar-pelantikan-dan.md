@@ -13,6 +13,7 @@ breakingSince: "2026-11-23T08:09:30.316Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-dF5qp1HZJdaM59OJDtPgsvvXbpSEOeOXMjqbXbReCM-je7q-=s96-c"
 source: "zonapas"
+jurnalpas_id: 545
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan kegiatan pelantikan dan pengambilan sumpah/janji jabatan pejabat non manajerial di lingkungan Kanwil Ditjenpas Bengkulu pada Senin (23/11/2026). Kegiatan ini merupakan bagian dari upaya penguatan organisasi serta penataan sumber daya manusia guna mendukung pelaksanaan tugas dan fungsi Pemasyarakatan.
