@@ -29,29 +29,21 @@ terhadap pengembangan karier dan peningkatan profesionalisme pegawai.
 Adapun delapan ASN asal Lapas Kelas IIA Bengkulu yang
 dilantik, yaitu:
 
-1.            Dodi
-Irawan, S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
+1. Dodi Irawan, S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
 
-2.            Afriansyah,
-S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
+2. Afriansyah, S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
 
-3.            Reza
-Setiawan, S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
+3. Reza Setiawan, S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
 
-4.            Andri,
-S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
+4. Andri, S.H. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
 
-5.            Eddy
-Kurniawan, S.E. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
+5. Eddy Kurniawan, S.E. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
 
-6.            Fenri
-Erizal, A.Md., S.Sos. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
+6. Fenri Erizal, A.Md., S.Sos. – Pembina Keamanan Pemasyarakatan Ahli Pertama.
 
-7.            Heri
-Pratama – Pengaman Pemasyarakatan Terampil.
+7. Heri Pratama – Pengaman Pemasyarakatan Terampil.
 
-8.            Neni
-Widiawati, A.Md., S.H. – Pembimbing Kemasyarakatan Ahli Pertama pada Bapas
+8. Neni Widiawati, A.Md., S.H. – Pembimbing Kemasyarakatan Ahli Pertama pada Bapas
 Kelas I Bengkulu.
 
 Pelantikan ini merupakan bagian dari pengembangan karier ASN
