@@ -13,6 +13,7 @@ breakingSince: "2026-11-23T12:29:38.845Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 549
 ---
 
 **Bengkulu** – Kepala Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan rapat bersama seluruh Kepala Unit Pelaksana Teknis (UPT) Pemasyarakatan se-Provinsi Bengkulu pada Senin (23/11). Kegiatan ini menjadi sarana koordinasi dan komunikasi antara Kantor Wilayah dengan seluruh UPT dalam rangka memperkuat sinergi serta memastikan pelaksanaan tugas dan fungsi pemasyarakatan berjalan optimal.
