@@ -172,7 +172,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           </span>
         </div>
         <InfoBubble label="Tindak Lanjut">
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan berhuruf kapital), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah; mengetuk Generate lagi membuat ulang seluruh daftar, termasuk mengganti butir yang diedit manual. Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis sampai 3 kali; bila tetap gagal, daftar tidak berubah dan Generate ditekan lagi — aturan kata kunci tidak dipakai.</p>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Tindak lanjut ditulis AI — satu kalimat per kegiatan (2–3 baris), dari narasi kegiatan, yang langsung ke inti (diawali kata kerja tindakan berhuruf kapital), spesifik sesuai rincian narasi, dan menjawab apa yang sebaiknya dilakukan Kepala Kantor Wilayah atas kegiatan itu (dipertahankan, dilanjutkan, dikuatkan, dihentikan, dan sebagainya). Daftar mulai kosong: ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai (tombol nonaktif bila belum ada kegiatan). Semua butir bisa diubah, dihapus, atau ditambah di sini dan langsung masuk pratinjau serta PDF. Butir yang diedit manual dipertahankan bila kegiatannya dihapus atau diubah. Ketuk gembok 🔓/🔒 di tiap butir untuk mengunci butir yang sudah fix — butir terkunci TIDAK diganti saat Generate ditekan (teksnya tetap bisa diedit tangan); Generate hanya menulis ulang butir yang tidak terkunci dan mengisi kegiatan yang belum punya butir. Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis sampai 3 kali; bila tetap gagal, daftar tidak berubah dan Generate ditekan lagi — aturan kata kunci tidak dipakai.</p>
         </InfoBubble>
         <div id="sp-tindak-list" class="mt-4 space-y-3"></div>
       </section>
@@ -841,6 +841,12 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // tindak lanjut (baik dari aturan maupun AI). Satu-satunya cara
     // mengisinya adalah mengetuk tombol Generate; Generate membuat ulang
     // penuh dari kegiatan minggu ini (editan manual ikut diganti).
+    // KUNCI (24 Nov 2026, perintah Bos Besar): tiap butir bisa DIKUNCI
+    // (tombol gembok 🔓/🔒 di kartunya, seperti kunci kartu hari) —
+    // butir terkunci TIDAK diganti saat Generate ditekan; Generate hanya
+    // menulis ulang butir yang tidak terkunci dan mengisi kegiatan yang
+    // belum punya butir. Status kunci tersimpan di draf sejajar dengan
+    // daftar (state.tindakLanjutTerkunci) dan ikut tersimpan ke server.
     // Bila AI sedang tidak bisa menjawab, permintaan diulangi otomatis
     // sampai 3 kali; bila tetap gagal, daftar TIDAK berubah dan tombol
     // Generate ditekan lagi — aturan kata kunci TIDAK dipakai lagi
@@ -972,6 +978,39 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         asal: kunciKegiatan(k.tanggal, k),
       }));
     }
+    // Gabungkan butir TERKUNCI yang dipertahankan dengan pasangan AI
+    // baru (MURNI, tanpa jaringan — bisa diuji harness). `kegiatan` =
+    // daftar rapi kegiatan minggu ini; `pasanganBaru` = [{teks, asal}]
+    // untuk kegiatan yang TIDAK terkunci (dari pasangkanTindakLanjutAI);
+    // `terkunciLama` = [{teks, asal}] butir yang terkunci saat ini,
+    // urut seperti di daftar. Kembali {tindak, asal, terkunci} sejajar,
+    // atau null bila ada kegiatan tidak terkunci yang tidak mendapat
+    // kalimat baru. Butir terkunci yang kegiatannya sudah tidak ada
+    // dipertahankan di akhir daftar (seperti butir manual di
+    // sesuaikanTindakLanjut); butir terkunci yang asalnya 'manual'/null
+    // tidak punya kunci kegiatan, jadi selalu masuk kelompok ini.
+    function gabungkanTindakLanjutTerkunci(kegiatan, pasanganBaru, terkunciLama) {
+      const rapi = rapikanKegiatanTL(kegiatan);
+      const kunciRapi = new Set(rapi.map((k) => kunciKegiatan(k.tanggal, k)));
+      const baruPerKunci = new Map((pasanganBaru || []).map((p) => [p.asal, p.teks]));
+      const terkunciPerKunci = new Map();
+      for (const p of (terkunciLama || [])) {
+        if (p.asal && p.asal !== 'manual' && !terkunciPerKunci.has(p.asal)) terkunciPerKunci.set(p.asal, p.teks);
+      }
+      const tindak = [];
+      const asal = [];
+      const terkunci = [];
+      for (const k of rapi) {
+        const kunci = kunciKegiatan(k.tanggal, k);
+        if (terkunciPerKunci.has(kunci)) { tindak.push(terkunciPerKunci.get(kunci)); asal.push(kunci); terkunci.push(true); }
+        else if (baruPerKunci.has(kunci)) { tindak.push(baruPerKunci.get(kunci)); asal.push(kunci); terkunci.push(false); }
+        else return null;
+      }
+      for (const p of (terkunciLama || [])) {
+        if (!p.asal || p.asal === 'manual' || !kunciRapi.has(p.asal)) { tindak.push(p.teks); asal.push(p.asal); terkunci.push(true); }
+      }
+      return { tindak, asal, terkunci };
+    }
     // Minta tindak lanjut AI ke Worker (POST /redaksi/api/sepekan/
     // tindak-lanjut). Diulangi sampai 3 kali bila AI gagal (model tidak
     // menjawab / kalimat kurang / Worker tidak terjangkau), jeda 2 detik
@@ -995,28 +1034,49 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     // Generate tindak lanjut dari kegiatan minggu ini (22 Nov 2026,
     // RALAT Bos Besar: SATU-SATUNYA cara tindak lanjut terisi — tombol
-    // "✨ Generate Tindak Lanjut"). Daftar SELALU dibuat ulang penuh:
-    // butir lama (termasuk yang diedit manual) diganti semua — HANYA
-    // bila AI menjawab. RALAT 22 Nov 2026 (perintah Bos Besar): bila
-    // AI gagal setelah 3 percobaan, daftar TIDAK berubah dan TIDAK ADA
-    // teks aturan kata kunci; pengguna menekan Generate lagi.
+    // "✨ Generate Tindak Lanjut"). KUNCI (24 Nov 2026, perintah Bos
+    // Besar): butir TERKUNCI tidak diganti — AI hanya diminta untuk
+    // kegiatan yang butirnya tidak terkunci (dan kegiatan yang belum
+    // punya butir); butir terkunci dipertahankan di tempatnya, termasuk
+    // butir terkunci yang kegiatannya sudah tidak ada. Bila SEMUA butir
+    // terkunci, AI tidak dipanggil sama sekali dan daftar TIDAK berubah.
+    // Bila AI gagal setelah 3 percobaan, daftar TIDAK berubah dan TIDAK
+    // ADA teks aturan kata kunci; pengguna menekan Generate lagi.
     // Mengembalikan {sebelum, sesudah, dariAI, gagal}. Tanpa kegiatan,
-    // daftar dikosongkan (gagal: false — bukan kegagalan AI).
+    // butir tidak terkunci dikosongkan dan butir terkunci dipertahankan
+    // (gagal: false — bukan kegagalan AI).
     async function hasilkanTindakLanjutAI(saatMencoba) {
       pastikanTindakLanjut();
       const sebelum = state.tindakLanjut.length;
       const kegiatan = kumpulkanKegiatanTL(hariUntukTindakLanjut());
       if (!kegiatan.length) {
-        state.tindakLanjut = [];
-        state.tindakLanjutAsal = [];
-        return { sebelum, sesudah: 0, dariAI: false, gagal: false };
+        const simpan = [];
+        const simpanAsal = [];
+        const simpanTerkunci = [];
+        state.tindakLanjut.forEach((t, i) => {
+          if (state.tindakLanjutTerkunci[i]) { simpan.push(t); simpanAsal.push(state.tindakLanjutAsal[i]); simpanTerkunci.push(true); }
+        });
+        state.tindakLanjut = simpan;
+        state.tindakLanjutAsal = simpanAsal;
+        state.tindakLanjutTerkunci = simpanTerkunci;
+        return { sebelum, sesudah: simpan.length, dariAI: false, gagal: false };
       }
-      const kalimat = await mintaTindakLanjutAI(kegiatan, saatMencoba);
-      const pasang = pasangkanTindakLanjutAI(kegiatan, kalimat);
+      const terkunciLama = [];
+      state.tindakLanjut.forEach((t, i) => {
+        if (state.tindakLanjutTerkunci[i]) terkunciLama.push({ teks: t, asal: state.tindakLanjutAsal[i] });
+      });
+      const kunciTerkunci = new Set(terkunciLama.map((p) => p.asal));
+      const butuhAI = kegiatan.filter((k) => !kunciTerkunci.has(kunciKegiatan(k.tanggal, k)));
+      if (!butuhAI.length) return { sebelum, sesudah: sebelum, dariAI: false, gagal: false };
+      const kalimat = await mintaTindakLanjutAI(butuhAI, saatMencoba);
+      const pasang = pasangkanTindakLanjutAI(butuhAI, kalimat);
       if (!pasang) return { sebelum, sesudah: sebelum, dariAI: false, gagal: true };
-      state.tindakLanjut = pasang.map((p) => p.teks);
-      state.tindakLanjutAsal = pasang.map((p) => p.asal);
-      return { sebelum, sesudah: pasang.length, dariAI: true, gagal: false };
+      const gabung = gabungkanTindakLanjutTerkunci(kegiatan, pasang, terkunciLama);
+      if (!gabung) return { sebelum, sesudah: sebelum, dariAI: false, gagal: true };
+      state.tindakLanjut = gabung.tindak;
+      state.tindakLanjutAsal = gabung.asal;
+      state.tindakLanjutTerkunci = gabung.terkunci;
+      return { sebelum, sesudah: gabung.tindak.length, dariAI: true, gagal: false };
     }
     // Ada kegiatan minggu ini? Dipakai tombol Generate: nonaktif bila
     // belum ada kegiatan — tindak lanjut digenerate SETELAH kegiatan
@@ -1032,6 +1092,15 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       while (state.tindakLanjutAsal.length < state.tindakLanjut.length) state.tindakLanjutAsal.push(null);
       if (state.tindakLanjutAsal.length > state.tindakLanjut.length) state.tindakLanjutAsal.length = state.tindakLanjut.length;
     }
+    // Samakan panjang state.tindakLanjutTerkunci dengan
+    // state.tindakLanjut (24 Nov 2026, kunci TL: draf lama tidak punya
+    // kunci -> semua tidak terkunci; butir baru -> tidak terkunci).
+    function pastikanKunciTindakLanjut() {
+      if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = [];
+      if (!Array.isArray(state.tindakLanjutTerkunci)) state.tindakLanjutTerkunci = [];
+      while (state.tindakLanjutTerkunci.length < state.tindakLanjut.length) state.tindakLanjutTerkunci.push(false);
+      if (state.tindakLanjutTerkunci.length > state.tindakLanjut.length) state.tindakLanjutTerkunci.length = state.tindakLanjut.length;
+    }
     // Draf lama / baru: pastikan state.tindakLanjut berupa array.
     // RALAT 22 Nov 2026 (perintah Bos Besar): TIDAK PERNAH mengisi dari
     // aturan — tindak lanjut mulai KOSONG dan hanya terisi lewat tombol
@@ -1039,6 +1108,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function pastikanTindakLanjut() {
       if (!Array.isArray(state.tindakLanjut)) state.tindakLanjut = [];
       pastikanAsalTindakLanjut();
+      pastikanKunciTindakLanjut();
     }
     pastikanTindakLanjut();
     // 22 Nov 2026 (RALAT Bos Besar): tindak lanjut mulai kosong — saat
@@ -1091,24 +1161,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function sesuaikanTindakLanjut() {
       pastikanTindakLanjut();
       pastikanAsalTindakLanjut();
+      pastikanKunciTindakLanjut();
       const kunciAda = new Set(kumpulkanKegiatanTL(hariUntukTindakLanjut()).map((k) => kunciKegiatan(k.tanggal, k)));
       let dihapus = 0;
       const simpan = [];
       const simpanAsal = [];
+      const simpanTerkunci = [];
       state.tindakLanjut.forEach((t, i) => {
         const asal = state.tindakLanjutAsal[i];
+        const terkunci = !!state.tindakLanjutTerkunci[i];
+        if (terkunci) { simpan.push(t); simpanAsal.push(asal); simpanTerkunci.push(true); return; }
         if (asal && asal !== 'manual' && !kunciAda.has(asal)) { dihapus++; return; }
-        simpan.push(t); simpanAsal.push(asal);
+        simpan.push(t); simpanAsal.push(asal); simpanTerkunci.push(false);
       });
       state.tindakLanjut = simpan;
       state.tindakLanjutAsal = simpanAsal;
+      state.tindakLanjutTerkunci = simpanTerkunci;
       return { ditambah: 0, dihapus };
     }
     // Hapus tindak lanjut kegiatan yang dihapus (17 Nov 2026, perintah
     // Bos Besar; 22 Nov 2026: hapus BERDASAR KUNCI ASAL, bukan teks
     // aturan). Dipakai saat hapus kegiatan dan hapus hari. Parameter:
     // array kunci 'tanggal|judul' kegiatan yang dihapus. Butir 'manual'
-    // dipertahankan. Butir draf lama (asal null) tidak punya kunci —
+    // dipertahankan — begitu pula butir TERKUNCI (24 Nov 2026, kunci TL:
+    // butir yang dikunci pengguna dipertahankan seperti butir manual).
+    // Butir draf lama (asal null) tidak punya kunci —
     // untuknya dipakai cara lama: hapus bila teksnya sama dengan teks
     // aturan judul kegiatan yang dihapus dan tidak ada lagi kegiatan
     // minggu ini yang menghasilkan teks itu (narasi kegiatan yang
@@ -1118,6 +1195,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     function hapusTindakLanjutUntukKegiatan(kunciTerhapus) {
       if (!Array.isArray(state.tindakLanjut) || !state.tindakLanjut.length) return;
       pastikanAsalTindakLanjut();
+      pastikanKunciTindakLanjut();
       const hapus = new Set((kunciTerhapus || []).map(String));
       const norm = (t) => String(t || '').trim().replace(/\\s+/g, ' ');
       const kunciAda = new Set(kumpulkanKegiatanTL(hariUntukTindakLanjut()).map((k) => kunciKegiatan(k.tanggal, k)));
@@ -1130,8 +1208,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       });
       const simpan = [];
       const simpanAsal = [];
+      const simpanTerkunci = [];
       state.tindakLanjut.forEach((t, i) => {
         const asal = state.tindakLanjutAsal[i];
+        const terkunci = !!state.tindakLanjutTerkunci[i];
+        if (terkunci) { simpan.push(t); simpanAsal.push(asal); simpanTerkunci.push(true); return; }
         if (asal && asal !== 'manual' && hapus.has(asal) && !kunciAda.has(asal)) return;
         if (!asal) {
           const dihapus = (kunciTerhapus || []).some((kunci) => {
@@ -1142,10 +1223,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           });
           if (dihapus) return;
         }
-        simpan.push(t); simpanAsal.push(asal);
+        simpan.push(t); simpanAsal.push(asal); simpanTerkunci.push(false);
       });
       state.tindakLanjut = simpan;
       state.tindakLanjutAsal = simpanAsal;
+      state.tindakLanjutTerkunci = simpanTerkunci;
     }
     function infoDraf(pesan) { const info = $('sp-draf-info'); if (info) info.textContent = pesan; }
     let timerSimpan = null;
@@ -1765,6 +1847,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const wadah = $('sp-tindak-list');
       if (!wadah) return;
       pastikanAsalTindakLanjut();
+      pastikanKunciTindakLanjut();
       const daftar = daftarTindakLanjut();
       if (!daftar.length) {
         wadah.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400">Tindak lanjut masih kosong — ketuk “✨ Generate Tindak Lanjut” setelah kegiatan minggu ini selesai, atau “+ Tambah Tindak Lanjut” untuk menulis sendiri.</p>';
@@ -1777,10 +1860,16 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         // keterangan) — dari kunci asal butir itu sendiri, bukan dari
         // pengelompokan teks aturan.
         const ket = keteranganUntukAsal(state.tindakLanjutAsal[i]);
+        // Kunci TL (24 Nov 2026): gembok per butir, modelnya sama dengan
+        // kunci kartu hari — butir terkunci tidak diganti Generate.
+        const terkunci = !!state.tindakLanjutTerkunci[i];
         return '<div class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">' +
           '<div class="flex items-center justify-between gap-2">' +
             '<span class="text-sm font-bold">Tindak lanjut ' + (i + 1) + '</span>' +
-            '<button type="button" data-hapus-tindak="' + i + '" class="text-xs font-bold text-red-600 hover:underline">Hapus</button>' +
+            '<span class="flex items-center gap-2">' +
+              '<button type="button" data-kunci-tindak="' + i + '" class="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-bold ' + (terkunci ? 'border-transparent bg-[#FACC15] text-[#0A2540]' : 'border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800') + '" aria-label="' + (terkunci ? 'Buka kunci butir ini' : 'Kunci butir ini') + '">' + (terkunci ? '🔒 Terkunci' : '🔓 Kunci') + '</button>' +
+              '<button type="button" data-hapus-tindak="' + i + '" class="text-xs font-bold text-red-600 hover:underline">Hapus</button>' +
+            '</span>' +
           '</div>' +
           '<label class="mt-2 block"><textarea rows="2" data-tindak="' + i + '" placeholder="Tulis tindak lanjut…" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900">' + esc(t) + '</textarea></label>' +
           (ket ? '<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">(' + esc(ket) + ')</p>' : '') +
@@ -2848,13 +2937,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       const wadahTindak = $('sp-tindak-list');
       if (wadahTindak) {
         wadahTindak.addEventListener('click', (e) => {
+          // Kunci TL (24 Nov 2026): gembok per butir — ketuk untuk
+          // mengunci/membuka; butir terkunci tidak diganti Generate.
+          const kunci = e.target.closest('[data-kunci-tindak]');
+          if (kunci) {
+            pastikanTindakLanjut();
+            pastikanKunciTindakLanjut();
+            const idxKunci = Number(kunci.dataset.kunciTindak);
+            state.tindakLanjutTerkunci[idxKunci] = !state.tindakLanjutTerkunci[idxKunci];
+            renderTindakLanjut(); simpanDraf(); renderPratinjau();
+            return;
+          }
           const hapus = e.target.closest('[data-hapus-tindak]');
           if (!hapus) return;
           pastikanTindakLanjut();
           pastikanAsalTindakLanjut();
+          pastikanKunciTindakLanjut();
           const idxHapus = Number(hapus.dataset.hapusTindak);
           state.tindakLanjut.splice(idxHapus, 1);
           state.tindakLanjutAsal.splice(idxHapus, 1);
+          state.tindakLanjutTerkunci.splice(idxHapus, 1);
           renderTindakLanjut(); simpanDraf(); renderPratinjau();
         });
         wadahTindak.addEventListener('input', (e) => {
@@ -2875,18 +2977,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-tambah-tindak').addEventListener('click', () => {
         pastikanTindakLanjut();
         pastikanAsalTindakLanjut();
+        pastikanKunciTindakLanjut();
         state.tindakLanjut.push('');
         state.tindakLanjutAsal.push('manual');
+        state.tindakLanjutTerkunci.push(false);
         renderTindakLanjut(); simpanDraf(); renderPratinjau();
       });
       // ✨ Generate Tindak Lanjut (22 Nov 2026, RALAT Bos Besar):
       // SATU-SATUNYA cara tindak lanjut terisi — daftar mulai kosong,
       // digenerate dari kegiatan minggu ini SETELAH kegiatan selesai.
-      // Membuat ulang penuh lewat AI; bila AI gagal setelah 3 percobaan,
-      // daftar TIDAK berubah (TIDAK ADA aturan kata kunci — perintah
-      // Bos Besar 22 Nov 2026); editan manual ikut diganti bila AI
-      // berhasil. Tombol nonaktif bila belum ada kegiatan minggu ini
-      // (perbaruiTombolGenerate).
+      // KUNCI (24 Nov 2026): butir TERKUNCI tidak diganti — Generate
+      // hanya menulis ulang butir yang tidak terkunci (dan mengisi
+      // kegiatan yang belum punya butir); bila semua butir terkunci, AI
+      // tidak dipanggil dan daftar tidak berubah. Bila AI gagal setelah
+      // 3 percobaan, daftar TIDAK berubah (TIDAK ADA aturan kata kunci
+      // — perintah Bos Besar 22 Nov 2026). Tombol nonaktif bila belum
+      // ada kegiatan minggu ini (perbaruiTombolGenerate).
       $('sp-isi-ulang-tindak').addEventListener('click', async () => {
         const btn = $('sp-isi-ulang-tindak');
         const kegiatan = kumpulkanKegiatanTL(hariUntukTindakLanjut());
@@ -2897,8 +3003,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         try {
           const h = await hasilkanTindakLanjutAI((n) => { btn.textContent = 'Menulis tindak lanjut… (coba ke-' + n + ')'; });
           if (h.gagal) { showStatus('AI tidak menjawab setelah 3 kali percobaan — tindak lanjut tidak berubah. Tekan ✨ Generate Tindak Lanjut lagi.', false); return; }
+          const terkunci = (state.tindakLanjutTerkunci || []).filter(Boolean).length;
           renderTindakLanjut(); simpanDraf(); renderPratinjau();
-          showStatus('Tindak Lanjut digenerate dari ' + kegiatan.length + ' kegiatan minggu ini: ' + h.sesudah + ' butir (ditulis AI).', true);
+          if (!h.dariAI) { showStatus('Semua butir tindak lanjut terkunci — tidak ada yang digenerate. Buka kunci butir bila mau digenerate ulang.', true); return; }
+          showStatus('Tindak Lanjut digenerate dari ' + kegiatan.length + ' kegiatan minggu ini: ' + h.sesudah + ' butir' + (terkunci ? ' (' + terkunci + ' butir terkunci dipertahankan)' : '') + ' (ditulis AI).', true);
         } finally {
           btn.textContent = labelAsli;
           perbaruiTombolGenerate();
