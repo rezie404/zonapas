@@ -697,17 +697,54 @@
     }
 
 
+    // ---------- Gabung halaman daftar (24 Nov 2026) ----------
+    // Endpoint daftar di Worker kini berhalaman (maks 40 berkas per
+    // panggilan) karena Worker paket gratis hanya mengizinkan 50
+    // subrequest eksternal per invocation — 61 artikel = 62 subrequest,
+    // sehingga artikel berawalan huruf akhir alfabet hilang diam-diam
+    // dari Edit Berita. muatHalaman(offset, batas) mengembalikan
+    // { items, total }. Berhenti bila halaman pendek (< batas) atau
+    // total tercapai; pengaman maks 25 halaman. Halaman yang gagal
+    // dilempar pemanggil (jangan tampilkan daftar sebagian).
+    // [AWAL] Fungsi murni gabung halaman daftar
+    async function gabungHalamanDaftar(muatHalaman, batas) {
+      const semua = [];
+      let offset = 0;
+      let total = null;
+      for (let halaman = 0; halaman < 25; halaman++) {
+        const d = await muatHalaman(offset, batas);
+        if (!d || !Array.isArray(d.items)) throw new Error('Daftar berhalaman tidak sah.');
+        semua.push(...d.items);
+        total = (typeof d.total === 'number') ? d.total : semua.length;
+        if (d.items.length < batas) break;
+        if (semua.length >= total) break;
+        offset += batas;
+      }
+      return semua;
+    }
+    // [AKHIR] Fungsi murni gabung halaman daftar
+
+
     async function loadArticles() {
       // Muat daftar lewat Worker dulu (same-origin). Memanggil api.github.com
       // langsung dari browser sering gagal total di HP Bos Besar
       // ("Failed to fetch") sehingga daftar berita tidak pernah tampil.
       // Bila Worker gagal, kembali ke gh() langsung (perilaku lama).
       let viaWorker = null;
+      let halamanLolos = 0;
       try {
-        const d = await workerGet('/redaksi/api/artikel-terbit');
-        if (d && d.ok && Array.isArray(d.articles)) viaWorker = d.articles;
+        viaWorker = await gabungHalamanDaftar(async (offset, batas) => {
+          const d = await workerGet('/redaksi/api/artikel-terbit?limit=' + batas + '&offset=' + offset);
+          if (!d || !d.ok || !Array.isArray(d.articles)) throw new Error((d && d.error) || 'Worker mengembalikan daftar yang tidak sah.');
+          halamanLolos++;
+          return { items: d.articles, total: d.total };
+        }, 40);
       } catch (e) {
         console.warn('Daftar berita via Worker gagal, coba GitHub langsung:', e);
+        // Halaman pertama gagal -> fallback gh() seperti dulu. Halaman
+        // lanjut gagal -> daftar sebagian TIDAK dipakai: lempar supaya
+        // galat tampil, jangan biarkan artikel hilang diam-diam.
+        if (halamanLolos > 0) throw e;
       }
       const loaded = [];
       if (viaWorker) {

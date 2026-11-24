@@ -149,7 +149,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     </div>
   </div>
 
-  <script is:inline src="/kelola-umum.js?v=20"></script>
+  <script is:inline src="/kelola-umum.js?v=21"></script>
   <script>
 
 
@@ -208,25 +208,31 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // muat langsung (gh) gagal total dan daftar video tidak pernah
       // tampil — Edit Video terasa "tidak respon". Fallback gh() bila
       // Worker gagal (mis. token GitHub Worker belum dipasang).
+      let halamanLolos = 0;
       try {
-        const res = await workerGet('/redaksi/api/video-terbit');
-        if (res && res.ok && Array.isArray(res.videos)) {
-          const loaded = [];
-          for (const v of res.videos) {
-            try {
-              const parsed = parseFrontmatter(v.content || '');
-              loaded.push({ slug: v.slug, path: v.path, sha: v.sha, data: parsed.data });
-            } catch (e) {
-              console.warn('Gagal memuat video ' + v.slug, e);
-            }
+        const semua = await gabungHalamanDaftar(async (offset, batas) => {
+          const r = await workerGet('/redaksi/api/video-terbit?limit=' + batas + '&offset=' + offset);
+          if (!r || !r.ok || !Array.isArray(r.videos)) throw new Error((r && r.error) || 'Worker mengembalikan daftar yang tidak sah.');
+          halamanLolos++;
+          return { items: r.videos, total: r.total };
+        }, 40);
+        const loaded = [];
+        for (const v of semua) {
+          try {
+            const parsed = parseFrontmatter(v.content || '');
+            loaded.push({ slug: v.slug, path: v.path, sha: v.sha, data: parsed.data });
+          } catch (e) {
+            console.warn('Gagal memuat video ' + v.slug, e);
           }
-          loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
-          videos = loaded;
-          renderVideoEditList();
-          return;
         }
+        loaded.sort((a, b) => String(b.data.publishDate || '').localeCompare(String(a.data.publishDate || '')));
+        videos = loaded;
+        renderVideoEditList();
+        return;
       } catch (e) {
         console.warn('Daftar video via Worker gagal, coba langsung.', e);
+        // Halaman lanjut gagal -> jangan tampilkan daftar sebagian.
+        if (halamanLolos > 0) throw e;
       }
       let list;
       try {
