@@ -62,6 +62,7 @@ export function namaFileLaporanBulanan(dari, sampai, ext) {
 const SINGKATAN_JUDUL = new Set([
   "UPT", "LPP", "WBP", "LPKA", "TPP", "KPLP", "IIA", "IIB",
   "BIMTEK", "FGD", "KPPN", "PKBI", "BMN", "TKA", "HUT",
+  "SPAK", "SPKP", "SKM", // 24 Nov 2026 (perintah Bos Besar — sama seperti daftar singkatan judul artikel)
 ]);
 const ROMAWI_JUDUL = new Set(["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]);
 // Normalisasi judul publikasi ke Huruf Kapital Setiap Kata (Title Case):
@@ -87,6 +88,11 @@ export function normalisasiJudulPublikasi(judul) {
     const atas = inti.toUpperCase();
     if (/^\d/.test(inti)) return kata; // angka (2027, 19) tidak diubah
     if (SINGKATAN_JUDUL.has(atas) || ROMAWI_JUDUL.has(atas)) return awal + atas + akhir;
+    // Kata gabungan pemisah ("SPAK-SPKP", "SPAK–SPKP"): bila SEMUA bagian
+    // hurufnya ada di daftar singkatan, seluruh kata kapital semua
+    // (24 Nov 2026 — judul SPAK Arga Makmur/Rutan Manna memakai "-" dan "–").
+    const gab = inti.split(/[-–—]/);
+    if (gab.length > 1 && gab.every((g) => SINGKATAN_JUDUL.has(g.toUpperCase()) || ROMAWI_JUDUL.has(g.toUpperCase()))) return awal + atas + akhir;
     // Huruf pertama kapital + huruf sesudah "-" atau "'" kapital, sisanya
     // huruf kecil ("sosialisasi-pembinaan" -> "Sosialisasi-Pembinaan").
     const kecil = inti.toLowerCase().replace(/(^|[-'])[a-z]/g, (c) => c.toUpperCase());
@@ -132,6 +138,9 @@ export function hitungRekap(data) {
       .map((r) => ({
         judul: normalisasiJudulPublikasi(String(r.judul || "").trim()) || REKAP_JUDUL_KOSONG,
         url: r.url,
+        // Kelas platform dibawa ke bangunTeksWa supaya pemisah judul yang
+        // sama tidak menukar lintas jenis (24 Nov 2026).
+        massa: r.platform === "Website / Media Online",
       }));
     // Tautan DATAR bernomor urut (kembali seperti sebelum revisi B1
     // 13 Nov 2026): judul = daftar unik, tautan = semua URL dalam
@@ -176,21 +185,27 @@ export function bangunTeksWa(data) {
   baris.push("Bersama ini dengan hormat kami laporkan hasil rilis kegiatan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu beserta UPT Pemasyarakatan Wilayah Bengkulu pada hari " + tglPanjang + ", sebagai berikut:");
   baris.push("");
   // Daftar rata (urutan UPT laporan; media massa dulu di tiap UPT),
-  // lalu jauhkan judul yang sama supaya tidak berdekatan.
+  // lalu jauhkan judul yang sama supaya tidak berdekatan — HANYA antar
+  // butir sejenis (sama-sama media massa atau sama-sama media sosial)
+  // dalam UPT yang sama, supaya urutan "media massa dulu" tidak rusak
+  // (24 Nov 2026: UPT bertajuk tunggal seperti Lapas Bengkulu jadi acak
+  // bila penukar lama menukar lintas jenis/UPT; bila satu UPT hanya
+  // punya satu judul, judul yang sama berurutan tidak bisa dihindari).
   const semua = [];
   for (const u of hitung.perUpt) {
-    for (const p of u.pasangan) semua.push(p);
-  }
-  for (let i = 0; i + 1 < semua.length; i++) {
-    if (semua[i].judul === semua[i + 1].judul) {
-      let j = i + 2;
-      while (j < semua.length && semua[j].judul === semua[i].judul) j++;
-      if (j < semua.length) {
-        const t = semua[i + 1];
-        semua[i + 1] = semua[j];
-        semua[j] = t;
+    const pas = [...u.pasangan];
+    for (let i = 0; i + 1 < pas.length; i++) {
+      if (pas[i].judul === pas[i + 1].judul) {
+        let j = i + 2;
+        while (j < pas.length && (pas[j].judul === pas[i].judul || pas[j].massa !== pas[i + 1].massa)) j++;
+        if (j < pas.length) {
+          const t = pas[i + 1];
+          pas[i + 1] = pas[j];
+          pas[j] = t;
+        }
       }
     }
+    for (const p of pas) semua.push(p);
   }
   for (const p of semua) {
     baris.push(p.judul);
