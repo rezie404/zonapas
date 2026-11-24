@@ -158,8 +158,10 @@ export function hitungRekap(data) {
 // seperti surat rekap Jateng yang dijadikan contoh template: tiap butir
 // judulnya langsung diikuti tautannya di baris berikut, TANPA nomor urut
 // (perintah Bos Besar 20 Nov 2026 — persis seperti surat contoh Jateng).
-// Urutan sama seperti laporan PDF/Word: urutan UPT laporan, di tiap UPT
-// media massa dulu baru media sosial. Judul dinormalisasi seperti di
+// Urutan KHUSUS versi chat WA (24 Nov 2026, perintah Bos Besar): TIDAK
+// dikelompokkan per UPT — semua media massa dulu (urutan UPT laporan),
+// baru semua media sosial (urutan UPT laporan). Laporan PDF/Word TIDAK
+// berubah: tetap dikelompokkan per UPT. Judul dinormalisasi seperti di
 // laporan (kapital tiap kata, tanda "*" dibuang). UPT nihil tidak muncul
 // di daftar (tidak ada publikasinya). Jumlah butir = jumlah publikasi
 // hari itu, sama persis dengan laporan PDF/Word.
@@ -184,15 +186,16 @@ export function bangunTeksWa(data) {
   baris.push("");
   baris.push("Bersama ini dengan hormat kami laporkan hasil rilis kegiatan Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu beserta UPT Pemasyarakatan Wilayah Bengkulu pada hari " + tglPanjang + ", sebagai berikut:");
   baris.push("");
-  // Daftar rata (urutan UPT laporan; media massa dulu di tiap UPT),
-  // lalu jauhkan judul yang sama supaya tidak berdekatan — HANYA antar
+  // Daftar rata — KHUSUS versi chat WA (24 Nov 2026, perintah Bos Besar):
+  // TIDAK dikelompokkan per UPT. Semua media massa dulu (urutan UPT
+  // laporan), baru semua media sosial (urutan UPT laporan). Pemisah judul
+  // yang sama tetap berjalan per UPT seperti sebelumnya — HANYA antar
   // butir sejenis (sama-sama media massa atau sama-sama media sosial)
   // dalam UPT yang sama, supaya urutan "media massa dulu" tidak rusak
   // (24 Nov 2026: UPT bertajuk tunggal seperti Lapas Bengkulu jadi acak
   // bila penukar lama menukar lintas jenis/UPT; bila satu UPT hanya
   // punya satu judul, judul yang sama berurutan tidak bisa dihindari).
-  const semua = [];
-  for (const u of hitung.perUpt) {
+  const perUptDitukar = hitung.perUpt.map((u) => {
     const pas = [...u.pasangan];
     for (let i = 0; i + 1 < pas.length; i++) {
       if (pas[i].judul === pas[i + 1].judul) {
@@ -205,8 +208,11 @@ export function bangunTeksWa(data) {
         }
       }
     }
-    for (const p of pas) semua.push(p);
-  }
+    return pas;
+  });
+  const semua = [];
+  for (const pas of perUptDitukar) for (const p of pas) if (p.massa) semua.push(p);
+  for (const pas of perUptDitukar) for (const p of pas) if (!p.massa) semua.push(p);
   for (const p of semua) {
     baris.push(p.judul);
     baris.push(p.url);
