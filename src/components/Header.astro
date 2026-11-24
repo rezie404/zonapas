@@ -33,12 +33,36 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
             >
               Masuk
             </a>
-            <!-- Lencana notifikasi (Nov 2026): jumlah berita yang menunggu
-                 persetujuan DITAMBAH pengajuan menjadi Penulis yang
-                 menunggu (khusus Administrator), tampil di sudut tombol
-                 profil untuk Penyunting/Administrator. Disembunyikan
-                 bila 0 / bukan penyetuju. Diisi lewat cekLoginHeader. -->
-            <span data-header-lencana class="absolute -right-1.5 -top-1.5 z-10 hidden min-w-[20px] items-center justify-center rounded-full bg-[#D9232E] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white" aria-label="Menunggu persetujuan">0</span>
+            <!-- Lencana notifikasi + panel pemberitahuan gaya IG (Nov 2026):
+                 lencana = jumlah berita yang menunggu persetujuan DITAMBAH
+                 pengajuan menjadi Penulis yang menunggu (khusus
+                 Administrator), tampil di sudut tombol profil untuk
+                 Penyunting/Administrator. Disembunyikan bila 0 / bukan
+                 penyetuju. Diketuk → panel "Pemberitahuan" terbuka,
+                 menampilkan tiap butirnya (siapa, apa, kapan) ala
+                 notifikasi IG: avatar inisial, teks, waktu relatif,
+                 dikelompokkan Hari ini / Kemarin / 7 hari terakhir.
+                 Diisi lewat cekLoginHeader; data disegarkan tiap panel
+                 dibuka. -->
+            <button
+              type="button"
+              data-header-lencana
+              class="absolute -right-1.5 -top-1.5 z-10 hidden min-w-[20px] cursor-pointer items-center justify-center rounded-full bg-[#D9232E] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white hover:bg-[#b81e28]"
+              aria-label="Menunggu persetujuan"
+              title="Pemberitahuan"
+            >0</button>
+            <div
+              data-panel-notif
+              class="absolute right-0 top-full z-50 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+              role="dialog"
+              aria-label="Pemberitahuan"
+            >
+              <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                <p class="text-sm font-bold text-slate-800 dark:text-slate-100">Pemberitahuan</p>
+                <span data-panel-notif-jumlah class="rounded-full bg-[#D9232E] px-2 py-0.5 text-[11px] font-bold text-white">0</span>
+              </div>
+              <div data-panel-notif-daftar class="max-h-[60vh] overflow-y-auto"></div>
+            </div>
             <div
               data-menu-profil
               class="absolute right-0 top-full z-50 mt-2 hidden w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
@@ -156,6 +180,11 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     var KUNCI = 'zonapas-aktivitas-terakhir';
     var diKelola = window.location.pathname.replace(/\/$/, '') === '/portal';
     var sedangMasuk = false;
+    // Panel pemberitahuan (Nov 2026): pengguna yang login + butir
+    // pemberitahuan terakhir yang dimuat untuk lencana/panel.
+    var penggunaSaatIni = null;
+    var notifItems = [];
+    var panelNotifTerbuka = false;
     var terakhirSentuh = 0;
     var sudahKeluar = false;
 
@@ -230,10 +259,15 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
         menu.classList.toggle('hidden', !buka);
         tombol.setAttribute('aria-expanded', buka ? 'true' : 'false');
       }
+      // Dipakai panel notifikasi supaya menutup menu profil lewat jalur
+      // yang sama (keadaan `terbuka` ikut benar), bukan sekadar
+      // menyembunyikan elemennya.
+      window.__tutupMenuProfil = function () { aturMenu(false); };
       tombol.setAttribute('aria-haspopup', 'true');
       tombol.setAttribute('aria-expanded', 'false');
       tombol.addEventListener('click', function (e) {
         e.preventDefault();
+        tutupPanelNotif();
         aturMenu(!terbuka);
       });
       var btnKeluar = menu.querySelector('[data-menu-keluar]');
@@ -283,13 +317,112 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     }, { passive: true });
     setInterval(cekIdle, 30000);
 
-    // Lencana notifikasi (Nov 2026): untuk Penyunting dan Administrator —
-    // jumlah berita berstatus "menunggu" persetujuan (dari
-    // /redaksi/api/antrean) DITAMBAH jumlah pengajuan menjadi Penulis yang
-    // masih "menunggu" (dari /redaksi/api/permohonan). Permohonan hanya
-    // bisa dibaca Administrator, jadi untuk Penyunting yang dihitung hanya
-    // antrean berita. Bila total 0, lencana disembunyikan. Penulis/Pembaca
+    // Panel pemberitahuan gaya IG (Nov 2026): untuk Penyunting dan
+    // Administrator — butirnya adalah berita berstatus "menunggu"
+    // persetujuan (dari /redaksi/api/antrean) DITAMBAH pengajuan menjadi
+    // Penulis yang masih "menunggu" (dari /redaksi/api/permohonan).
+    // Permohonan hanya bisa dibaca Administrator, jadi untuk Penyunting
+    // yang dihitung hanya antrean berita. Lencana menampilkan JUMLAH
+    // butirnya; diketuk, panel "Pemberitahuan" terbuka dan menampilkan
+    // tiap butir (siapa, apa, kapan) dikelompokkan Hari ini / Kemarin /
+    // 7 hari terakhir / Lebih lama, seperti notifikasi IG. Lencana TIDAK
+    // hilang saat panel dibuka — ia menghitung pekerjaan yang masih
+    // menunggu, jadi baru hilang saat butirnya diproses (disetujui /
+    // ditolak). Bila total 0, lencana disembunyikan. Penulis/Pembaca
     // tidak mendapat lencana ini.
+    // [AWAL] Fungsi murni panel notifikasi (diuji test-panel-notif.mjs)
+    function escHtmlNotif(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function inisialNama(nama) {
+      var s = String(nama || '').trim();
+      if (!s) return '?';
+      var kata = s.split(/\s+/);
+      var awal = kata[0].charAt(0);
+      var akhir = kata.length > 1 ? kata[kata.length - 1].charAt(0) : '';
+      return (awal + akhir).toUpperCase();
+    }
+    function awalHariNotif(x) {
+      var y = new Date(x);
+      y.setHours(0, 0, 0, 0);
+      return y;
+    }
+    function bedaHariNotif(ms) {
+      if (!ms) return 9999;
+      return Math.round((awalHariNotif(Date.now()) - awalHariNotif(Number(ms))) / 86400000);
+    }
+    function waktuRelatifNotif(ms) {
+      if (!ms) return '';
+      var selisih = Date.now() - Number(ms);
+      if (selisih < 60 * 1000) return 'baru saja';
+      if (selisih < 60 * 60 * 1000) return Math.floor(selisih / 60000) + ' mnt lalu';
+      var beda = bedaHariNotif(ms);
+      if (beda === 0) return Math.floor(selisih / 3600000) + ' jam lalu';
+      if (beda === 1) return 'Kemarin';
+      if (beda <= 7) return beda + ' hari lalu';
+      var d = new Date(Number(ms));
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      return dd + '/' + mm + '/' + d.getFullYear();
+    }
+    function kelompokNotif(ms) {
+      var beda = bedaHariNotif(ms);
+      if (beda <= 0) return 'Hari ini';
+      if (beda === 1) return 'Kemarin';
+      if (beda <= 7) return '7 hari terakhir';
+      return 'Lebih lama';
+    }
+    function gabungNotif(hasil) {
+      var items = [];
+      (hasil.artikel || []).forEach(function (a) {
+        items.push({ jenis: 'artikel', judul: a.title, nama: a.author, kategori: a.category, waktu: a.updated_at, id: a.id });
+      });
+      (hasil.permohonan || []).forEach(function (p) {
+        items.push({ jenis: 'permohonan', judul: p.nama, nama: p.nama, email: p.email, waktu: p.created_at, id: p.id });
+      });
+      items.sort(function (x, y) { return (y.waktu || 0) - (x.waktu || 0); });
+      return items;
+    }
+    // [AKHIR] Fungsi murni panel notifikasi
+    function ambilNotif(user) {
+      var token = ambilTokenGithub();
+      var headers = {};
+      if (token) headers['X-GitHub-Token'] = token;
+      function daftarMenunggu(d, kunci) {
+        if (d && d.ok && Array.isArray(d[kunci])) {
+          return d[kunci].filter(function (x) { return x.status === 'menunggu'; });
+        }
+        return [];
+      }
+      var pAntrean = fetch('/redaksi/api/antrean', { credentials: 'same-origin', headers: headers })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { return daftarMenunggu(d, 'articles'); })
+        .catch(function () { return []; });
+      if (user.role === 'admin') {
+        var pPermohonan = fetch('/redaksi/api/permohonan', { credentials: 'same-origin', headers: headers })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { return daftarMenunggu(d, 'permohonan'); })
+          .catch(function () { return []; });
+        return Promise.all([pAntrean, pPermohonan]).then(function (h) {
+          return { artikel: h[0], permohonan: h[1] };
+        });
+      }
+      return pAntrean.then(function (a) { return { artikel: a, permohonan: [] }; });
+    }
+    function tampilkanLencana(n) {
+      var lencana = document.querySelector('[data-header-lencana]');
+      if (!lencana) return;
+      lencana.textContent = String(n);
+      // `hidden` dan `flex` sama-sama mengatur display — keduanya
+      // di-toggle bersama supaya hanya satu yang aktif (K15): angka
+      // terpusat oleh items-center/justify-center saat lencana tampil.
+      lencana.classList.toggle('hidden', n === 0);
+      lencana.classList.toggle('flex', n > 0);
+      lencana.setAttribute('aria-label', n > 0 ? (n + ' pemberitahuan menunggu') : 'Tidak ada pemberitahuan');
+      lencana.setAttribute('title', n > 0 ? (n + ' pemberitahuan menunggu — ketuk untuk melihat') : 'Tidak ada pemberitahuan');
+    }
     function perbaruiLencanaAntrean(user) {
       var lencana = document.querySelector('[data-header-lencana]');
       if (!lencana) return;
@@ -298,39 +431,84 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
         lencana.classList.remove('flex');
         return;
       }
-      var token = ambilTokenGithub();
-      var headers = {};
-      if (token) headers['X-GitHub-Token'] = token;
-      function hitungMenunggu(d, kunci) {
-        if (d && d.ok && Array.isArray(d[kunci])) {
-          return d[kunci].filter(function (x) { return x.status === 'menunggu'; }).length;
-        }
-        return 0;
+      ambilNotif(user).then(function (hasil) {
+        notifItems = gabungNotif(hasil);
+        tampilkanLencana(notifItems.length);
+      });
+    }
+    function renderPanelNotif() {
+      var daftar = document.querySelector('[data-panel-notif-daftar]');
+      var jumlah = document.querySelector('[data-panel-notif-jumlah]');
+      if (!daftar) return;
+      if (jumlah) jumlah.textContent = String(notifItems.length);
+      if (!notifItems.length) {
+        daftar.innerHTML = '<p class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">Tidak ada pemberitahuan baru.</p>';
+        return;
       }
-      function tampilkan(n) {
-        lencana.textContent = String(n);
-        // `hidden` dan `flex` sama-sama mengatur display — keduanya
-        // di-toggle bersama supaya hanya satu yang aktif (K15): angka
-        // terpusat oleh items-center/justify-center saat lencana tampil.
-        lencana.classList.toggle('hidden', n === 0);
-        lencana.classList.toggle('flex', n > 0);
-        lencana.setAttribute('aria-label', n > 0 ? (n + ' menunggu persetujuan') : 'Tidak ada yang menunggu persetujuan');
-      }
-      var pAntrean = fetch('/redaksi/api/antrean', { credentials: 'same-origin', headers: headers })
-        .then(function (r) { return r.json(); })
-        .then(function (d) { return hitungMenunggu(d, 'articles'); })
-        .catch(function () { return 0; });
-      if (user.role === 'admin') {
-        var pPermohonan = fetch('/redaksi/api/permohonan', { credentials: 'same-origin', headers: headers })
-          .then(function (r) { return r.json(); })
-          .then(function (d) { return hitungMenunggu(d, 'permohonan'); })
-          .catch(function () { return 0; });
-        Promise.all([pAntrean, pPermohonan]).then(function (hasil) {
-          tampilkan(hasil[0] + hasil[1]);
+      var urutan = ['Hari ini', 'Kemarin', '7 hari terakhir', 'Lebih lama'];
+      var svgDokumen = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>';
+      var svgOrang = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
+      var h = '';
+      urutan.forEach(function (k) {
+        var isi = notifItems.filter(function (x) { return kelompokNotif(x.waktu) === k; });
+        if (!isi.length) return;
+        h += '<p class="border-b border-slate-100 px-4 pb-1 pt-3 text-xs font-bold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">' + k + '</p>';
+        isi.forEach(function (x) {
+          var adalahArtikel = x.jenis === 'artikel';
+          var tautan = adalahArtikel ? '/portal/kelola-berita/antrean/' : '/portal/kelola-pengguna/';
+          var ikonKanan = adalahArtikel
+            ? '<span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#0A2540] text-white">' + svgDokumen + '</span>'
+            : '<span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#FACC15] text-[#0A2540]">' + svgOrang + '</span>';
+          var teksAksi = adalahArtikel ? 'mengirim artikel menunggu persetujuan' : 'mengajukan diri menjadi Penulis';
+          var barisKedua = adalahArtikel ? (x.judul || '(tanpa judul)') : (x.email || '');
+          var meta = waktuRelatifNotif(x.waktu) + (adalahArtikel && x.kategori ? ' · ' + x.kategori : '');
+          h += '<a href="' + tautan + '" class="flex items-start gap-3 bg-sky-50 px-4 py-3 hover:bg-sky-100 dark:bg-sky-900/20 dark:hover:bg-sky-900/30">' +
+            '<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-sm font-bold text-white">' + escHtmlNotif(inisialNama(x.nama)) + '</span>' +
+            '<span class="min-w-0 flex-1">' +
+            '<span class="block text-sm leading-snug text-slate-800 dark:text-slate-100"><b>' + escHtmlNotif(x.nama || '(tanpa nama)') + '</b> ' + teksAksi + '</span>' +
+            '<span class="block truncate text-sm font-bold text-slate-800 dark:text-slate-100">' + escHtmlNotif(barisKedua) + '</span>' +
+            '<span class="block text-xs text-slate-500 dark:text-slate-400">' + escHtmlNotif(meta) + '</span>' +
+            '</span>' + ikonKanan + '</a>';
         });
-      } else {
-        pAntrean.then(tampilkan);
-      }
+      });
+      daftar.innerHTML = h;
+    }
+    function tutupPanelNotif() {
+      var panel = document.querySelector('[data-panel-notif]');
+      if (panel) panel.classList.add('hidden');
+      panelNotifTerbuka = false;
+    }
+    function bukaPanelNotif() {
+      var panel = document.querySelector('[data-panel-notif]');
+      if (!panel || !penggunaSaatIni) return;
+      // Segarkan datanya dulu supaya isi panel yang terbaru, baru tampilkan.
+      ambilNotif(penggunaSaatIni).then(function (hasil) {
+        notifItems = gabungNotif(hasil);
+        tampilkanLencana(notifItems.length);
+        renderPanelNotif();
+        panel.classList.remove('hidden');
+        panelNotifTerbuka = true;
+        if (window.__tutupMenuProfil) window.__tutupMenuProfil();
+      });
+    }
+    function pasangPanelNotif() {
+      var lencana = document.querySelector('[data-header-lencana]');
+      if (!lencana || lencana.dataset.panelTerpasang) return;
+      lencana.dataset.panelTerpasang = '1';
+      lencana.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (panelNotifTerbuka) { tutupPanelNotif(); return; }
+        bukaPanelNotif();
+      });
+      document.addEventListener('click', function (e) {
+        if (!panelNotifTerbuka) return;
+        var panel = document.querySelector('[data-panel-notif]');
+        if (panel && !panel.contains(e.target) && !lencana.contains(e.target)) tutupPanelNotif();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && panelNotifTerbuka) tutupPanelNotif();
+      });
     }
     // Cek login header dengan auth yang SAMA seperti kelola-umum.js: cookie
     // + token GitHub dari sessionStorage bila ada. Tanpa token, sesi yang
@@ -349,6 +527,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
         .then(function (d) {
           if (d && d.ok && d.user) {
             sedangMasuk = true;
+            penggunaSaatIni = d.user;
             if (!diKelola) { perbaruiHeader(d.user); pasangMenuProfil(d.user); perbaruiLencanaAntrean(d.user); }
             catatAktivitas();
             cekIdle();
@@ -361,6 +540,7 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
     // Dipanggil kelola-umum.js setelah login berhasil di halaman Portal,
     // supaya header ikut berubah tanpa menunggu muat ulang.
     window.__segarkanHeaderLogin = function () { if (!diKelola) cekLoginHeader(); };
+    pasangPanelNotif();
     cekLoginHeader().then(function (ok) {
       // Bila cookie belum ada saat header dicek (kelola-umum.js baru menukar
       // token jadi cookie sesaat setelahnya), coba sekali lagi.
