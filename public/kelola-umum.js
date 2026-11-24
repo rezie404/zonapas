@@ -521,6 +521,8 @@
       if (kartuVideo) kartuVideo.classList.toggle('hidden', peran !== 'admin');
       const kartuEditVideo = $('kartu-edit-video');
       if (kartuEditVideo) kartuEditVideo.classList.toggle('hidden', peran !== 'admin');
+      const kartuRegulasi = $('kartu-regulasi');
+      if (kartuRegulasi) kartuRegulasi.classList.toggle('hidden', peran !== 'admin');
     }
 
 

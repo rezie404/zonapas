@@ -1,0 +1,367 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import InfoBubble from '../../../components/InfoBubble.astro';
+
+// Regulasi Pemasyarakatan — Kelola (khusus Administrator, 24 Nov 2026).
+// PDF peraturan diunggah ke Internet Archive lewat Worker (bukan ke
+// repo — kapasitas repo hanya untuk berita). Kunci S3 IA diisi di halaman
+// ini dan disimpan di server (tabel meta DO); kunci TIDAK PERNAH
+// dikembalikan ke klien. Hapus peraturan hanya menghapus metadata di
+// ZonaPas — berkas di Internet Archive tidak ikut terhapus.
+const JENIS = ["UU", "Perppu", "PP", "Perpres", "Permenkumham", "Kepdirjenpas", "SE"];
+---
+
+<BaseLayout
+  title="Regulasi Pemasyarakatan"
+  description="Tambah peraturan perundangan tentang pemasyarakatan (khusus Administrator)."
+>
+  <div class="mx-auto max-w-[1200px] px-4 py-6">
+    <div class="border-b-2 border-[#0A2540] pb-4 dark:border-white">
+      <h1 class="text-2xl font-black uppercase tracking-tight sm:text-3xl">Regulasi Pemasyarakatan</h1>
+      <div class="mt-2 h-1.5 w-20 rounded bg-[#FACC15]" aria-hidden="true"></div>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Peraturan perundangan tentang pemasyarakatan. PDF tersimpan di Internet Archive — tidak memakai penyimpanan ZonaPas. Daftar dan pratinjau bisa dibaca semua pengunjung; baca selengkapnya dan unduh hanya setelah masuk dengan Google.
+      </p>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-4 hidden rounded-lg px-4 py-3 text-sm font-medium" role="status"></div>
+
+    <!-- Login -->
+    <section id="login-box" class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+      <img src="/images/logo-zonapas.png" alt="Logo ZonaPas" class="mx-auto h-16 w-16 rounded-full object-cover" width="64" height="64" />
+      <h2 class="mt-3 text-lg font-bold">Masuk untuk mengelola berita</h2>
+      <p class="mx-auto mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
+        Masuk dengan GitHub (khusus Administrator) atau dengan akun Google Redaksi Anda.
+        Akses dan tombol yang tampil mengikuti peran akun Anda.
+      </p>
+      <button
+        id="btn-login"
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]"
+      >
+        <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+        Masuk dengan GitHub
+      </button>
+      <a
+        href="/redaksi/auth/google"
+        class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      >
+        Masuk dengan Google
+      </a>
+      <p id="login-fallback" class="mt-3 hidden text-xs text-slate-500 dark:text-slate-400">
+        Popup diblokir?
+        <a href="https://oauth.zonapas.web.id/auth" target="_blank" class="font-bold text-[#0A2540] underline dark:text-white">Buka login GitHub di tab baru</a>
+        — setelah otorisasi, kembali ke tab ini.
+      </p>
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        Belum bisa masuk? CMS Decap di <a href="/admin/" class="font-bold text-[#0A2540] underline dark:text-white">/admin/</a> tetap tersedia sebagai cadangan.
+      </p>
+    </section>
+
+    <!-- Akses ditolak (akun tanpa binding peran) -->
+    <section id="akses-ditolak" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+      <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Akun ini belum punya akses</h2>
+      <p id="akses-ditolak-pesan" class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Akun ini belum punya akses — hubungi Administrator untuk meminta akses Kelola Berita.</p>
+      <button id="btn-akses-keluar" type="button" class="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">Keluar &amp; Coba Akun Lain</button>
+    </section>
+
+    <!-- Aplikasi (setelah login) -->
+    <div id="app" class="hidden">
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <span id="user-chip" class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold dark:bg-slate-800">
+          <img id="user-avatar" alt="" class="h-6 w-6 rounded-full" width="24" height="24" />
+          <span id="user-name"></span>
+        </span>
+        <span class="flex-1"></span>
+        <a href="/portal/kelola-berita/" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke Kelola Berita</a>
+        <button id="btn-keluar" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Keluar</button>
+      </div>
+
+      <!-- Bukan Administrator -->
+      <section id="regulasi-bukan-admin" class="mt-6 hidden rounded-2xl border border-red-300 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
+        <h2 class="text-lg font-bold text-red-900 dark:text-red-100">Khusus Administrator</h2>
+        <p class="mx-auto mt-1 max-w-md text-sm text-red-800 dark:text-red-200">Menambah dan menghapus peraturan hanya bisa dilakukan Administrator.</p>
+      </section>
+
+      <!-- Regulasi (khusus Administrator) -->
+      <section id="regulasi-section" class="hidden pt-8" aria-label="Regulasi Pemasyarakatan">
+        <div class="mb-4 flex items-center justify-between border-b-2 border-[#0A2540] pb-2">
+          <h2 class="text-lg font-black uppercase tracking-tight">Regulasi Pemasyarakatan</h2>
+          <button id="btn-regulasi-muat-ulang" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Muat Ulang</button>
+        </div>
+
+        <!-- (a) Kunci Internet Archive -->
+        <form id="form-kunci" class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <div>
+            <div class="mb-1 flex flex-wrap items-center gap-x-2">
+              <span class="text-sm font-bold">Kunci Internet Archive</span>
+              <InfoBubble label="Kunci Internet Archive">
+                <p class="mt-1 text-xs text-slate-500">Kunci S3 dari halaman archive.org/account/s3.php (Access Key dan Secret Key). Kunci disimpan di server ZonaPas dan tidak pernah ditampilkan kembali — yang tampil hanya status terisi/belum. Tanpa kunci, peraturan tidak bisa diunggah.</p>
+              </InfoBubble>
+            </div>
+            <p id="kunci-status" class="text-sm text-slate-500 dark:text-slate-400">Memeriksa status kunci…</p>
+          </div>
+          <div>
+            <label for="k-access" class="mb-1 block text-sm font-bold">Access Key *</label>
+            <input id="k-access" type="password" required autocomplete="off" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </div>
+          <div>
+            <label for="k-secret" class="mb-1 block text-sm font-bold">Secret Key *</label>
+            <input id="k-secret" type="password" required autocomplete="off" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </div>
+          <div>
+            <button type="submit" id="btn-kunci-simpan" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Simpan Kunci</button>
+          </div>
+        </form>
+
+        <!-- (b) Tambah peraturan -->
+        <form id="form-peraturan" class="mt-6 grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <div>
+            <div class="mb-1 flex flex-wrap items-center gap-x-2">
+              <span class="text-sm font-bold">Tambah Peraturan</span>
+              <InfoBubble label="Tambah Peraturan">
+                <p class="mt-1 text-xs text-slate-500">PDF diunggah ke Internet Archive lewat Worker — tidak memakai penyimpanan ZonaPas. Pengenal arsip dibuat otomatis dari jenis, nomor, tahun, dan judul (mis. uu-22-2022-pemasyarakatan). Peraturan baru langsung tampil di halaman /regulasi/ tanpa rebuild.</p>
+              </InfoBubble>
+            </div>
+          </div>
+          <div>
+            <label for="p-judul" class="mb-1 block text-sm font-bold">Judul Peraturan *</label>
+            <input id="p-judul" required maxlength="200" placeholder="mis. Undang-Undang tentang Pemasyarakatan" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </div>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label for="p-nomor" class="mb-1 block text-sm font-bold">Nomor *</label>
+              <input id="p-nomor" required maxlength="50" placeholder="mis. 22" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="p-tahun" class="mb-1 block text-sm font-bold">Tahun *</label>
+              <input id="p-tahun" required type="number" min="1945" max="2100" placeholder="mis. 2022" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+            </div>
+            <div>
+              <label for="p-jenis" class="mb-1 block text-sm font-bold">Jenis *</label>
+              <select id="p-jenis" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+                {JENIS.map((j) => (<option value={j}>{j}</option>))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="p-ringkasan" class="mb-1 block text-sm font-bold">Ringkasan singkat (pratinjau)</label>
+            <textarea id="p-ringkasan" rows="2" maxlength="1000" placeholder="Satu-dua kalimat isi pokok peraturan — tampil sebagai pratinjau untuk semua pengunjung." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"></textarea>
+          </div>
+          <div>
+            <label for="p-berkas" class="mb-1 block text-sm font-bold">Berkas PDF * (maks 25 MB)</label>
+            <input id="p-berkas" type="file" accept="application/pdf,.pdf" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" />
+          </div>
+          <div id="peraturan-progress-wrap" class="hidden">
+            <progress id="peraturan-progress" max="100" value="0" class="w-full"></progress>
+            <p id="peraturan-progress-teks" class="mt-1 text-xs text-slate-500">Mengunggah…</p>
+          </div>
+          <div>
+            <button type="submit" id="btn-peraturan-unggah" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">Unggah Peraturan</button>
+          </div>
+        </form>
+
+        <!-- (c) Daftar peraturan -->
+        <div class="mt-6">
+          <h3 class="text-sm font-black uppercase tracking-tight">Peraturan yang sudah ada</h3>
+          <div id="peraturan-list" class="mt-2 divide-y divide-slate-200 dark:divide-slate-800"><p class="py-3 text-sm text-slate-500">Memuat…</p></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script is:inline src="/kelola-umum.js?v=22"></script>
+  <script>
+    // Hook: dimuat setelah login (dipanggil setLoggedIn di kelola-umum.js).
+    window.__kelolaSetelahLogin = () => {
+      var adalahAdmin = peran === 'admin';
+      var seksi = $('regulasi-section');
+      var bukanAdmin = $('regulasi-bukan-admin');
+      if (seksi) seksi.classList.toggle('hidden', !adalahAdmin);
+      if (bukanAdmin) bukanAdmin.classList.toggle('hidden', adalahAdmin);
+      if (!adalahAdmin) return;
+      muatStatusKunci();
+      muatDaftarPeraturan();
+    };
+
+    async function muatStatusKunci() {
+      var el = $('kunci-status');
+      if (!el) return;
+      el.textContent = 'Memeriksa status kunci…';
+      try {
+        var d = await workerGet('/redaksi/api/peraturan/kunci/status', { timeoutMs: 15000 });
+        el.innerHTML = d.ok && d.terisi
+          ? '<span class="font-bold text-green-700 dark:text-green-400">Kunci Internet Archive sudah terisi.</span> Peraturan bisa diunggah.'
+          : '<span class="font-bold text-red-700 dark:text-red-400">Kunci Internet Archive belum diisi.</span> Isi Access Key dan Secret Key di bawah ini sebelum mengunggah peraturan.';
+      } catch (e) {
+        el.innerHTML = '<span class="font-bold text-amber-700 dark:text-amber-400">Tidak dapat memeriksa status kunci.</span> ' + esc(e.message || 'galat') + ' <button type="button" id="kunci-coba-lagi" class="font-bold underline">Coba lagi</button>';
+        var b = $('kunci-coba-lagi');
+        if (b) b.addEventListener('click', muatStatusKunci);
+      }
+    }
+
+    on('form-kunci', 'submit', async (e) => {
+      e.preventDefault();
+      if (peran !== 'admin') return;
+      var btn = $('btn-kunci-simpan');
+      var ak = ($('k-access').value || '').trim();
+      var sk = ($('k-secret').value || '').trim();
+      if (!ak || !sk) { showStatus('Access Key dan Secret Key wajib diisi.', false); return; }
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan…';
+      try {
+        var d = await workerPost('/redaksi/api/peraturan/kunci', { accessKey: ak, secretKey: sk });
+        if (!d.ok) throw new Error(d.error || 'Gagal menyimpan kunci.');
+        $('k-access').value = '';
+        $('k-secret').value = '';
+        showStatus('Kunci Internet Archive tersimpan.', true);
+        muatStatusKunci();
+      } catch (err) {
+        showStatus('Gagal menyimpan kunci: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Simpan Kunci';
+      }
+    });
+
+    // Unggah multipart: workerPost memaksa Content-Type JSON, jadi pakai
+    // fetch mentah dengan FormData (tanpa Content-Type — peramban yang
+    // memasang boundary multipart). Auth sama seperti workerApi: cookie
+    // same-origin + header X-GitHub-Token bila sesi lewat token GitHub.
+    async function unggahPeraturan(fd) {
+      var headers = {};
+      var tokenGithub = null;
+      try { tokenGithub = sessionStorage.getItem('zonapas-kelola-token'); } catch (e) {}
+      if (tokenGithub) headers['X-GitHub-Token'] = tokenGithub;
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 180000);
+      try {
+        var res = await fetch('/redaksi/api/peraturan', { method: 'POST', credentials: 'same-origin', headers: headers, body: fd, signal: controller.signal });
+        var data = null;
+        try { data = await res.json(); } catch (e) {}
+        if (!res.ok) throw new Error((data && data.error) || ('Worker mengembalikan status ' + res.status));
+        return data || {};
+      } catch (e) {
+        if (e && e.name === 'AbortError') throw new Error('Unggahan habis waktu (lebih dari 3 menit). Periksa koneksi lalu coba lagi.');
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // Jaga sesi selama unggah (pola ZonaPasTV): unggah PDF besar di koneksi
+    // lambat bisa melewati 10 menit tanpa klik/ketik, dan logout di tengah
+    // jalan akan menggagalkan unggahan.
+    var jagaSesiTimer = null;
+    function sentuhAktivitasUnggah() {
+      try { localStorage.setItem('zonapas-aktivitas-terakhir', String(Date.now())); } catch (e) {}
+      try { fetch('/redaksi/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(function () {}); } catch (e) {}
+    }
+    function mulaiJagaSesi() {
+      berhentiJagaSesi();
+      sentuhAktivitasUnggah();
+      jagaSesiTimer = setInterval(sentuhAktivitasUnggah, 2 * 60 * 1000);
+    }
+    function berhentiJagaSesi() {
+      if (jagaSesiTimer) { clearInterval(jagaSesiTimer); jagaSesiTimer = null; }
+    }
+
+    on('form-peraturan', 'submit', async (e) => {
+      e.preventDefault();
+      if (peran !== 'admin') return;
+      var btn = $('btn-peraturan-unggah');
+      var judul = ($('p-judul').value || '').trim();
+      var nomor = ($('p-nomor').value || '').trim();
+      var tahun = parseInt($('p-tahun').value || '', 10);
+      var jenis = $('p-jenis').value || '';
+      var ringkasan = ($('p-ringkasan').value || '').trim();
+      var file = $('p-berkas').files && $('p-berkas').files[0];
+      if (!judul) { showStatus('Judul peraturan wajib diisi.', false); return; }
+      if (!nomor) { showStatus('Nomor peraturan wajib diisi.', false); return; }
+      if (!Number.isInteger(tahun) || tahun < 1945 || tahun > new Date().getFullYear() + 1) { showStatus('Tahun peraturan tidak valid.', false); return; }
+      if (!file) { showStatus('Pilih berkas PDF dulu.', false); return; }
+      if (!/\.pdf$/i.test(file.name || '')) { showStatus('Berkas harus PDF.', false); return; }
+      if (file.size > 25 * 1024 * 1024) { showStatus('Berkas PDF maksimal 25 MB.', false); return; }
+      btn.disabled = true;
+      btn.textContent = 'Mengunggah…';
+      var wrap = $('peraturan-progress-wrap');
+      var bar = $('peraturan-progress');
+      var teks = $('peraturan-progress-teks');
+      if (wrap) wrap.classList.remove('hidden');
+      if (bar) { bar.removeAttribute('value'); }
+      if (teks) teks.textContent = 'Mengunggah PDF ke Internet Archive…';
+      mulaiJagaSesi();
+      try {
+        var fd = new FormData();
+        fd.set('judul', judul);
+        fd.set('nomor', nomor);
+        fd.set('tahun', String(tahun));
+        fd.set('jenis', jenis);
+        fd.set('ringkasan', ringkasan);
+        fd.set('berkas', file);
+        var d = await unggahPeraturan(fd);
+        if (!d.ok || !d.peraturan) throw new Error((d && d.error) || 'Gagal mengunggah peraturan.');
+        showStatus('Peraturan "' + judul + '" terunggah ke Internet Archive dan tampil di halaman Regulasi Pemasyarakatan.', true);
+        $('form-peraturan').reset();
+        if (wrap) wrap.classList.add('hidden');
+        await muatDaftarPeraturan();
+      } catch (err) {
+        showStatus('Gagal mengunggah peraturan: ' + err.message, false);
+      } finally {
+        berhentiJagaSesi();
+        btn.disabled = false;
+        btn.textContent = 'Unggah Peraturan';
+      }
+    });
+
+    async function muatDaftarPeraturan() {
+      var el = $('peraturan-list');
+      if (!el) return;
+      el.innerHTML = '<p class="py-3 text-sm text-slate-500">Memuat…</p>';
+      try {
+        var d = await workerGet('/redaksi/api/peraturan', { timeoutMs: 15000 });
+        var list = (d && d.ok && Array.isArray(d.peraturan)) ? d.peraturan : [];
+        if (!list.length) {
+          el.innerHTML = '<p class="py-3 text-sm text-slate-500">Belum ada peraturan.</p>';
+          return;
+        }
+        el.innerHTML = list.map(function (p) {
+          return '<article class="flex gap-3 py-4">' +
+            '<div class="min-w-0 flex-1">' +
+            '<span class="block text-sm font-bold leading-snug">' + esc(p.judul || '(tanpa judul)') + '</span>' +
+            '<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">' + esc(p.jenis) + ' Nomor ' + esc(p.nomor) + ' Tahun ' + esc(p.tahun) + ' · ' + esc(p.identifier) + '</span>' +
+            '<div class="mt-2 flex gap-2"><a href="/regulasi/?id=' + encodeURIComponent(p.identifier) + '" target="_blank" rel="noopener" class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Lihat</a>' +
+            '<button type="button" data-peraturan-hapus="' + esc(p.id) + '" class="rounded-md border border-[#D9232E] px-2.5 py-1 text-xs font-bold text-[#D9232E] hover:bg-[#D9232E] hover:text-white">Hapus</button></div>' +
+            '</div></article>';
+        }).join('');
+      } catch (err) {
+        el.innerHTML = '<p class="py-3 text-sm text-slate-500">Gagal memuat daftar: ' + esc(err.message || 'galat') + '</p>';
+      }
+    }
+
+    on('btn-regulasi-muat-ulang', 'click', () => {
+      showStatus('Memuat ulang…', true);
+      muatStatusKunci();
+      muatDaftarPeraturan().catch((err) => showStatus('Gagal memuat daftar: ' + err.message, false));
+    });
+
+    document.addEventListener('click', async (e) => {
+      // Hapus peraturan (khusus Administrator): hanya metadata di ZonaPas
+      // yang dihapus — berkas di Internet Archive TIDAK ikut terhapus.
+      var delBtn = e.target.closest('[data-peraturan-hapus]');
+      if (!delBtn) return;
+      if (peran !== 'admin') return;
+      var id = delBtn.getAttribute('data-peraturan-hapus');
+      if (!confirm('Hapus peraturan ini dari ZonaPas? Berkas di Internet Archive tidak ikut terhapus. Tindakan ini tidak bisa dibatalkan.')) return;
+      try {
+        var d = await workerApi('/redaksi/api/peraturan/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!d.ok) throw new Error(d.error || 'Gagal menghapus peraturan.');
+        showStatus('Peraturan dihapus dari ZonaPas. ' + (d.catatan || ''), true);
+        await muatDaftarPeraturan();
+      } catch (err) {
+        showStatus('Gagal menghapus peraturan: ' + err.message, false);
+      }
+    });
+  </script>
+</BaseLayout>

@@ -135,20 +135,39 @@ const isMasukPage = currentPath === '/masuk' || currentPath === '/masuk/';
       >
         Berita UPT
       </a>
+      <a
+        href="/regulasi/"
+        class={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold ${currentPath.startsWith('/regulasi/') ? 'bg-[#0A2540] text-white' : 'text-[#0A2540] hover:bg-white/60'}`}
+      >
+        Regulasi Pemasyarakatan
+      </a>
     </nav>
   </div>
 
   <div id="mobile-menu" class="hidden border-t border-[#0A2540]/20 bg-[#FFCC00] px-4 py-3 lg:hidden">
-    <nav class="grid grid-cols-2 gap-1" aria-label="Menu kategori">
-      <a href="/" class="rounded-lg px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-white/60">Beranda</a>
-      {CATEGORIES.filter((cat) => cat.slug !== 'profil-upt' && cat.slug !== 'kegiatan-upt').map((cat) => (
-        <a href={`/${cat.slug}/`} class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60">{cat.name}</a>
-      ))}
-      <a href="/upt/" class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60">Berita UPT</a>
-      <a href="/video/" class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60">ZonaPasTV</a>
-      {!isMasukPage && (
-        <a href="/masuk/" data-header-masuk class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#14365c]">Masuk</a>
-      )}
+    <!-- Menu dikelompokkan (24 Nov 2026): kelompok "Menu" (Masuk, Beranda,
+         ZonaPasTV, Regulasi Pemasyarakatan) lalu kelompok "Kategori"
+         (12 kategori + Berita UPT, tetap dua kolom). Beranda pindah dari
+         deretan kategori ke kelompok Menu; tombol Masuk yang tadinya
+         berdiri sendiri di bawah daftar menjadi baris pertama kelompok
+         Menu. Daftar kategori tidak diubah. -->
+    <nav aria-label="Menu">
+      <p class="px-3 pb-1 pt-1 text-xs font-black uppercase tracking-[0.15em] text-[#0A2540]/70">Menu</p>
+      <div class="grid grid-cols-1 gap-1">
+        {!isMasukPage && (
+          <a href="/masuk/" data-header-masuk class="rounded-lg bg-[#0A2540] px-3 py-2 text-sm font-bold text-white hover:bg-[#14365c]">Masuk</a>
+        )}
+        <a href="/" class={`rounded-lg px-3 py-2 text-sm font-bold text-[#0A2540] hover:bg-white/60 ${currentPath === '/' ? 'bg-white/60' : ''}`}>Beranda</a>
+        <a href="/video/" class={`rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60 ${currentPath.startsWith('/video/') ? 'bg-white/60' : ''}`}>ZonaPasTV</a>
+        <a href="/regulasi/" class={`rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60 ${currentPath.startsWith('/regulasi/') ? 'bg-white/60' : ''}`}>Regulasi Pemasyarakatan</a>
+      </div>
+      <p class="px-3 pb-1 pt-3 text-xs font-black uppercase tracking-[0.15em] text-[#0A2540]/70">Kategori</p>
+      <div class="grid grid-cols-2 gap-1" aria-label="Kategori berita">
+        {CATEGORIES.filter((cat) => cat.slug !== 'profil-upt' && cat.slug !== 'kegiatan-upt').map((cat) => (
+          <a href={`/${cat.slug}/`} class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60">{cat.name}</a>
+        ))}
+        <a href="/upt/" class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0A2540] hover:bg-white/60">Berita UPT</a>
+      </div>
     </nav>
     <!-- Pemilih font (Nov 2026): sama seperti di header desktop. -->
     <div class="mt-3 flex items-center gap-2 border-t border-[#0A2540]/20 pt-3">
