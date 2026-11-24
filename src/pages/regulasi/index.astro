@@ -149,6 +149,41 @@ const JENIS = ["UU", "Perppu", "PP", "Perpres", "Permenkumham", "Kepdirjenpas", 
         } catch (e) { pengguna = null; }
         return pengguna;
       }
+      function muatPratinjauPdf(p) {
+        var wadah = $('regulasi-pratinjau');
+        if (!wadah) return;
+        wadah.innerHTML = '<p class="p-6 text-center text-sm text-slate-500 dark:text-slate-400">Memuat halaman pertama…</p>';
+        function gagal() {
+          wadah.innerHTML = '<p class="p-6 text-center text-sm text-slate-500 dark:text-slate-400">Pratinjau halaman pertama tidak bisa dimuat. Coba segarkan halaman, atau unduh PDF-nya di bawah.</p>';
+        }
+        function siap() {
+          try {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            window.pdfjsLib.getDocument('/redaksi/api/peraturan/' + encodeURIComponent(p.identifier) + '/berkas').promise.then(function (doc) {
+              return doc.getPage(1);
+            }).then(function (page) {
+              var lebar = wadah.clientWidth || 600;
+              var skala = Math.min(2, lebar / page.getViewport({ scale: 1 }).width);
+              var vp = page.getViewport({ scale: skala });
+              var kanvas = document.createElement('canvas');
+              kanvas.width = Math.floor(vp.width);
+              kanvas.height = Math.floor(vp.height);
+              kanvas.style.width = '100%';
+              kanvas.style.height = 'auto';
+              kanvas.style.display = 'block';
+              wadah.innerHTML = '';
+              wadah.appendChild(kanvas);
+              return page.render({ canvasContext: kanvas.getContext('2d'), viewport: vp }).promise;
+            }).catch(gagal);
+          } catch (e) { gagal(); }
+        }
+        if (window.pdfjsLib) { siap(); return; }
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = siap;
+        s.onerror = gagal;
+        document.head.appendChild(s);
+      }
       function tampilkanDetail(p) {
         var el = $('regulasi-detail');
         var next = '/regulasi/?id=' + encodeURIComponent(p.identifier);
@@ -165,21 +200,20 @@ const JENIS = ["UU", "Perppu", "PP", "Perpres", "Permenkumham", "Kepdirjenpas", 
         var akses = $('regulasi-akses');
         cekLogin().then(function (user) {
           if (user) {
-            // Pratinjau = halaman pertama PDF (25 Nov 2026, perintah Bos
-            // Besar): penampil Google Docs memuat PDF langsung dari
-            // tautan unduhnya, mulai dari halaman 1 — tidak menunggu
-            // derive Internet Archive (BookReader embed butuh derive
-            // selesai dan sempat kosong ~40 menit). Tetap hanya untuk
-            // yang sudah masuk; tamu tetap melihat kotak masuk dulu.
-            var pratinjau = 'https://docs.google.com/gview?embedded=1&url=' + encodeURIComponent(p.tautan_unduh);
+            // Pratinjau = halaman pertama PDF, digambar langsung di halaman
+            // (25 Nov 2026, ralat): penampil Google Docs GAGAL di HP
+            // (kotak abu-abu + ikon rusak) karena tautan archive.org/download
+            // mengarah ulang (302) dan penampil Google tidak mengikutinya.
+            // pdf.js memuat PDF lewat Worker (/berkas, origin sama — tanpa
+            // CORS) lalu menggambar halaman 1 ke canvas. Bila gagal, kotak
+            // pratinjau menampilkan pesan + tombol Unduh PDF tetap ada.
             akses.innerHTML =
-              '<div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">' +
-              '<iframe src="' + esc(pratinjau) + '" title="Pratinjau ' + esc(p.judul) + '" class="h-[600px] w-full" frameborder="0" allowfullscreen></iframe>' +
-              '</div>' +
+              '<div id="regulasi-pratinjau" class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"></div>' +
               '<p class="mt-3 flex flex-wrap gap-2">' +
               '<a href="' + esc(p.tautan_unduh) + '" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">Unduh PDF</a>' +
               '<a href="https://archive.org/details/' + encodeURIComponent(p.identifier) + '" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Buka di Internet Archive</a>' +
               '</p>';
+            muatPratinjauPdf(p);
           } else {
             akses.innerHTML =
               '<div class="rounded-xl border border-[#FACC15] bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-900/20">' +
