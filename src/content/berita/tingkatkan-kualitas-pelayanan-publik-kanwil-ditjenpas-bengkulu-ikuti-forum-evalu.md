@@ -13,6 +13,7 @@ breakingSince: "2026-11-24T08:14:12.053Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-dF5qp1HZJdaM59OJDtPgsvvXbpSEOeOXMjqbXbReCM-je7q-=s96-c"
 source: "zonapas"
+jurnalpas_id: 552
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti forum evaluasi Survei Persepsi Anti Korupsi (SPAK) dan Survei Persepsi Kualitas Pelayanan/Survei Kepuasan Masyarakat (SPKP/SKM) Tahun 2026 di lingkungan Kementerian Imigrasi dan Pemasyarakatan. Kegiatan ini diselenggarakan sebagai bagian dari upaya mengevaluasi pelaksanaan survei sekaligus mengukur persepsi masyarakat terhadap integritas dan kualitas pelayanan publik.
