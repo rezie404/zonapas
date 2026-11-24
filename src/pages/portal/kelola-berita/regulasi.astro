@@ -97,7 +97,7 @@ const JENIS = ["UU", "Perppu", "PP", "Perpres", "Permenkumham", "Kepdirjenpas", 
             <div class="mb-1 flex flex-wrap items-center gap-x-2">
               <span class="text-sm font-bold">Kunci Internet Archive</span>
               <InfoBubble label="Kunci Internet Archive">
-                <p class="mt-1 text-xs text-slate-500">Kunci S3 dari halaman archive.org/account/s3.php (Access Key dan Secret Key). Kunci disimpan di server ZonaPas dan tidak pernah ditampilkan kembali — yang tampil hanya status terisi/belum. Tanpa kunci, peraturan tidak bisa diunggah.</p>
+                <p class="mt-1 text-xs text-slate-500">Kunci S3 dari halaman archive.org/account/s3.php (Access Key dan Secret Key). Kunci disimpan di server ZonaPas dan tidak pernah ditampilkan utuh kembali — yang tampil hanya status, potongan awal-akhir Access Key, dan jumlah karakter. Tombol Uji Kunci memeriksa apakah Internet Archive menerima kuncinya, tanpa mengunggah apa pun. Tanpa kunci, peraturan tidak bisa diunggah.</p>
               </InfoBubble>
             </div>
             <p id="kunci-status" class="text-sm text-slate-500 dark:text-slate-400">Memeriksa status kunci…</p>
@@ -191,13 +191,42 @@ const JENIS = ["UU", "Perppu", "PP", "Perpres", "Permenkumham", "Kepdirjenpas", 
       el.textContent = 'Memeriksa status kunci…';
       try {
         var d = await workerGet('/redaksi/api/peraturan/kunci/status', { timeoutMs: 15000 });
-        el.innerHTML = d.ok && d.terisi
-          ? '<span class="font-bold text-green-700 dark:text-green-400">Kunci Internet Archive sudah terisi.</span> Peraturan bisa diunggah.'
-          : '<span class="font-bold text-red-700 dark:text-red-400">Kunci Internet Archive belum diisi.</span> Isi Access Key dan Secret Key di bawah ini sebelum mengunggah peraturan.';
+        if (!(d.ok && d.terisi)) {
+          el.innerHTML = '<span class="font-bold text-red-700 dark:text-red-400">Kunci Internet Archive belum diisi.</span> Isi Access Key dan Secret Key di bawah ini sebelum mengunggah peraturan.';
+          return;
+        }
+        var info = await workerGet('/redaksi/api/peraturan/kunci/info', { timeoutMs: 15000 });
+        el.innerHTML = '<span class="font-bold text-green-700 dark:text-green-400">Kunci Internet Archive sudah terisi.</span> Peraturan bisa diunggah.'
+          + '<br><span class="text-xs">Tersimpan: Access Key ' + esc(info.access_key_masked || '—') + ' (' + (info.access_key_len || 0) + ' karakter) · Secret Key ' + (info.secret_key_len || 0) + ' karakter.</span>'
+          + ' <button type="button" id="kunci-uji" class="font-bold underline">Uji Kunci</button>'
+          + '<span id="kunci-uji-hasil" class="text-xs"></span>';
+        var u = $('kunci-uji');
+        if (u) u.addEventListener('click', ujiKunci);
       } catch (e) {
         el.innerHTML = '<span class="font-bold text-amber-700 dark:text-amber-400">Tidak dapat memeriksa status kunci.</span> ' + esc(e.message || 'galat') + ' <button type="button" id="kunci-coba-lagi" class="font-bold underline">Coba lagi</button>';
         var b = $('kunci-coba-lagi');
         if (b) b.addEventListener('click', muatStatusKunci);
+      }
+    }
+
+    // Uji kunci tersimpan ke Internet Archive tanpa mengunggah apa pun
+    // (25 Nov 2026): membedakan kunci salah salin vs akun belum aktif.
+    async function ujiKunci() {
+      var hasil = $('kunci-uji-hasil');
+      var btn = $('kunci-uji');
+      if (!hasil) return;
+      if (btn) btn.disabled = true;
+      hasil.textContent = ' Menguji…';
+      hasil.className = 'text-xs';
+      try {
+        var d = await workerPost('/redaksi/api/peraturan/kunci/uji', {});
+        hasil.textContent = ' ' + (d.ok ? (d.pesan || 'Kunci diterima Internet Archive.') : (d.error || 'Kunci ditolak.'));
+        hasil.className = 'text-xs font-bold ' + (d.ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400');
+      } catch (e) {
+        hasil.textContent = ' ' + (e.message || 'Gagal menguji kunci.');
+        hasil.className = 'text-xs font-bold text-red-700 dark:text-red-400';
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
