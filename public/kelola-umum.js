@@ -1276,6 +1276,7 @@
       // judulnya tetap kapital tiap kata. (Cermin worker.js — ubah di keduanya.)
       'PB', 'RI', 'SDM', 'HIV', 'AIDS', 'TBC', 'DPR', 'MPR', 'DPD', 'DPRD', 'MA', 'MK', 'KY', 'KPK', 'KPU', 'DKPP', 'POLRI', 'BIN', 'BNPT', 'BNPB', 'BMKG', 'BPOM', 'OJK', 'BI', 'LPS', 'BPS', 'BKN', 'BPJS', 'HAM', 'KUHP', 'KUHAP', 'UU', 'UUD',
       'APBN', 'APBD', 'DAK', 'DAU', 'DBH', 'PAD', 'PBB', 'NPWP', 'SPT', 'DJP', 'DIPA', 'UMKM', 'KUR', 'KPR', 'KTP', 'KK', 'BPHTB', 'RKA', 'RKAKL', 'SPM', 'KPA', 'PPK', 'BLT', 'PKH', 'KIP', 'JKN', 'KIS', 'BUMN', 'BUMD', 'PT', 'CV', 'UD', 'PD', 'RPJMD', 'RPJMN', 'RKPD', 'APIP', 'SAKIP', 'SPIP', 'LAKIP', 'WBK', 'WBBM', 'ZI', 'RB', 'SPBE', 'BPD', 'SK', 'SE', 'PP',
+      'SPAK', 'SPKP', 'SKM', // Survei Persepsi Anti Korupsi; Survei Persepsi Kualitas Pelayanan / Survei Kepuasan Masyarakat (24 Nov 2026)
       'SD', 'SMP', 'SMA', 'SMK', 'MI', 'UIN', 'IAIN', 'RS', 'RSUD', 'RSU', 'PAUD', 'STNK', 'SIM', 'BPKB', 'IMB', 'PBG', 'SLF', 'UKL', 'UPL', 'RKL', 'RPL', 'TPS', 'TPA', 'RT', 'RW', 'KUA',
       'CB', 'CMB', 'PK', 'SDP', 'TPPO', 'TPPU', 'OTT', 'SPDP', 'BAP', 'LP', 'DPO', 'KDRT', 'LGBT',
       'PGRI', 'IDI', 'IBI', 'PPNI', 'IAI', 'KAI', 'PLN', 'PDAM', 'SAR', 'PMI', 'KNPI', 'PKK', 'BKKBN', 'KB', 'DBD', 'ISPA', 'ODGJ', 'ODP', 'PDP',

@@ -1,5 +1,5 @@
 ---
-title: "Tingkatkan Kualitas Pelayanan Publik, Kanwil Ditjenpas Bengkulu Ikuti Forum Evaluasi Spak-spkp/skm Tahun 2026"
+title: "Tingkatkan Kualitas Pelayanan Publik, Kanwil Ditjenpas Bengkulu Ikuti Forum Evaluasi SPAK-SPKP/SKM Tahun 2026"
 summary: "Bengkulu – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu mengikuti forum evaluasi Survei Persepsi Anti Korupsi (SPAK) dan Survei Persepsi Kualitas…"
 category: "Pelayanan"
 tags: ["Umum", "Kanwil"]
