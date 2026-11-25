@@ -1,11 +1,9 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
-import { formatDateShort, thumbCover } from '../data/site';
+import { formatDateShort, thumbCover, bandingkanBerita } from '../data/site';
 
 export const GET: APIRoute = async () => {
-  const entries = (await getCollection('berita')).sort(
-    (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
-  );
+  const entries = (await getCollection('berita')).sort(bandingkanBerita);
   const index = entries.map((e) => ({
     slug: e.id.replace(/\.md$/, ''),
     url: `/berita/${e.id.replace(/\.md$/, '')}/`,

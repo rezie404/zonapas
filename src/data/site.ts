@@ -83,6 +83,23 @@ export function formatDateShort(date: Date): string {
   }).format(date);
 }
 
+// Urutan berita terbaru (25 Nov 2026): tanggal terbit dulu (terbaru di
+// atas). Tanggal terbit artikel hanya tanggal (tanpa jam), jadi semua
+// artikel di hari yang sama seri — penentunya jam terbit (breakingSince,
+// waktu artikel ditandai Breaking saat terbit) supaya yang terbit
+// belakangan di hari yang sama naik ke atas. Artikel tanpa breakingSince
+// (bukan Breaking / lama) memakai 0 sehingga urutan lamanya dipertahankan.
+export function bandingkanBerita(
+  a: { data: { publishDate: Date; breakingSince?: string } },
+  b: { data: { publishDate: Date; breakingSince?: string } },
+): number {
+  const tgl = b.data.publishDate.getTime() - a.data.publishDate.getTime();
+  if (tgl !== 0) return tgl;
+  const jamA = a.data.breakingSince ? new Date(a.data.breakingSince).getTime() || 0 : 0;
+  const jamB = b.data.breakingSince ? new Date(b.data.breakingSince).getTime() || 0 : 0;
+  return jamB - jamA;
+}
+
 export function readingMinutes(body: string): number {
   const words = body.split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
