@@ -13,7 +13,6 @@ breakingSince: "2026-11-25T07:19:01.005Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
-jurnalpas_id: 559
 ---
 
 **Bengkulu** – Dalam rangka memperingati Hari Anak Internasional, Lembaga Pembinaan Khusus Anak (LPKA) Kelas II Bengkulu menggelar berbagai perlombaan rekreatif bagi Anak Binaan pada Rabu (25/11/2026). Kegiatan yang berlangsung pukul 09.30 hingga 12.00 WIB di Lapangan Wisma Hunian LPKA Kelas II Bengkulu ini diikuti oleh 59 orang Anak Binaan.
@@ -30,4 +29,4 @@ Melalui peringatan Hari Anak Internasional ini, LPKA Kelas II Bengkulu berupaya 
 
 Kegiatan ini diharapkan dapat terus menjadi bagian dari program pembinaan yang humanis dan berorientasi pada pemenuhan hak anak, sekaligus menumbuhkan nilai sportivitas, kedisiplinan, kerja sama, dan rasa persaudaraan.
 
-![FEED instagram (2](/images/isi-lpka-bengkulu-meriahkan-hari-anak-internasional-59-anak-binaan-ikuti-perlombaan-20261125141751614655.jpg)
+![FEED instagram (2](/images/isi-lpka-bengkulu-meriahkan-hari-anak-internasional-59-anak-binaan-ikuti-perlombaan-20261125150005025423.jpg)
