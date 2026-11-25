@@ -13,6 +13,7 @@ breakingSince: "2026-11-25T07:01:49.962Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 557
 ---
 
 **Bengkulu** – Dalam upaya meningkatkan efektivitas pelaksanaan tugas dan fungsi, Lembaga Pembinaan Khusus Anak (LPKA) Kelas II Bengkulu menggelar rapat koordinasi internal pada Rabu (25/11/2026) pukul 10.00 WIB, bertempat di LPKA Kelas II Bengkulu.
