@@ -13,6 +13,7 @@ breakingSince: "2026-11-25T11:23:59.931Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-ILUyJ5OvaH_M7RGip-FEELrF82o0Paw4-lfRgUl61ppIB9xP=s96-c"
 source: "zonapas"
+jurnalpas_id: 565
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu bersama Biro SDM Setjen Kementerian Imigrasi dan Pemasyarakatan serta tim Badan Kepegawaian Negara (BKN) melaksanakan pengecekan dan penyegelan lokasi ujian pada Rabu (25/11/2026). Kegiatan ini dilakukan sebagai bagian dari persiapan pelaksanaan Ujian Penyesuaian Ijazah.
