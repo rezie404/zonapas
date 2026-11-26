@@ -13,6 +13,7 @@ breakingSince: "2026-11-26T08:46:28.403Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-dF5qp1HZJdaM59OJDtPgsvvXbpSEOeOXMjqbXbReCM-je7q-=s96-c"
 source: "zonapas"
+jurnalpas_id: 575
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu menggelar rapat internal dalam rangka membahas Program Wilayah Tertib Pemasyarakatan (WATERPAS) pada Kamis (26/11/2026). Rapat ini menjadi bagian dari upaya mematangkan konsep dan arah pelaksanaan program guna mewujudkan tata kelola pemasyarakatan yang tertib, terukur, dan akuntabel.
