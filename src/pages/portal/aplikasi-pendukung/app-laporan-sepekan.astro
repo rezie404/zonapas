@@ -1545,16 +1545,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (sinkronTertunda) { sinkronTertunda = false; jadwalSinkronServer(); }
       }
     }
-    // Muat draf server saat aplikasi dibuka: draf server yang lebih baru
-    // menggantikan draf lokal; draf lokal (termasuk yang dibuat sebelum
-    // fitur server ini ada, tanpa stempel waktu) diunggah ke server.
-    // Mengembalikan true bila ada draf di server.
-    // paksa = true: draf server dimuat walau draf lokal lebih baru —
-    // dengan konfirmasi dulu bila draf lokal lebih baru dan berisi,
-    // supaya editan yang belum terkirim tidak tertimpa diam-diam.
-    // (Tombol 📂 Buka Draft yang dulu memanggil paksa=true DIHAPUS
-    // 22 Nov 2026 atas perintah Bos Besar; pemuatan awal memakai
-    // paksa=false.)
     // ---------- Daftar + buka draf, model Word (27 Nov 2026) ----------
     // Aplikasi dibuka kosong; daftar berkas draf dimuat dari server
     // (satu kali saat dibuka, lalu tiap kali menu Buka dibuka). Tiap
@@ -1569,6 +1559,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         }
         daftarDraf = r.daftar;
         daftarDrafDimuat = true;
+        // Perbaikan 27 Nov 2026 (ditemukan saat verifikasi live): pesan
+        // galat boot tadi JANGAN dibiarkan menempel bila daftar berhasil
+        // dimuat sesudah login — perbarui statusnya di sini.
+        infoDraf(daftarDraf.length ? 'Daftar draf dimuat dari server — ' + daftarDraf.length + ' berkas tersimpan.' : 'Daftar draf dimuat dari server — belum ada berkas tersimpan.');
         return true;
       } catch {
         infoDraf('Server belum terjangkau — daftar draf belum bisa dimuat; draf di peramban ini tetap aman.');
