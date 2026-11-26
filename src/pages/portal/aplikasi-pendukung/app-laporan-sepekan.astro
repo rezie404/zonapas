@@ -114,7 +114,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           <button id="sp-tarik" type="button" class="rounded-lg bg-[#0A2540] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a66]">📥 Tarik Berita Minggu Ini</button>
           <button id="sp-minggu-ini" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Set ke minggu ini</button>
           <InfoBubble label="Tarik Berita">
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan: saat aplikasi dibuka (bila belum ada draf) dan setiap kali periode diubah, berita Senin–Minggu pada periode itu ditarik sendiri — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Berita ZonaPas masuk otomatis ke laporan saat laporan baru dibuat (tombol ➕ Baru) dan setiap kali periode diubah — judul, narasi, dan foto kegiatan terisi dari berita, dan kedua foto sampul terisi dari foto berita. Tombol Tarik Berita untuk menarik ulang secara manual. Semua masih bisa diedit setelah ditarik.</p>
           </InfoBubble>
         </div>
       </section>
@@ -182,9 +182,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         <button id="sp-unduh" type="button" class="rounded-lg bg-[#0A2540] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#123a66]">⬇ Unduh PDF</button>
         <button id="sp-lihat" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Lihat Pratinjau ↓</button>
         <button id="sp-simpan-draf" type="button" class="rounded-lg bg-[#FACC15] px-4 py-2.5 text-sm font-bold text-[#0A2540] hover:bg-[#eab308]">💾 Simpan Draft</button>
+        <button id="sp-buka-draf" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">📂 Buka Draft</button>
+        <button id="sp-baru" type="button" class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">➕ Baru</button>
         <span class="flex-1"></span>
       </section>
-      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan otomatis di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini — aman walau keluar lalu masuk lagi atau ganti perangkat. Ketuk 💾 Simpan Draft untuk menyimpan sekarang dengan konfirmasi (termasuk 2 foto sampul).</p>
+      <p id="sp-draf-info" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Model Word: aplikasi dibuka kosong. Ketuk 📂 Buka Draft untuk melanjutkan draf yang sudah disimpan (daftar menampilkan siapa terakhir mengubahnya), ➕ Baru untuk laporan baru minggu ini, atau 💾 Simpan Draft untuk menyimpan laporan yang sedang dibuka. Draf tersimpan di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini.</p>
+
+      <!-- Panel Buka Draft (model Word, 27 Nov 2026) -->
+      <div id="sp-panel-buka" class="fixed inset-0 z-[70] hidden overflow-y-auto bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Buka Draft">
+        <div class="mx-auto my-6 w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg font-black">📂 Buka Draft</h2>
+            <button id="sp-tutup-buka" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Tutup ✕</button>
+          </div>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Draf tersimpan di server dan dibagikan untuk semua akun yang bisa mengakses aplikasi ini. Ketuk <b>Buka</b> untuk melanjutkan draf, atau <b>Hapus</b> untuk menghapus berkasnya.</p>
+          <div id="sp-daftar-draf" class="mt-4 space-y-3"></div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button id="sp-muat-ulang-daftar" type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">↻ Muat ulang daftar</button>
+          </div>
+        </div>
+      </div>
       </div>
 
       <!-- Pratinjau (halaman sendiri saat ?pratinjau=1) -->
@@ -723,20 +740,51 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         if (btn) { btn.disabled = false; btn.textContent = teksTombol; }
       }
     }
-    function setMingguIni() {
+    function mingguIniIso() {
       const kini = new Date();
       const senin = new Date(kini);
       senin.setDate(kini.getDate() - ((kini.getDay() + 6) % 7));
       const sabtu = new Date(senin);
       sabtu.setDate(senin.getDate() + 5);
-      state.mulai = fmtTglIso(senin);
-      state.akhir = fmtTglIso(sabtu);
-      state.ttd = fmtTglIso(sabtu);
+      return { mulai: fmtTglIso(senin), akhir: fmtTglIso(sabtu), ttd: fmtTglIso(sabtu) };
+    }
+    function setMingguIni() {
+      const p = mingguIniIso();
+      state.mulai = p.mulai;
+      state.akhir = p.akhir;
+      state.ttd = p.ttd;
+      drafTerbukaId = idDrafDariState();
       tulisStateKeForm();
       simpanDraf();
       renderPratinjau();
       showStatus('Periode diset ke minggu ini: ' + teksPeriode() + ' (Senin–Sabtu).', true);
       tarikBeritaMingguIni();
+    }
+    // Simpan draf yang sedang dibuka (atau isi laporan kosong) sebelum
+    // pindah ke draf lain — supaya editan tidak hilang. Bila laporan
+    // kosong dan belum ada draf dibuka, tidak ada yang disimpan.
+    async function simpanJikaAdaIsi() {
+      if (!drafTerbukaId && !drafBerisi(state)) return;
+      await simpanDrafSegera();
+    }
+    // Model Word: ➕ Baru = laporan baru minggu ini. Bila sudah ada
+    // berkas untuk minggu ini di server, berkas itu yang dibuka (supaya
+    // tidak ada dua berkas untuk periode yang sama) — kecuali berkasnya
+    // masih kosong dan laporan ini juga kosong, maka berita ditarik
+    // seperti laporan baru.
+    async function baruLaporan() {
+      await simpanJikaAdaIsi();
+      const p = mingguIniIso();
+      const idBaru = p.mulai + '_' + p.akhir;
+      if (!daftarDrafDimuat) await muatDaftarDraf();
+      const ada = (daftarDraf || []).find((x) => x.id === idBaru);
+      if (ada && Number(ada.jumlah_kegiatan || 0) > 0) {
+        showStatus('Draf minggu ini sudah ada — dibuka dari daftar.', true);
+        await bukaDraf(idBaru);
+        return;
+      }
+      drafTerbukaId = idBaru;
+      setMingguIni();
     }
     // Tarik otomatis (debounce) bila tanggal periode diubah manual.
     let timerTarikOtomatis = null;
@@ -799,8 +847,42 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         return d;
       } catch { return null; }
     }
+    // Model Word (27 Nov 2026, perintah Bos Besar): aplikasi dibuka
+    // KOSONG — draf lama tidak dimuat otomatis. Salinan lokal
+    // (drafTersimpan) hanya dipakai sebagai cadangan: di halaman
+    // pratinjau (?pratinjau=1, yang dibuka sesudah Simpan menulis
+    // salinan itu), atau bila salinan lokal untuk periode yang sama
+    // lebih baru dari berkas server saat draf itu dibuka (lihat bukaDraf).
+    const modePratinjau = new URLSearchParams(location.search).get('pratinjau') === '1';
     const drafTersimpan = muatDraf();
-    let state = drafTersimpan || klon(TEMPLATE);
+    let state = (modePratinjau && drafTersimpan) ? drafTersimpan : klon(TEMPLATE);
+    if (!modePratinjau) {
+      // Laporan kosong minggu ini (tanpa contoh template).
+      state.hari = [];
+      const kini = new Date();
+      const senin = new Date(kini);
+      senin.setDate(kini.getDate() - ((kini.getDay() + 6) % 7));
+      const sabtu = new Date(senin);
+      sabtu.setDate(senin.getDate() + 5);
+      state.mulai = fmtTglIso(senin);
+      state.akhir = fmtTglIso(sabtu);
+      state.ttd = fmtTglIso(sabtu);
+    }
+    // Draf yang sedang dibuka (null = belum ada draf dibuka — laporan
+    // kosong minggu ini). ID berkas = "mulai_akhir".
+    let drafTerbukaId = (modePratinjau && drafTersimpan && drafTersimpan.mulai && drafTersimpan.akhir)
+      ? (drafTersimpan.mulai + '_' + drafTersimpan.akhir) : null;
+    let drafTerbukaDiubahOleh = '';
+    // Daftar berkas draf di server (untuk menu Buka).
+    let daftarDraf = [];
+    let daftarDrafDimuat = false;
+    function idDrafDariState() {
+      if (!state || !state.mulai || !state.akhir) return '';
+      return state.mulai + '_' + state.akhir;
+    }
+    function jumlahKegiatanState() {
+      return (state.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
+    }
     // Isi bab dari draf lama dibuang — bab kini TETAP dari TEMPLATE.
     ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
     // Narasi hasil tarik berita lama yang masih berawalan kota dibersihkan
@@ -1238,7 +1320,11 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         const ok = await tulisDrafLokal();
         if (ok) infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
         else infoDraf('Draf tidak tersimpan (penyimpanan peramban penuh) — segera unduh PDF Anda.');
-        jadwalSinkronServer();
+        // Model Word (27 Nov 2026): kirim ke server hanya bila ada draf
+        // dibuka — laporan kosong di boot tidak boleh membuat berkas
+        // kosong di server. Salinan lokal tetap ditulis (cadangan).
+        if (drafTerbukaId) jadwalSinkronServer();
+        else infoDraf('Draf tersimpan di peramban ini — ketuk 💾 Simpan Draft untuk menyimpan ke server.');
       }, 400);
     }
     // K20: tulis draf SECARA SINKRON (tanpa debounce 400 ms) — dipakai
@@ -1256,10 +1342,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     async function simpanDrafSegera() {
       clearTimeout(timerSimpan);
       timerSimpan = null;
-      // 20 Nov 2026: pastikan draf server sudah dimuat dulu — bila halaman
-      // baru dimuat ulang, draf lokal bisa masih kosong dan belum tentu
-      // draf yang sebenarnya.
-      if (!sinkronAwalBerhasil) await sinkronDrafServerAwal();
       state.diperbarui = Date.now();
       const lokalOk = await tulisDrafLokal();
       if (lokalOk) infoDraf('Draf tersimpan di peramban ini — mengirim ke server…');
@@ -1289,22 +1371,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let sinkronServerBerjalan = false;
     let sinkronTertunda = false;
     let sinkronGagalUlang = 0;
-    let drafServerAda = false;
-    let drafServerTerakhir = 0;
-    // 20 Nov 2026 (reload tidak boleh menghilangkan draf): sinkron awal
-    // berhasil = server berhasil dihubungi (ada draf atau tidak). Selama
-    // belum berhasil, JANGAN kirim apa pun ke server — draf lokal bisa
-    // jadi template kosong (halaman dimuat ulang saat server belum
-    // terjangkau) dan mengirimnya akan menimpa draf berisi di server.
-    let sinkronAwalBerhasil = false;
-    // 27 Nov 2026: janji sinkron awal — hook login menunggu janji ini
-    // selesai dulu sebelum mencoba ulang, supaya tidak ada dua sinkron
-    // berjalan bersamaan.
-    let janjiSinkronAwal = null;
-    // Apakah draf di server (saat terakhir berhasil dimuat) berisi
-    // kegiatan atau foto sampul kustom — dipakai penjaga "isi
-    // mengalahkan stempel waktu".
-    let serverBerisi = false;
+    // Model Word (27 Nov 2026): janji pemuatan daftar draf — hook login
+    // menunggu janji ini selesai dulu sebelum mencoba ulang, supaya
+    // tidak ada dua pemuatan daftar berjalan bersamaan.
+    let janjiDaftarDraf = null;
     // Draf disebut berisi bila ada satu kegiatan dengan judul/narasi
     // terisi atau foto. Draf kosong = semua kartu hari tanpa kegiatan.
     function adaKegiatan(draf) {
@@ -1313,17 +1383,13 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     // ---------- Foto sampul kustom (21 Nov 2026) ----------
     // Foto sampul yang diunggah pengguna hilang tiap login ulang karena
-    // dua hal: (1) unggahan hanya memicu autosave debounce — bila
-    // keluar/tab ditutup sebelum kirim ke server selesai, foto hanya
-    // ada di peramban itu; (2) saat draf server dimuat, draf lokal
-    // diganti mentah-mentah bila stempel server lebih baru, dan
-    // penanda "berisi" hanya menghitung kegiatan — draf lokal yang
-    // isinya hanya foto sampul kustom dianggap kosong lalu ditimpa
-    // draf server berfoto template, dan salinan lokal ikut tertimpa.
-    // Perbaikan: foto sampul kustom ikut dihitung sebagai isi draf,
-    // dan saat draf server dimuat, foto kustom lokal dipertahankan
-    // (per foto) bila server masih memakai foto template — lalu
-    // gabungannya langsung dikirim ke server.
+    // unggahan hanya memicu autosave debounce — bila keluar/tab ditutup
+    // sebelum kirim ke server selesai, foto hanya ada di peramban itu.
+    // Perbaikan: foto sampul kustom ikut dihitung sebagai isi draf
+    // (drafBerisi), supaya draf yang isinya hanya foto sampul kustom
+    // tetap dianggap berisi dan tidak dibuang. Model Word (27 Nov 2026):
+    // saat draf dibuka, salinan lokal yang lebih baru dipakai utuh
+    // (termasuk foto sampulnya) — tidak ada lagi penggabungan foto.
     function fotoSampulKustom(url) {
       return !!url && url !== FOTO_POTRET_TEMPLATE && url !== FOTO_LAPANGAN_TEMPLATE;
     }
@@ -1333,12 +1399,6 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     function drafBerisi(draf) {
       return adaKegiatan(draf) || adaFotoSampulKustom(draf);
-    }
-    function gabungFotoSampul(drafServer, drafLokal) {
-      const hasil = { ...drafServer };
-      if (fotoSampulKustom(drafLokal.fotoPotret) && !fotoSampulKustom(drafServer.fotoPotret)) hasil.fotoPotret = drafLokal.fotoPotret;
-      if (fotoSampulKustom(drafLokal.fotoLapangan) && !fotoSampulKustom(drafServer.fotoLapangan)) hasil.fotoLapangan = drafLokal.fotoLapangan;
-      return hasil;
     }
     // ---------- Draf ringan untuk localStorage (22 Nov 2026) ----------
     // Akar "penyimpanan peramban penuh": draf menyimpan foto sebagai
@@ -1426,27 +1486,26 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     let galatServerTerakhir = '';
     async function kirimDrafKeServer() {
       if (typeof workerPost !== 'function') return false;
-      // 20 Nov 2026: jangan kirim sebelum sinkron awal berhasil. Coba
-      // sinkron dulu; bila server tetap tidak terjangkau, tahan
-      // pengiriman — draf aman di peramban ini dan akan dikirim begitu
-      // server terjangkau (percobaan diulang otomatis tiap ada perubahan).
-      if (!sinkronAwalBerhasil) {
-        const okAwal = await sinkronDrafServerAwal();
-        if (!okAwal) {
-          galatServerTerakhir = 'Server belum terjangkau.';
-          infoDraf('Server belum terjangkau — draf aman di peramban ini; akan dikirim begitu server terjangkau.');
-          return false;
-        }
-      }
+      // Model Word (27 Nov 2026): kirim hanya bila ada draf dibuka —
+      // laporan kosong di boot tidak boleh membuat berkas kosong di
+      // server. Bila server tidak terjangkau, draf aman di peramban ini
+      // dan pengiriman diulang otomatis tiap ada perubahan.
+      if (!drafTerbukaId) return false;
       try {
         state.diperbarui = Date.now();
+        const idLama = drafTerbukaId;
         const r = await workerPost('/redaksi/api/sepekan/draf', { data: state }, { timeoutMs: 30000 });
         if (r && r.ok) {
-          drafServerAda = true;
-          drafServerTerakhir = r.diperbarui || Date.now();
+          const idBaru = r.id || idDrafDariState();
+          drafTerbukaId = idBaru;
+          drafTerbukaDiubahOleh = r.diubah_oleh || drafTerbukaDiubahOleh;
           sinkronGagalUlang = 0;
           galatServerTerakhir = '';
-          infoDraf('Draf tersimpan di server ✓ — aman walau keluar lalu masuk lagi atau ganti perangkat.');
+          // Periode berubah = berkas pindah periode; berkas lama tetap
+          // ada di menu Buka (tidak dihapus otomatis — bisa dihapus
+          // manual bila memang tidak diperlukan lagi).
+          const pindahPeriode = idLama && idLama !== idBaru;
+          infoDraf('Draf tersimpan di server ✓' + (drafTerbukaDiubahOleh ? ' — terakhir diubah oleh ' + drafTerbukaDiubahOleh : '') + (pindahPeriode ? ' — disimpan sebagai periode baru; berkas periode lama tetap ada di menu Buka.' : ' — aman walau keluar lalu masuk lagi atau ganti perangkat.'));
           return true;
         }
         galatServerTerakhir = 'Server menolak simpanan.';
@@ -1458,6 +1517,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     }
     async function simpanDrafServer() {
       if (typeof workerPost !== 'function') return;
+      // Model Word (27 Nov 2026): tidak ada draf dibuka = tidak ada
+      // yang dikirim (laporan kosong di boot tidak membuat berkas).
+      if (!drafTerbukaId) return;
       // Perbaikan 20 Nov 2026: jangan buang sinkronisasi diam-diam
       // bila satu sedang berjalan — tandai tertunda, jalankan lagi
       // begitu yang berjalan selesai.
@@ -1493,72 +1555,186 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // (Tombol 📂 Buka Draft yang dulu memanggil paksa=true DIHAPUS
     // 22 Nov 2026 atas perintah Bos Besar; pemuatan awal memakai
     // paksa=false.)
-    async function sinkronDrafServerAwal(paksa) {
+    // ---------- Daftar + buka draf, model Word (27 Nov 2026) ----------
+    // Aplikasi dibuka kosong; daftar berkas draf dimuat dari server
+    // (satu kali saat dibuka, lalu tiap kali menu Buka dibuka). Tiap
+    // berkas = satu periode, dengan nama akun terakhir mengubahnya.
+    async function muatDaftarDraf() {
       if (typeof workerGet !== 'function') return false;
       try {
-        const r = await workerGet('/redaksi/api/sepekan/draf', { timeoutMs: 15000 });
-        // 20 Nov 2026: bedakan "server tidak terjangkau" dari "server
-        // tidak punya draf". Hanya bila server berhasil dihubungi, kirim
-        // ke server diizinkan dan tarik otomatis boleh jalan.
-        if (!r || !r.ok) {
-          infoDraf('Server belum terjangkau — menampilkan draf peramban ini; draf tidak akan hilang, dan draf server akan dimuat begitu terjangkau.');
-          if (paksa) showStatus('Server belum terjangkau — draf yang tampil tetap draf peramban ini.', false);
+        const r = await workerGet('/redaksi/api/sepekan/draf/daftar', { timeoutMs: 15000 });
+        if (!r || !r.ok || !Array.isArray(r.daftar)) {
+          infoDraf('Server belum terjangkau — daftar draf belum bisa dimuat; draf di peramban ini tetap aman.');
           return false;
         }
-        sinkronAwalBerhasil = true;
-        if (!r.ada || !r.data || !Array.isArray(r.data.hari)) {
-          if (paksa) showStatus('Server belum punya draf — yang tampil ini draf peramban ini.', false);
-          return true;
+        daftarDraf = r.daftar;
+        daftarDrafDimuat = true;
+        return true;
+      } catch {
+        infoDraf('Server belum terjangkau — daftar draf belum bisa dimuat; draf di peramban ini tetap aman.');
+        return false;
+      }
+    }
+    // Buka satu berkas draf ke editor. Bila salinan lokal untuk periode
+    // yang sama lebih baru dan berisi, salinan lokal yang dipakai (isi
+    // mengalahkan stempel waktu, 20 Nov 2026) lalu dikirim ke server.
+    async function bukaDraf(id) {
+      if (!id) return false;
+      await simpanJikaAdaIsi();
+      if (typeof workerGet !== 'function') return false;
+      try {
+        const r = await workerGet('/redaksi/api/sepekan/draf?id=' + encodeURIComponent(id), { timeoutMs: 15000 });
+        if (!r || !r.ok || !r.ada || !r.data || !Array.isArray(r.data.hari)) {
+          showStatus('Draf tidak ditemukan di server.', false);
+          return false;
         }
-        drafServerAda = true;
-        drafServerTerakhir = r.diperbarui || 0;
-        serverBerisi = drafBerisi(r.data);
-        const lokalBaru = Number(state.diperbarui || 0);
-        if (paksa && drafTersimpan && lokalBaru > drafServerTerakhir && drafBerisi(state)) {
-          if (!confirm('Draf di peramban ini lebih baru dari draf server. Muat draf server dan ganti draf di sini?')) return true;
-        }
-        // Foto sampul kustom lokal dicatat dulu — bila draf server yang
-        // menang masih memakai foto template, foto lokal dipertahankan
-        // (lihat gabungFotoSampul di bawah).
-        const fotoLokal = { fotoPotret: state.fotoPotret, fotoLapangan: state.fotoLapangan };
-        // 20 Nov 2026: isi mengalahkan stempel waktu. Draf lokal kosong
-        // (mis. template setelah reload) tidak boleh menimpa draf server
-        // yang berisi walau stempelnya lebih baru — draf server yang dipakai.
-        // Draf lokal berisi tetap menang bila lebih baru, dan draf lokal
-        // tanpa stempel (dari sebelum fitur server) tetap diunggah.
-        if (!paksa && drafTersimpan && (lokalBaru === 0 || lokalBaru >= drafServerTerakhir) && (adaKegiatan(state) || !serverBerisi)) {
+        const lokal = muatDraf();
+        const lokalBaru = lokal && lokal.mulai === r.data.mulai && lokal.akhir === r.data.akhir ? Number(lokal.diperbarui || 0) : 0;
+        if (lokal && lokalBaru > (r.diperbarui || 0) && drafBerisi(lokal)) {
+          state = lokal;
+          infoDraf('Draf dibuka dari peramban ini (lebih baru dari server) — mengirim ke server…');
           jadwalSinkronServer();
-          return true;
+        } else {
+          state = r.data;
         }
-        state = r.data;
         ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
         bersihkanKotaNarasi();
         normalisasiPeriode();
         pastikanTindakLanjut();
-        // 22 Nov 2026 (RALAT Bos Besar): draf server dimuat — hanya
-        // butir yang kegiatannya sudah tidak ada di minggu ini yang
-        // dihapus; TIDAK PERNAH ada butir baru otomatis.
+        // 22 Nov 2026 (RALAT Bos Besar): draf dimuat — hanya butir yang
+        // kegiatannya sudah tidak ada di minggu ini yang dihapus; TIDAK
+        // PERNAH ada butir baru otomatis.
         sesuaikanTindakLanjut();
-        // 21 Nov 2026: jangan buang foto sampul kustom lokal bila
-        // server masih memakai foto template — gabungkan lalu kirim
-        // gabungannya ke server supaya foto tidak hilang lagi.
-        const digabung = gabungFotoSampul(state, fotoLokal);
-        const fotoDipulihkan = digabung.fotoPotret !== state.fotoPotret || digabung.fotoLapangan !== state.fotoLapangan;
-        state = digabung;
-        if (fotoDipulihkan) jadwalSinkronServer();
+        drafTerbukaId = r.id || id;
+        drafTerbukaDiubahOleh = r.diubah_oleh || '';
         await tulisDrafLokal();
         tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
-        infoDraf('Draf dimuat dari server ✓ — data terakhir bersama, termasuk foto yang sudah diunggah.');
-        if (paksa) {
-          const jmlKeg = (state.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
-          showStatus('Draf dari server dimuat ✓ — ' + teksPeriode() + ', ' + jmlKeg + ' kegiatan, foto sampul ' + (adaFotoSampulKustom(state) ? 'kustom' : 'template') + (fotoDipulihkan ? ' (foto sampul dari peramban ini dipertahankan dan dikirim ke server).' : '.'), true);
-        }
+        infoDraf('Draf dibuka ✓ — ' + teksPeriode() + ', ' + jumlahKegiatanState() + ' kegiatan' + (drafTerbukaDiubahOleh ? ', terakhir diubah oleh ' + drafTerbukaDiubahOleh : '') + '.');
         return true;
       } catch (e) {
-        infoDraf('Server belum terjangkau — menampilkan draf peramban ini; draf tidak akan hilang, dan draf server akan dimuat begitu terjangkau.');
-        if (paksa) showStatus('Server belum terjangkau — draf yang tampil tetap draf peramban ini.', false);
+        showStatus('Server belum terjangkau — draf tidak bisa dibuka.', false);
         return false;
       }
+    }
+    // Buka salinan lokal (dipakai bila server tidak terjangkau).
+    async function bukaDrafLokal() {
+      const lokal = muatDraf();
+      if (!lokal) { showStatus('Tidak ada draf di peramban ini.', false); return false; }
+      await simpanJikaAdaIsi();
+      state = lokal;
+      ['latar', 'maksud', 'ruang', 'peserta', 'tindak', 'penutup'].forEach((k) => { delete state[k]; });
+      bersihkanKotaNarasi();
+      normalisasiPeriode();
+      pastikanTindakLanjut();
+      sesuaikanTindakLanjut();
+      drafTerbukaId = idDrafDariState();
+      drafTerbukaDiubahOleh = '';
+      tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
+      infoDraf('Draf dibuka dari peramban ini — akan dikirim ke server begitu terjangkau.');
+      jadwalSinkronServer();
+      return true;
+    }
+    // Hapus satu berkas draf di server (dari menu Buka, konfirmasi dulu).
+    // Bila yang dihapus adalah draf yang sedang dibuka, editor kembali
+    // kosong (laporan baru minggu ini).
+    async function hapusDraf(id, labelPeriode) {
+      if (!id) return false;
+      if (!confirm('Hapus draf ' + (labelPeriode || id) + '? Draf yang sudah dihapus tidak bisa dikembalikan.')) return false;
+      try {
+        const r = await workerPost('/redaksi/api/sepekan/draf/hapus', { id }, { timeoutMs: 15000 });
+        if (!r || !r.ok) { showStatus('Draf gagal dihapus di server.', false); return false; }
+        if (drafTerbukaId === id) {
+          drafTerbukaId = null;
+          drafTerbukaDiubahOleh = '';
+          try { localStorage.removeItem(KUNCI_DRAF); } catch {}
+          state = klon(TEMPLATE);
+          state.hari = [];
+          const p = mingguIniIso();
+          state.mulai = p.mulai; state.akhir = p.akhir; state.ttd = p.ttd;
+          tulisStateKeForm(); renderHari(); renderTindakLanjut(); renderPratinjau();
+        }
+        await muatDaftarDraf();
+        renderDaftarDraf();
+        showStatus('Draf ' + (labelPeriode || id) + ' dihapus.', true);
+        return true;
+      } catch {
+        showStatus('Server belum terjangkau — draf tidak bisa dihapus.', false);
+        return false;
+      }
+    }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function formatWaktuRelatif(ms) {
+      if (!ms) return '';
+      const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+      if (s < 60) return 'baru saja';
+      if (s < 3600) return Math.floor(s / 60) + ' menit lalu';
+      if (s < 86400) return Math.floor(s / 3600) + ' jam lalu';
+      return Math.floor(s / 86400) + ' hari lalu';
+    }
+    function formatPeriodeDraf(mulai, akhir) {
+      const f = (iso) => {
+        const p = String(iso || '').split('-');
+        return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : String(iso || '');
+      };
+      return f(mulai) + ' – ' + f(akhir);
+    }
+    // Gambar daftar berkas di panel Buka: periode, terakhir diubah oleh
+    // siapa + kapan, jumlah kegiatan. Bila salinan lokal untuk periode
+    // yang sama lebih baru, diberi lencana supaya tidak tertimpa diam-diam.
+    function renderDaftarDraf() {
+      const wadah = $('sp-daftar-draf');
+      if (!wadah) return;
+      const daftar = daftarDraf || [];
+      const lokal = muatDraf();
+      const lokalId = lokal && lokal.mulai && lokal.akhir ? (lokal.mulai + '_' + lokal.akhir) : '';
+      const entriServer = lokalId ? daftar.find((x) => x.id === lokalId) : null;
+      const lokalLebihBaru = !!(lokal && entriServer && Number(lokal.diperbarui || 0) > Number(entriServer.diperbarui || 0) && drafBerisi(lokal));
+      let html = '';
+      if (!daftarDrafDimuat) {
+        html += '<p class="text-sm text-slate-600 dark:text-slate-400">Daftar draf belum termuat — server belum terjangkau.</p>';
+      } else if (daftar.length === 0) {
+        html += '<p class="text-sm text-slate-600 dark:text-slate-400">Belum ada draf tersimpan di server.</p>';
+      } else {
+        daftar.forEach((x) => {
+          const label = formatPeriodeDraf(x.mulai, x.akhir);
+          const pengubah = x.diubah_oleh ? 'Terakhir diubah oleh <b>' + escapeHtml(x.diubah_oleh) + '</b>' : 'Terakhir diubah';
+          const waktu = x.diperbarui ? ' · ' + formatWaktuRelatif(x.diperbarui) : '';
+          const badge = (lokalLebihBaru && x.id === lokalId) ? ' <span class="rounded-full bg-[#FACC15] px-2 py-0.5 text-xs font-bold text-[#0A2540]">ada perubahan di peramban ini</span>' : '';
+          const sedangDibuka = drafTerbukaId === x.id ? ' <span class="text-xs font-bold text-green-700 dark:text-green-400">(sedang dibuka)</span>' : '';
+          html += '<div class="rounded-xl border border-slate-200 p-3 dark:border-slate-700">'
+            + '<p class="text-sm font-bold">' + escapeHtml(label) + sedangDibuka + '</p>'
+            + '<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">' + pengubah + waktu + ' · ' + (Number(x.jumlah_kegiatan) || 0) + ' kegiatan' + badge + '</p>'
+            + '<div class="mt-2 flex gap-2">'
+            + '<button type="button" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]" data-buka-draf="' + escapeHtml(x.id) + '">Buka</button>'
+            + '<button type="button" class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950" data-hapus-draf="' + escapeHtml(x.id) + '" data-label-draf="' + escapeHtml(label) + '">Hapus</button>'
+            + '</div></div>';
+        });
+      }
+      // Salinan lokal bila server tidak terjangkau, atau bila belum ada
+      // berkas server untuk periode itu (pekerjaan yang belum disimpan).
+      if (lokal && (!daftarDrafDimuat || (lokalId && !entriServer))) {
+        const label = formatPeriodeDraf(lokal.mulai, lokal.akhir);
+        const jml = (lokal.hari || []).reduce((n, h) => n + ((h.kegiatan || []).length), 0);
+        html += '<div class="rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-600">'
+          + '<p class="text-sm font-bold">Draf di peramban ini — ' + escapeHtml(label) + '</p>'
+          + '<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">' + jml + ' kegiatan · belum tersimpan di server</p>'
+          + '<div class="mt-2 flex gap-2"><button type="button" class="rounded-lg bg-[#0A2540] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123a66]" data-buka-lokal="1">Buka draf ini</button></div></div>';
+      }
+      wadah.innerHTML = html;
+    }
+    async function bukaPanelBuka() {
+      const panel = $('sp-panel-buka');
+      if (!panel) return;
+      panel.classList.remove('hidden');
+      renderDaftarDraf();
+      await muatDaftarDraf();
+      renderDaftarDraf();
+    }
+    function tutupPanelBuka() {
+      const panel = $('sp-panel-buka');
+      if (panel) panel.classList.add('hidden');
     }
     function showStatus(pesan, ok) {
       const el = $('status');
@@ -3036,13 +3212,18 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       $('sp-unduh').addEventListener('click', unduhPdf);
       // Simpan Draft (21 Nov 2026, perintah Bos Besar):
       // simpan manual dengan konfirmasi (termasuk 2 foto sampul) — supaya
-      // foto sampul tidak hilang tiap login ulang. (Tombol 📂 Buka Draft,
-      // Muat Ulang Template, dan Bersihkan Draf DIHAPUS 22 Nov 2026 atas
-      // perintah Bos Besar.)
+      // foto sampul tidak hilang tiap login ulang. Model Word (27 Nov
+      // 2026): Simpan membuat/memperbarui berkas draf periode ini di
+      // server (tercatat siapa terakhir mengubahnya); laporan yang masih
+      // kosong tidak dibuatkan berkas.
       $('sp-simpan-draf').addEventListener('click', async () => {
         const btn = $('sp-simpan-draf');
         if (!btn) return;
         bacaFormKeState();
+        if (!drafTerbukaId && !drafBerisi(state)) {
+          showStatus('Laporan masih kosong — belum ada yang disimpan. Buka draf lewat 📂 Buka Draft atau mulai laporan baru lewat ➕ Baru.', false);
+          return;
+        }
         btn.disabled = true;
         btn.textContent = 'Menyimpan…';
         try {
@@ -3052,6 +3233,42 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
           else if (h.serverOk) showStatus('Draf tersimpan di server ✓ (penyimpanan peramban penuh).', true);
           else showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh (walau foto sudah diperkecil)' + (galatServerTerakhir ? ' dan server: ' + galatServerTerakhir : ' dan server tidak terjangkau') + '. Jangan keluar dulu; coba lagi.', false);
         } finally { btn.disabled = false; btn.textContent = '💾 Simpan Draft'; }
+      });
+      // Buka Draft + Baru (model Word, 27 Nov 2026).
+      $('sp-buka-draf').addEventListener('click', () => { bukaPanelBuka(); });
+      $('sp-baru').addEventListener('click', async () => {
+        const btn = $('sp-baru');
+        if (!btn) return;
+        btn.disabled = true;
+        try { await baruLaporan(); } finally { btn.disabled = false; }
+      });
+      $('sp-tutup-buka').addEventListener('click', tutupPanelBuka);
+      $('sp-panel-buka').addEventListener('click', (e) => { if (e.target && e.target.id === 'sp-panel-buka') tutupPanelBuka(); });
+      $('sp-muat-ulang-daftar').addEventListener('click', async () => {
+        await muatDaftarDraf();
+        renderDaftarDraf();
+      });
+      $('sp-daftar-draf').addEventListener('click', async (e) => {
+        const t = e.target && e.target.closest ? e.target.closest('button') : null;
+        if (!t) return;
+        const idBuka = t.getAttribute('data-buka-draf');
+        const idHapus = t.getAttribute('data-hapus-draf');
+        if (t.getAttribute('data-buka-lokal')) {
+          tutupPanelBuka();
+          await bukaDrafLokal();
+          return;
+        }
+        if (idBuka) {
+          t.disabled = true;
+          try {
+            const ok = await bukaDraf(idBuka);
+            if (ok) tutupPanelBuka();
+          } finally { t.disabled = false; }
+          return;
+        }
+        if (idHapus) {
+          await hapusDraf(idHapus, t.getAttribute('data-label-draf') || idHapus);
+        }
       });
       // Lihat Pratinjau: masuk ke HALAMAN pratinjau sendiri (?pratinjau=1),
       // bukan lagi menggulir ke pratinjau di bawah form (Nov 2026, atas
@@ -3067,7 +3284,10 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       // yang baru diunggah.
       $('sp-lihat').addEventListener('click', async () => {
         bacaFormKeState();
-        const hasil = await simpanDrafSegera();
+        // Model Word: laporan kosong tanpa draf dibuka tidak perlu
+        // disimpan dulu (tidak ada berkas yang dibuat).
+        let hasil = { lokalOk: true, serverOk: true };
+        if (drafTerbukaId || drafBerisi(state)) hasil = await simpanDrafSegera();
         if (!hasil.lokalOk && !hasil.serverOk) {
           showStatus('Draf BELUM tersimpan — penyimpanan peramban penuh dan server tidak terjangkau. Pratinjau akan menampilkan draf lama.', false);
           if (!confirm('Draf belum tersimpan (penyimpanan peramban penuh dan server tidak terjangkau). Pratinjau akan menampilkan draf lama tanpa foto yang baru diunggah. Tetap buka pratinjau?')) return;
@@ -3086,17 +3306,14 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // terpotong kiri-kanan di HP (Nov 2026).
     window.__kelolaSetelahLogin = () => {
       sesuaikanSkala();
-      // 27 Nov 2026: sinkron awal jalan saat halaman dimuat — bila sesi
-      // login belum pulih (kedaluwarsa), sinkron gagal dan draf server
-      // tidak tampil walau login lalu berhasil. Coba ulang setelah login,
-      // menunggu sinkron awal selesai dulu. Aturan gabung yang sama
-      // berlaku (isi mengalahkan stempel waktu), jadi editan lokal yang
-      // berisi tidak tertimpa.
-      if (janjiSinkronAwal) {
-        janjiSinkronAwal.then(() => {
-          if (!sinkronAwalBerhasil) sinkronDrafServerAwal().then(() => {
-            if (sinkronAwalBerhasil && !drafTersimpan && !drafServerAda) setMingguIni();
-          });
+      // Model Word (27 Nov 2026): pemuatan daftar draf jalan saat
+      // halaman dimuat — bila sesi login belum pulih (kedaluwarsa),
+      // pemuatan gagal dan daftar tidak tampil walau login lalu
+      // berhasil. Coba ulang setelah login, menunggu pemuatan awal
+      // selesai dulu (perbaikan 27 Nov 2026 atas draf yang "hilang").
+      if (janjiDaftarDraf) {
+        janjiDaftarDraf.then(() => {
+          if (!daftarDrafDimuat) muatDaftarDraf();
         });
       }
     };
@@ -3123,16 +3340,17 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     tulisStateKeForm();
     hubungkanForm();
     renderPratinjau();
-    // Bila belum ada draf tersimpan, isi laporan otomatis dari berita
-    // minggu berjalan (Senin–Sabtu) — tidak perlu mengetuk Tarik Berita.
-    // Draf yang sudah ada tidak disentuh supaya editan manual tidak tertimpa.
-    // 20 Nov 2026: di mode pratinjau pun muat dulu draf server — pratinjau
-    // yang dibuka langsung (?pratinjau=1) sebelumnya hanya membaca draf
-    // lokal, sehingga tampak kosong walau draf ada di server. Tarik
-    // otomatis hanya jalan bila sinkron awal berhasil memastikan memang
-    // tidak ada draf di mana pun — bukan saat server belum terjangkau.
-    janjiSinkronAwal = sinkronDrafServerAwal().then(() => {
-      if (sinkronAwalBerhasil && !drafTersimpan && !drafServerAda) setMingguIni();
+    // Model Word (27 Nov 2026): aplikasi dibuka kosong — yang dimuat
+    // saat boot hanyalah DAFTAR draf (untuk menu Buka), bukan isi draf.
+    // Berita tidak ditarik otomatis saat dibuka; tarikan jalan saat
+    // laporan baru dibuat (➕ Baru / "Set ke minggu ini") atau periode
+    // diubah. Di mode pratinjau yang dibuka langsung (?pratinjau=1)
+    // tanpa salinan lokal, draf terbaru dibuka supaya pratinjau tidak
+    // tampak kosong.
+    janjiDaftarDraf = muatDaftarDraf().then(async () => {
+      if (MODE_PRATINJAU && !drafTersimpan && daftarDraf.length > 0) {
+        await bukaDraf(daftarDraf[0].id);
+      }
     });
     // Font web (Plus Jakarta Sans) bisa termuat setelah render pertama;
     // render ulang setelah font siap supaya paginasi memakai metrik font
