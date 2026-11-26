@@ -1297,6 +1297,9 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // jadi template kosong (halaman dimuat ulang saat server belum
     // terjangkau) dan mengirimnya akan menimpa draf berisi di server.
     let sinkronAwalBerhasil = false;
+    // 27 Nov 2026: janji sinkron awal — hook login menunggu janji ini
+    // selesai dulu sebelum mencoba ulang, supaya tidak ada dua sinkron
+    // berjalan bersamaan.
     // Apakah draf di server (saat terakhir berhasil dimuat) berisi
     // kegiatan atau foto sampul kustom — dipakai penjaga "isi
     // mengalahkan stempel waktu".
@@ -3080,7 +3083,22 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // jalan saat init mengukur wadah tersembunyi (clientWidth 0) lalu
     // memakai skala 1, sehingga halaman F4 813px meluber dan pratinjau
     // terpotong kiri-kanan di HP (Nov 2026).
-    window.__kelolaSetelahLogin = () => { sesuaikanSkala(); };
+    window.__kelolaSetelahLogin = () => {
+      sesuaikanSkala();
+      // 27 Nov 2026: sinkron awal jalan saat halaman dimuat — bila sesi
+      // login belum pulih (kedaluwarsa), sinkron gagal dan draf server
+      // tidak tampil walau login lalu berhasil. Coba ulang setelah login,
+      // menunggu sinkron awal selesai dulu. Aturan gabung yang sama
+      // berlaku (isi mengalahkan stempel waktu), jadi editan lokal yang
+      // berisi tidak tertimpa.
+      if (janjiSinkronAwal) {
+        janjiSinkronAwal.then(() => {
+          if (!sinkronAwalBerhasil) sinkronDrafServerAwal().then(() => {
+            if (sinkronAwalBerhasil && !drafTersimpan && !drafServerAda) setMingguIni();
+          });
+        });
+      }
+    };
     // Mode pratinjau (?pratinjau=1): sembunyikan editor + kepala halaman,
     // tampilkan hanya bar kembali + pratinjau. Mode editor: sebaliknya —
     // pratinjau TIDAK tampil di bawah form (tetap dirender tersembunyi
@@ -3112,7 +3130,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // lokal, sehingga tampak kosong walau draf ada di server. Tarik
     // otomatis hanya jalan bila sinkron awal berhasil memastikan memang
     // tidak ada draf di mana pun — bukan saat server belum terjangkau.
-    sinkronDrafServerAwal().then(() => {
+    janjiSinkronAwal = sinkronDrafServerAwal().then(() => {
       if (sinkronAwalBerhasil && !drafTersimpan && !drafServerAda) setMingguIni();
     });
     // Font web (Plus Jakarta Sans) bisa termuat setelah render pertama;
