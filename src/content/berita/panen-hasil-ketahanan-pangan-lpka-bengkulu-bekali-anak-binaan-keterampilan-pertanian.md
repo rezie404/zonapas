@@ -13,6 +13,7 @@ breakingSince: "2026-11-26T06:37:55.554Z"
 upt: "LPKA Kelas II Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocK9wv11IJnj4WVCNFpUGK5vNwZSsjRsfaEix8b38H3sECKi7ec7=s96-c"
 source: "zonapas"
+jurnalpas_id: 569
 ---
 
 **Bengkulu** – Terus memperkuat pembinaan kemandirian, Lembaga Pembinaan Khusus Anak (LPKA) Kelas II Bengkulu melaksanakan kegiatan panen hasil ketahanan pangan dengan melibatkan Anak Binaan di lahan ketahanan pangan LPKA Bengkulu, Kamis (26/11/2026).
