@@ -843,13 +843,28 @@ export async function main(argv = process.argv.slice(2)) {
   writeFileSync(join(root, '.github', 'notify-created.json'), `${JSON.stringify(dibuat, null, 2)}\n`);
   if (dibuat.length) console.log(`Artikel baru untuk notifikasi email: ${dibuat.map((n) => n.path).join(', ')}.`);
   // Commit kembali jurnalpas_id yang baru dibuat (dengan [skip ci]).
+  // 26 Nov 2026: dorongan langsung gagal berulang — tiap artikel terbit
+  // menghasilkan 3 commit dalam 1 menit, jadi head repo sering sudah
+  // bergerak di antara checkout dan push. Tarik dulu perubahan terbaru
+  // (rebase) sebelum mendorong, dan coba sampai 3 kali.
   if (!dryRun && newIds.length) {
     try {
       execFileSync('git', ['config', 'user.name', 'ZonaPas Sync'], { cwd: root });
       execFileSync('git', ['config', 'user.email', 'zonapas-sync@users.noreply.github.com'], { cwd: root });
       execFileSync('git', ['add', ...newIds.map((n) => n.path)], { cwd: root });
       execFileSync('git', ['commit', '-m', `Catat jurnalpas_id untuk ${newIds.length} artikel [skip ci]`], { cwd: root });
-      execFileSync('git', ['push', 'origin', 'HEAD:main'], { cwd: root });
+      let terdorong = false;
+      for (let percobaan = 1; percobaan <= 3 && !terdorong; percobaan++) {
+        try {
+          execFileSync('git', ['pull', '--rebase', 'origin', 'main'], { cwd: root });
+          execFileSync('git', ['push', 'origin', 'HEAD:main'], { cwd: root });
+          terdorong = true;
+        } catch (err) {
+          console.log(`  ! Dorong jurnalpas_id gagal (percobaan ${percobaan}/3): ${String(err.message || err).slice(0, 200)}`);
+          try { execFileSync('git', ['rebase', '--abort'], { cwd: root }); } catch { /* tidak sedang rebase */ }
+        }
+      }
+      if (!terdorong) throw new Error('gagal mendorong commit jurnalpas_id setelah 3 percobaan');
       console.log(`jurnalpas_id dicatat kembali untuk ${newIds.length} artikel: ${newIds.map((n) => `${n.path} → ${n.id}`).join(', ')}`);
     } catch (err) {
       console.log('ERROR: gagal commit kembali jurnalpas_id. Post sudah terbit di JurnalPas, tetapi ID belum tercatat di repo.');
