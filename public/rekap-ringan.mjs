@@ -169,28 +169,24 @@ export function hitungRekap(data) {
 // perintah Bos Besar): butir kedua dari judul yang sama ditukar dengan
 // butir berbeda judul terdekat di bawahnya, supaya daftar tidak tampak
 // seperti duplikat beruntun.
-// Teks SELALU diawali tautan ZonaPas (26 Nov 2026, perintah Bos Besar):
-// baris pertama https://zonapas.web.id, lalu baris kosong, baru salam.
-// PENGECUALIAN (26 Nov 2026, perintah Bos Besar): bila ZonaPas TIDAK
-// menerbitkan berita apa pun pada tanggal laporan itu, aturan kembali
-// ke sebelumnya — teks TANPA tautan di awal, langsung salam seperti
-// dulu. Penanda dikirim lewat data.zonapasAdaBerita (false = tidak ada
-// berita ZonaPas hari itu); bila penanda tidak ada, tautan tetap
-// dipakai (aturan dasarnya "selalu").
-// Butir PERTAMA daftar harus tautan ZonaPas (26 Nov 2026, perintah
-// Bos Besar: "link pertama yg dishare adalah link zonapas"): bila
-// butir pertama bukan tautan zonapas.web.id, tautan ZonaPas pertama
-// dalam daftar dipindah ke posisi paling depan; bila tidak ada satu
-// pun tautan ZonaPas hari itu, urutan dibiarkan apa adanya. Aturan
-// ini memakai pengecualian yang sama (hanya bila zonapasAdaBerita).
+// Teks diawali salam seperti semula (26 Nov 2026): tautan ZonaPas di
+// baris pertama DIBATALKAN 26 Nov 2026 ~21.36 WIB (perintah Bos Besar:
+// "Hapus ini, kenapa ad alamat web zonapas sebelum assalamualaikum,
+// hapus") — tautan itu membuat WhatsApp menampilkan kartu pratinjau
+// situs sebelum salam, jadi dihapus; teks kembali langsung salam.
+// Aturan yang TETAP BERLAKU: butir PERTAMA daftar harus tautan
+// ZonaPas (26 Nov 2026, perintah Bos Besar: "link pertama yg dishare
+// adalah link zonapas"): bila butir pertama bukan tautan
+// zonapas.web.id, tautan ZonaPas pertama dalam daftar dipindah ke
+// posisi paling depan; bila tidak ada satu pun tautan ZonaPas hari
+// itu, urutan dibiarkan apa adanya. Aturan butir pertama ini hanya
+// berlaku bila ZonaPas menerbitkan berita pada tanggal laporan itu
+// (penanda data.zonapasAdaBerita; bila penanda tidak ada, aturan
+// tetap dipakai).
 export function bangunTeksWa(data) {
   const hitung = hitungRekap(data);
   const tglPanjang = tanggalIndonesia(hitung.tanggal);
   const baris = [];
-  if (data.zonapasAdaBerita !== false) {
-    baris.push("https://zonapas.web.id");
-    baris.push("");
-  }
   baris.push("Assalamualaikum Wr. Wb.");
   baris.push("");
   baris.push("Mohon izin menyampaikan Rekapitulasi Berita Online dari Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu.");
@@ -233,6 +229,9 @@ export function bangunTeksWa(data) {
   for (const pas of perUptDitukar) for (const p of pas) if (!p.massa) semua.push(p);
   // Butir pertama harus tautan ZonaPas (26 Nov 2026, perintah Bos Besar):
   // pindahkan tautan ZonaPas pertama dalam daftar ke posisi paling depan.
+  // Hanya bila ZonaPas menerbitkan berita pada tanggal laporan itu
+  // (zonapasAdaBerita !== false); bila tidak ada berita hari itu,
+  // urutan dibiarkan apa adanya.
   const adalahTautanZonaPas = (u) => { const s = String(u || ''); return s === 'https://zonapas.web.id' || s.startsWith('https://zonapas.web.id/'); };
   if (data.zonapasAdaBerita !== false) {
     const idxZona = semua.findIndex((p) => adalahTautanZonaPas(p.url));

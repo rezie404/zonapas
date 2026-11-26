@@ -280,7 +280,7 @@ const PLATFORM = [
     // Hitung + tanggal dari modul RINGAN (dimuat saat buka halaman).
     // Pembangun DOCX/PDF (rekap-laporan.mjs, berat) dimuat MALAS hanya
     // saat mengunduh laporan — lihat unduhLaporan().
-    import { bangunTeksWa, hitungRekap, namaFileLaporan, namaFileLaporanBulanan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=11';
+    import { bangunTeksWa, hitungRekap, namaFileLaporan, namaFileLaporanBulanan, tanggalIndonesia, tanggalIndonesiaTanpaHari } from '/rekap-ringan.mjs?v=12';
 
     // Helper + API dari kelola-umum.js (script klasik, dimuat di atas):
     // $, on, esc, showStatus, workerGet, workerPost, workerApi, todayISO, peran.
@@ -860,12 +860,13 @@ const PLATFORM = [
     // ---------- Laporan versi chat WA: salin teks (20 Nov 2026) ----------
     // Teks dibangun dari data yang sama dengan PDF/Word (rekapDataLaporan),
     // jadi jumlah butirnya sama persis dengan laporan hari itu.
-    // Tautan ZonaPas di awal teks (26 Nov 2026, perintah Bos Besar) hanya
-    // bila ZonaPas menerbitkan berita pada tanggal laporan itu — diperiksa
-    // lewat /search-index.json (medan `tanggal` ISO per artikel). Bila
-    // tidak ada berita hari itu, teks kembali seperti sebelumnya (tanpa
-    // tautan di awal). Bila indeks gagal dimuat, tautan tetap dipakai
-    // (aturan dasarnya "selalu").
+    // Butir pertama daftar harus tautan ZonaPas (26 Nov 2026, perintah
+    // Bos Besar) hanya bila ZonaPas menerbitkan berita pada tanggal
+    // laporan itu — diperiksa lewat /search-index.json (medan `tanggal`
+    // ISO per artikel). Bila tidak ada berita hari itu, urutan dibiarkan
+    // apa adanya. Bila indeks gagal dimuat, aturan tetap dipakai
+    // (aturan dasarnya "selalu"). Tautan ZonaPas di baris pertama
+    // DIBATALKAN 26 Nov 2026 ~21.36 WIB (kartu pratinjau WhatsApp).
     async function salinTeksWa() {
       const btn = $('btn-salin-wa');
       try {
