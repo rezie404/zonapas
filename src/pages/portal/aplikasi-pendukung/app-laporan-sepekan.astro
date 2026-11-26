@@ -1300,6 +1300,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
     // 27 Nov 2026: janji sinkron awal — hook login menunggu janji ini
     // selesai dulu sebelum mencoba ulang, supaya tidak ada dua sinkron
     // berjalan bersamaan.
+    let janjiSinkronAwal = null;
     // Apakah draf di server (saat terakhir berhasil dimuat) berisi
     // kegiatan atau foto sampul kustom — dipakai penjaga "isi
     // mengalahkan stempel waktu".
