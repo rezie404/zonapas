@@ -9,7 +9,7 @@ image: "/images/ujian-penyesuaian-ijazah-berlangsung-kanwil-ditjenpas-bengkulu-p
 imageCaption: "Dokumentasi kegiatan. (ZonaPas)"
 featured: false
 breaking: true
-breakingSince: "2026-11-26T08:46:25.353Z"
+breakingSince: "2026-11-26T08:46:43.443Z"
 upt: "Semua UPT Pemasyarakatan Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-dF5qp1HZJdaM59OJDtPgsvvXbpSEOeOXMjqbXbReCM-je7q-=s96-c"
 source: "zonapas"
