@@ -1749,6 +1749,44 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       spCrop = null;
       spCropTutup();
     }
+    // Kompresi foto otomatis (27 Nov 2026, perintah Bos Besar: bila foto
+    // yang diunggah membebani penyimpanan, kompres otomatis sampai batas
+    // yang tidak begitu merusak kualitas). Semua foto unggahan masuk
+    // lewat spCropHasil, jadi satu titik ini yang dikompres — foto dari
+    // Tarik Berita tidak disentuh (berkas situs, bukan unggahan).
+    // Anggaran per foto: sekitar 400 KB. Turun bertahap: kualitas JPEG
+    // 0.85 -> 0.78 -> 0.70 pada lebar penuh, lalu perkecil lebar ke
+    // 1000 lalu 800 piksel. Lantai: tidak pernah di bawah kualitas 0.70
+    // atau lebar 800 piksel — di bawah itu kerusakan mulai terlihat.
+    const KOMPRES_FOTO_ANGGARAN_BAIT = 400 * 1024;
+    function kompresFotoUkuranBait(urlData) {
+      const awalan = urlData.indexOf(',') + 1;
+      return Math.round((urlData.length - awalan) * 3 / 4);
+    }
+    function kompresFotoPerkecil(canvas, lebarBaru) {
+      const c = document.createElement('canvas');
+      const skala = lebarBaru / canvas.width;
+      c.width = lebarBaru;
+      c.height = Math.max(1, Math.round(canvas.height * skala));
+      c.getContext('2d').drawImage(canvas, 0, 0, c.width, c.height);
+      return c;
+    }
+    function kompresFotoDariCanvas(canvas) {
+      let kanvas = canvas;
+      for (const kualitas of [0.85, 0.78, 0.70]) {
+        const url = kanvas.toDataURL('image/jpeg', kualitas);
+        if (kompresFotoUkuranBait(url) <= KOMPRES_FOTO_ANGGARAN_BAIT) return url;
+      }
+      for (const lebar of [1000, 800]) {
+        if (kanvas.width <= lebar) continue;
+        kanvas = kompresFotoPerkecil(kanvas, lebar);
+        for (const kualitas of [0.78, 0.70]) {
+          const url = kanvas.toDataURL('image/jpeg', kualitas);
+          if (kompresFotoUkuranBait(url) <= KOMPRES_FOTO_ANGGARAN_BAIT) return url;
+        }
+      }
+      return kanvas.toDataURL('image/jpeg', 0.70);
+    }
     function spCropHasil(st) {
       const maxLebar = st.maxLebar || 1000;
       if (!st.rasio) {
@@ -1757,7 +1795,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
         c.width = Math.max(1, Math.round(st.alamiW * skala));
         c.height = Math.max(1, Math.round(st.alamiH * skala));
         c.getContext('2d').drawImage(st.img, 0, 0, c.width, c.height);
-        return c.toDataURL('image/jpeg', 0.85);
+        return kompresFotoDariCanvas(c);
       }
       const fr = spCropFrame();
       const dw = st.alamiW * st.skala, dh = st.alamiH * st.skala;
@@ -1771,7 +1809,7 @@ const authorInfoMap = Object.fromEntries(Object.values(AUTHORS).map((a) => [a.na
       c.width = Math.max(1, Math.round(sw * skala));
       c.height = Math.max(1, Math.round(sh * skala));
       c.getContext('2d').drawImage(st.img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-      return c.toDataURL('image/jpeg', 0.85);
+      return kompresFotoDariCanvas(c);
     }
     function spCropKonfirmasi() {
       const st = spCrop;
