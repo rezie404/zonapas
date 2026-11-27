@@ -13,6 +13,7 @@ breakingSince: "2026-11-26T08:46:43.443Z"
 upt: "Kanwil Ditjenpas Bengkulu"
 authorImage: "https://lh3.googleusercontent.com/a/ACg8ocI-dF5qp1HZJdaM59OJDtPgsvvXbpSEOeOXMjqbXbReCM-je7q-=s96-c"
 source: "zonapas"
+jurnalpas_id: 570
 ---
 
 **Bengkulu** – Kantor Wilayah Direktorat Jenderal Pemasyarakatan Bengkulu melaksanakan Ujian Penyesuaian Ijazah pada Kamis (26/11/2026), dengan melibatkan Biro SDM Sekretariat Jenderal Kementerian Imigrasi dan Pemasyarakatan serta tim Badan Kepegawaian Negara (BKN). Kegiatan ini merupakan bagian dari proses pengembangan kompetensi dan peningkatan kualitas sumber daya manusia di lingkungan Kementerian Imigrasi dan Pemasyarakatan.
